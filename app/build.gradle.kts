@@ -44,7 +44,7 @@ android {
 
     defaultConfig {
         applicationId = if (isEnterpriseBuild) {
-            "org.therevivalists.app.enterprise"
+            "org.therevivalists.app"
         } else {
             "org.therevivalists.app"
         }
@@ -98,7 +98,7 @@ android {
     }
 
     val baseAppName = if (isEnterpriseBuild) {
-        "The Revivalists Enterprise"
+        "The Revivalists"
     } else {
         "The Revivalists"
     }
