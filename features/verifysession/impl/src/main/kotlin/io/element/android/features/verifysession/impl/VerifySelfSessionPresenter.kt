@@ -117,7 +117,7 @@ class VerifySelfSessionPresenter @AssistedInject constructor(
         return VerifySelfSessionState(
             verificationFlowStep = verificationFlowStep,
             signOutAction = signOutAction.value,
-            displaySkipButton = buildMeta.isDebuggable,
+            displaySkipButton = true,
             eventSink = ::handleEvents,
         )
     }

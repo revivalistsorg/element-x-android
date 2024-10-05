@@ -12,7 +12,7 @@
 
     <!--  Do not enable enableOnBackInvokedCallback until https://issuetracker.google.com/issues/271303558 is fixed -->
     <application
-        android:name=".ElementXApplication"
+        android:name="io.element.android.x.ElementXApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="false"
@@ -36,7 +36,7 @@
         </provider>
 
         <activity
-            android:name=".MainActivity"
+            android:name="io.element.android.x.MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
             android:exported="true"
             android:launchMode="singleTop"
@@ -115,7 +115,7 @@
         <activity-alias
             android:name=".ShareActivity"
             android:exported="true"
-            android:targetActivity=".MainActivity">
+            android:targetActivity="io.element.android.x.MainActivity">
             <!-- Incoming share simple -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

@@ -40,13 +40,13 @@ plugins {
 setupKover()
 
 android {
-    namespace = "io.element.android.x"
+    namespace = "org.therevivalists.app"
 
     defaultConfig {
         applicationId = if (isEnterpriseBuild) {
-            "io.element.enterprise"
+            "org.therevivalists.app.enterprise"
         } else {
-            "io.element.android.x"
+            "org.therevivalists.app"
         }
         targetSdk = Versions.targetSdk
         versionCode = Versions.versionCode
@@ -98,9 +98,9 @@ android {
     }
 
     val baseAppName = if (isEnterpriseBuild) {
-        "Element Enterprise"
+        "The Revivalists Enterprise"
     } else {
-        "Element X"
+        "The Revivalists"
     }
     logger.warnInBox("Building $baseAppName")
 

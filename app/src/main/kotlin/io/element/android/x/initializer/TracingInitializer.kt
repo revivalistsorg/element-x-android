@@ -19,7 +19,7 @@ import io.element.android.libraries.core.meta.BuildType
 import io.element.android.libraries.matrix.api.tracing.TracingConfiguration
 import io.element.android.libraries.matrix.api.tracing.TracingFilterConfigurations
 import io.element.android.libraries.matrix.api.tracing.WriteToFilesConfiguration
-import io.element.android.x.BuildConfig
+import org.therevivalists.app.BuildConfig
 import io.element.android.x.di.AppBindings
 import timber.log.Timber
 

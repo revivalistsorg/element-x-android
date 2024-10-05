@@ -9,7 +9,7 @@ package io.element.android.x.info
 
 import android.content.Context
 import io.element.android.libraries.androidutils.system.getVersionCodeFromManifest
-import io.element.android.x.BuildConfig
+import org.therevivalists.app.BuildConfig
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.Date
