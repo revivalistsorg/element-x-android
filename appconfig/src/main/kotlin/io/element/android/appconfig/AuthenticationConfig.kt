@@ -8,7 +8,7 @@
 package io.element.android.appconfig
 
 object AuthenticationConfig {
-    const val MATRIX_ORG_URL = "https://betachat.the-revivalists.org"
+    const val MATRIX_ORG_URL = "https://chat.the-revivalists.org"
 
     /**
      * Default homeserver url to sign in with, unless the user selects a different one.
