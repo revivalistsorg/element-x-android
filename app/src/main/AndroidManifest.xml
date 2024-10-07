@@ -115,7 +115,7 @@
         <activity-alias
             android:name=".ShareActivity"
             android:exported="true"
-            android:targetActivity="io.element.android.x.MainActivity">
+            android:targetActivity=".MainActivity">
             <!-- Incoming share simple -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
