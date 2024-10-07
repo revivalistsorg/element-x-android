@@ -40,7 +40,7 @@ plugins {
 setupKover()
 
 android {
-    namespace = "org.therevivalists.app"
+    namespace = "io.element.android.x"
 
     defaultConfig {
         applicationId = if (isEnterpriseBuild) {

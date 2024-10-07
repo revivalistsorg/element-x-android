@@ -27,13 +27,13 @@ import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.di.ApplicationContext
 import io.element.android.libraries.di.CacheDirectory
 import io.element.android.libraries.di.SingleIn
+import io.element.android.x.BuildConfig
+import io.element.android.x.R
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.plus
-import org.therevivalists.app.BuildConfig
-import org.therevivalists.app.R
 import java.io.File
 
 @Module
