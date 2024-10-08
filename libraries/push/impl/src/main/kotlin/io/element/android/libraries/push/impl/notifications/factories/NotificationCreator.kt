@@ -370,7 +370,7 @@ class DefaultNotificationCreator @Inject constructor(
             .setContentTitle(buildMeta.applicationName)
             .setContentText(stringProvider.getString(R.string.notification_test_push_notification_content))
             .setSmallIcon(CommonDrawables.ic_notification_small)
-            .setLargeIcon(getBitmap(R.drawable.element_logo_green))
+            .setLargeIcon(getBitmap(io.element.android.libraries.designsystem.R.drawable.revivalist_logo_shot))
             .setColor(accentColor)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
