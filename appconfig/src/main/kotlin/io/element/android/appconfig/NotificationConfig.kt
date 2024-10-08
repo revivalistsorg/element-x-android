@@ -21,5 +21,5 @@ object NotificationConfig {
     const val SUPPORT_QUICK_REPLY_ACTION = false
 
     @ColorInt
-    val NOTIFICATION_ACCENT_COLOR: Int = Color.parseColor("#FF0DBD8B")
+    val NOTIFICATION_ACCENT_COLOR: Int = Color.parseColor("#FFC79D62")
 }
