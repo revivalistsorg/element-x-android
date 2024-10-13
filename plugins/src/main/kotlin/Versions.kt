@@ -50,7 +50,7 @@ private const val versionMinor = 6
 private const val versionPatch = 5
 
 object Versions {
-    val versionCode = 4_000_000 + versionMajor * 1_00_00 + versionMinor * 1_00 + versionPatch
+    val versionCode = 22_000_000 + versionMajor * 1_00_00 + versionMinor * 1_00 + versionPatch
     val versionName = "$versionMajor.$versionMinor.$versionPatch"
     const val compileSdk = 34
     const val targetSdk = 34
