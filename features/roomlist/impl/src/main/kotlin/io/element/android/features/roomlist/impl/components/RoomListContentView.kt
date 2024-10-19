@@ -194,6 +194,7 @@ private fun RoomsViewList(
                     )
                 }
             }
+            /* 
             SecurityBannerState.RecoveryKeyConfirmation -> {
                 item {
                     ConfirmRecoveryKeyBanner(
@@ -202,6 +203,7 @@ private fun RoomsViewList(
                     )
                 }
             }
+            */
             SecurityBannerState.NeedsNativeSlidingSyncMigration -> {
                 item {
                     NativeSlidingSyncMigrationBanner(
