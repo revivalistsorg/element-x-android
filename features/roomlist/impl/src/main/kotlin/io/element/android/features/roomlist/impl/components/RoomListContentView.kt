@@ -186,7 +186,6 @@ private fun RoomsViewList(
         contentPadding = PaddingValues(bottom = 80.dp)
     ) {
         when (state.securityBannerState) {
-            /*
             SecurityBannerState.SetUpRecovery -> {
                 item {
                     SetUpRecoveryKeyBanner(
@@ -204,7 +203,6 @@ private fun RoomsViewList(
                     )
                 }
             }
-            */
             SecurityBannerState.NeedsNativeSlidingSyncMigration -> {
                 item {
                     NativeSlidingSyncMigrationBanner(
