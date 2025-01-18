@@ -111,7 +111,7 @@ class RoomListPresenter @Inject constructor(
             client.getUserProfile()
         }
 
-        var securityBannerDismissed by rememberSaveable { mutableStateOf(false) }
+        var securityBannerDismissed by rememberSaveable { mutableStateOf(true) }
 
         // Avatar indicator
         val showAvatarIndicator by indicatorService.showRoomListTopBarIndicator()
