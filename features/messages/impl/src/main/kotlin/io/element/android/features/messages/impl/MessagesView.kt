@@ -32,10 +32,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,14 +50,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
-import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.messages.impl.actionlist.ActionListEvents
 import io.element.android.features.messages.impl.actionlist.ActionListView
 import io.element.android.features.messages.impl.actionlist.model.TimelineItemAction
-import io.element.android.features.messages.impl.attachments.Attachment
 import io.element.android.features.messages.impl.crypto.identity.IdentityChangeStateView
 import io.element.android.features.messages.impl.messagecomposer.AttachmentsBottomSheet
-import io.element.android.features.messages.impl.messagecomposer.AttachmentsState
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerEvents
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerView
 import io.element.android.features.messages.impl.messagecomposer.suggestions.SuggestionsPickerView
@@ -69,7 +64,7 @@ import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBan
 import io.element.android.features.messages.impl.timeline.FOCUS_ON_PINNED_EVENT_DEBOUNCE_DURATION_IN_MILLIS
 import io.element.android.features.messages.impl.timeline.TimelineEvents
 import io.element.android.features.messages.impl.timeline.TimelineView
-import io.element.android.features.messages.impl.timeline.components.JoinCallMenuItem
+import io.element.android.features.messages.impl.timeline.components.CallMenuItem
 import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionBottomSheet
 import io.element.android.features.messages.impl.timeline.components.customreaction.CustomReactionEvents
 import io.element.android.features.messages.impl.timeline.components.reactionsummary.ReactionSummaryEvents
@@ -81,10 +76,9 @@ import io.element.android.features.messages.impl.voicemessages.composer.VoiceMes
 import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessagePermissionRationaleDialog
 import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessageSendingFailedDialog
 import io.element.android.features.networkmonitor.api.ui.ConnectivityIndicatorView
+import io.element.android.features.roomcall.api.RoomCallState
 import io.element.android.libraries.androidutils.ui.hideKeyboard
 import io.element.android.libraries.designsystem.atomic.molecules.IconTitlePlaceholdersRowMolecule
-import io.element.android.libraries.designsystem.components.ProgressDialog
-import io.element.android.libraries.designsystem.components.ProgressDialogType
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.components.avatar.CompositeAvatar
@@ -93,11 +87,10 @@ import io.element.android.libraries.designsystem.components.dialogs.Confirmation
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.BottomSheetDragHandle
-import io.element.android.libraries.designsystem.theme.components.Icon
-import io.element.android.libraries.designsystem.theme.components.IconButton
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
+import io.element.android.libraries.designsystem.utils.HideKeyboardWhenDisposed
 import io.element.android.libraries.designsystem.utils.KeepScreenOn
 import io.element.android.libraries.designsystem.utils.OnLifecycleEvent
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarHost
@@ -116,16 +109,16 @@ fun MessagesView(
     state: MessagesState,
     onBackClick: () -> Unit,
     onRoomDetailsClick: () -> Unit,
-    onEventClick: (event: TimelineItem.Event) -> Boolean,
+    onEventContentClick: (event: TimelineItem.Event) -> Boolean,
     onUserDataClick: (UserId) -> Unit,
     onLinkClick: (String) -> Unit,
-    onPreviewAttachments: (ImmutableList<Attachment>) -> Unit,
     onSendLocationClick: () -> Unit,
     onCreatePollClick: () -> Unit,
     onJoinCallClick: () -> Unit,
     onViewAllPinnedMessagesClick: () -> Unit,
     modifier: Modifier = Modifier,
     forceJumpToBottomVisibility: Boolean = false,
+    knockRequestsBannerView: @Composable () -> Unit,
 ) {
     OnLifecycleEvent { _, event ->
         state.voiceMessageComposerState.eventSink(VoiceMessageComposerEvents.LifecycleEvent(event))
@@ -133,20 +126,21 @@ fun MessagesView(
 
     KeepScreenOn(state.voiceMessageComposerState.keepScreenOn)
 
-    AttachmentStateView(
-        state = state.composerState.attachmentsState,
-        onPreviewAttachments = onPreviewAttachments,
-        onCancel = { state.composerState.eventSink(MessageComposerEvents.CancelSendAttachment) },
-    )
+    HideKeyboardWhenDisposed()
 
     val snackbarHostState = rememberSnackbarHostState(snackbarMessage = state.snackbarMessage)
 
     // This is needed because the composer is inside an AndroidView that can't be affected by the FocusManager in Compose
     val localView = LocalView.current
 
-    fun onMessageClick(event: TimelineItem.Event) {
+    fun hidingKeyboard(block: () -> Unit) {
+        localView.hideKeyboard()
+        block()
+    }
+
+    fun onContentClick(event: TimelineItem.Event) {
         Timber.v("onMessageClick= ${event.id}")
-        val hideKeyboard = onEventClick(event)
+        val hideKeyboard = onEventContentClick(event)
         if (hideKeyboard) {
             localView.hideKeyboard()
         }
@@ -154,13 +148,14 @@ fun MessagesView(
 
     fun onMessageLongClick(event: TimelineItem.Event) {
         Timber.v("OnMessageLongClicked= ${event.id}")
-        localView.hideKeyboard()
-        state.actionListState.eventSink(
-            ActionListEvents.ComputeForMessage(
-                event = event,
-                userEventPermissions = state.userEventPermissions,
+        hidingKeyboard {
+            state.actionListState.eventSink(
+                ActionListEvents.ComputeForMessage(
+                    event = event,
+                    userEventPermissions = state.userEventPermissions,
+                )
             )
-        )
+        }
     }
 
     fun onActionSelected(action: TimelineItemAction, event: TimelineItem.Event) {
@@ -168,7 +163,7 @@ fun MessagesView(
     }
 
     fun onEmojiReactionClick(emoji: String, event: TimelineItem.Event) {
-        state.eventSink(MessagesEvents.ToggleReaction(emoji, event.id))
+        state.eventSink(MessagesEvents.ToggleReaction(emoji, event.eventOrTransactionId))
     }
 
     fun onEmojiReactionLongClick(emoji: String, event: TimelineItem.Event) {
@@ -190,14 +185,9 @@ fun MessagesView(
                     roomName = state.roomName.dataOrNull(),
                     roomAvatar = state.roomAvatar.dataOrNull(),
                     heroes = state.heroes,
-                    callState = state.callState,
-                    onBackClick = {
-                        // Since the textfield is now based on an Android view, this is no longer done automatically.
-                        // We need to hide the keyboard when navigating out of this screen.
-                        localView.hideKeyboard()
-                        onBackClick()
-                    },
-                    onRoomDetailsClick = onRoomDetailsClick,
+                    roomCallState = state.roomCallState,
+                    onBackClick = { hidingKeyboard { onBackClick() } },
+                    onRoomDetailsClick = { hidingKeyboard { onRoomDetailsClick() } },
                     onJoinCallClick = onJoinCallClick,
                 )
             }
@@ -206,11 +196,11 @@ fun MessagesView(
             MessagesViewContent(
                 state = state,
                 modifier = Modifier
-                    .padding(padding)
-                    .consumeWindowInsets(padding),
-                onMessageClick = ::onMessageClick,
+                        .padding(padding)
+                        .consumeWindowInsets(padding),
+                onContentClick = ::onContentClick,
                 onMessageLongClick = ::onMessageLongClick,
-                onUserDataClick = onUserDataClick,
+                onUserDataClick = { hidingKeyboard { onUserDataClick(it) } },
                 onLinkClick = onLinkClick,
                 onReactionClick = ::onEmojiReactionClick,
                 onReactionLongClick = ::onEmojiReactionLongClick,
@@ -226,6 +216,7 @@ fun MessagesView(
                 forceJumpToBottomVisibility = forceJumpToBottomVisibility,
                 onJoinCallClick = onJoinCallClick,
                 onViewAllPinnedMessagesClick = onViewAllPinnedMessagesClick,
+                knockRequestsBannerView = knockRequestsBannerView,
             )
         },
         snackbarHost = {
@@ -278,37 +269,9 @@ private fun ReinviteDialog(state: MessagesState) {
 }
 
 @Composable
-private fun AttachmentStateView(
-    state: AttachmentsState,
-    onPreviewAttachments: (ImmutableList<Attachment>) -> Unit,
-    onCancel: () -> Unit,
-) {
-    when (state) {
-        AttachmentsState.None -> Unit
-        is AttachmentsState.Previewing -> {
-            val latestOnPreviewAttachments by rememberUpdatedState(onPreviewAttachments)
-            LaunchedEffect(state) {
-                latestOnPreviewAttachments(state.attachments)
-            }
-        }
-        is AttachmentsState.Sending -> {
-            ProgressDialog(
-                type = when (state) {
-                    is AttachmentsState.Sending.Uploading -> ProgressDialogType.Determinate(state.progress)
-                    is AttachmentsState.Sending.Processing -> ProgressDialogType.Indeterminate
-                },
-                text = stringResource(id = CommonStrings.common_sending),
-                showCancelButton = true,
-                onDismissRequest = onCancel,
-            )
-        }
-    }
-}
-
-@Composable
 private fun MessagesViewContent(
     state: MessagesState,
-    onMessageClick: (TimelineItem.Event) -> Unit,
+    onContentClick: (TimelineItem.Event) -> Unit,
     onUserDataClick: (UserId) -> Unit,
     onLinkClick: (String) -> Unit,
     onReactionClick: (key: String, TimelineItem.Event) -> Unit,
@@ -323,12 +286,13 @@ private fun MessagesViewContent(
     forceJumpToBottomVisibility: Boolean,
     onSwipeToReply: (TimelineItem.Event) -> Unit,
     modifier: Modifier = Modifier,
+    knockRequestsBannerView: @Composable () -> Unit,
 ) {
     Box(
         modifier = modifier
-            .fillMaxSize()
-            .navigationBarsPadding()
-            .imePadding(),
+                .fillMaxSize()
+                .navigationBarsPadding()
+                .imePadding(),
     ) {
         AttachmentsBottomSheet(
             state = state.composerState,
@@ -384,7 +348,7 @@ private fun MessagesViewContent(
                         timelineProtectionState = state.timelineProtectionState,
                         onUserDataClick = onUserDataClick,
                         onLinkClick = onLinkClick,
-                        onMessageClick = onMessageClick,
+                        onContentClick = onContentClick,
                         onMessageLongClick = onMessageLongClick,
                         onSwipeToReply = onSwipeToReply,
                         onReactionClick = onReactionClick,
@@ -411,6 +375,7 @@ private fun MessagesViewContent(
                             onViewAllClick = onViewAllPinnedMessagesClick,
                         )
                     }
+                    knockRequestsBannerView()
                 }
             },
             sheetContent = { subcomposing: Boolean ->
@@ -437,13 +402,13 @@ private fun MessagesViewComposerBottomSheetContents(
         Column(modifier = Modifier.fillMaxWidth()) {
             SuggestionsPickerView(
                 modifier = Modifier
-                    .heightIn(max = 230.dp)
-                    // Consume all scrolling, preventing the bottom sheet from being dragged when interacting with the list of suggestions
-                    .nestedScroll(object : NestedScrollConnection {
-                        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-                            return available
-                        }
-                    }),
+                        .heightIn(max = 230.dp)
+                        // Consume all scrolling, preventing the bottom sheet from being dragged when interacting with the list of suggestions
+                        .nestedScroll(object : NestedScrollConnection {
+                            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                                return available
+                            }
+                        }),
                 roomId = state.roomId,
                 roomName = state.roomName.dataOrNull(),
                 roomAvatarData = state.roomAvatar.dataOrNull(),
@@ -479,7 +444,7 @@ private fun MessagesViewTopBar(
     roomName: String?,
     roomAvatar: AvatarData?,
     heroes: ImmutableList<AvatarData>,
-    callState: RoomCallState,
+    roomCallState: RoomCallState,
     onRoomDetailsClick: () -> Unit,
     onJoinCallClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -491,8 +456,8 @@ private fun MessagesViewTopBar(
         title = {
             val roundedCornerShape = RoundedCornerShape(8.dp)
             val titleModifier = Modifier
-                .clip(roundedCornerShape)
-                .clickable { onRoomDetailsClick() }
+                    .clip(roundedCornerShape)
+                    .clickable { onRoomDetailsClick() }
             if (roomName != null && roomAvatar != null) {
                 RoomAvatarAndNameRow(
                     roomName = roomName,
@@ -509,32 +474,13 @@ private fun MessagesViewTopBar(
         },
         actions = {
             CallMenuItem(
-                isCallOngoing = callState == RoomCallState.ONGOING,
-                onClick = onJoinCallClick,
-                enabled = callState != RoomCallState.DISABLED
+                roomCallState = roomCallState,
+                onJoinCallClick = onJoinCallClick,
             )
             Spacer(Modifier.width(8.dp))
         },
         windowInsets = WindowInsets(0.dp)
     )
-}
-
-@Composable
-private fun CallMenuItem(
-    isCallOngoing: Boolean,
-    enabled: Boolean = true,
-    onClick: () -> Unit,
-) {
-    if (isCallOngoing) {
-        JoinCallMenuItem(onJoinCallClick = onClick)
-    } else {
-        IconButton(onClick = onClick, enabled = enabled) {
-            Icon(
-                imageVector = CompoundIcons.VideoCallSolid(),
-                contentDescription = stringResource(CommonStrings.a11y_start_call),
-            )
-        }
-    }
 }
 
 @Composable
@@ -566,9 +512,9 @@ private fun RoomAvatarAndNameRow(
 private fun CantSendMessageBanner() {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.secondary)
-            .padding(16.dp),
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.secondary)
+                .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
@@ -589,14 +535,14 @@ internal fun MessagesViewPreview(@PreviewParameter(MessagesStateProvider::class)
         state = state,
         onBackClick = {},
         onRoomDetailsClick = {},
-        onEventClick = { false },
+        onEventContentClick = { false },
         onUserDataClick = {},
         onLinkClick = {},
-        onPreviewAttachments = {},
         onSendLocationClick = {},
         onCreatePollClick = {},
         onJoinCallClick = {},
         onViewAllPinnedMessagesClick = { },
         forceJumpToBottomVisibility = true,
+        knockRequestsBannerView = {},
     )
 }

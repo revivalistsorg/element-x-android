@@ -9,7 +9,7 @@ package io.element.android.libraries.textcomposer.model
 
 import androidx.compose.runtime.Immutable
 import io.element.android.libraries.matrix.api.core.EventId
-import io.element.android.libraries.matrix.api.core.TransactionId
+import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageContent
 import io.element.android.libraries.matrix.ui.messages.reply.InReplyToDetails
 import io.element.android.libraries.matrix.ui.messages.reply.eventId
@@ -18,12 +18,22 @@ import io.element.android.libraries.matrix.ui.messages.reply.eventId
 sealed interface MessageComposerMode {
     data object Normal : MessageComposerMode
 
+    data class Attachment(
+        val allowCaption: Boolean,
+        val showCaptionCompatibilityWarning: Boolean,
+    ) : MessageComposerMode
+
     sealed interface Special : MessageComposerMode
 
     data class Edit(
-        val eventId: EventId?,
-        val transactionId: TransactionId?,
+        val eventOrTransactionId: EventOrTransactionId,
         val content: String
+    ) : Special
+
+    data class EditCaption(
+        val eventOrTransactionId: EventOrTransactionId,
+        val content: String,
+        val showCaptionCompatibilityWarning: Boolean,
     ) : Special
 
     data class Reply(
@@ -33,15 +43,8 @@ sealed interface MessageComposerMode {
         val eventId: EventId = replyToDetails.eventId()
     }
 
-    val relatedEventId: EventId?
-        get() = when (this) {
-            is Normal -> null
-            is Edit -> eventId
-            is Reply -> eventId
-        }
-
     val isEditing: Boolean
-        get() = this is Edit
+        get() = this is Edit || this is EditCaption
 
     val isReply: Boolean
         get() = this is Reply
@@ -51,4 +54,12 @@ sealed interface MessageComposerMode {
             replyToDetails is InReplyToDetails.Ready &&
             replyToDetails.eventContent is MessageContent &&
             (replyToDetails.eventContent as MessageContent).isThreaded
+}
+
+fun MessageComposerMode.showCaptionCompatibilityWarning(): Boolean {
+    return when (this) {
+        is MessageComposerMode.Attachment -> showCaptionCompatibilityWarning
+        is MessageComposerMode.EditCaption -> showCaptionCompatibilityWarning && content.isEmpty()
+        else -> false
+    }
 }

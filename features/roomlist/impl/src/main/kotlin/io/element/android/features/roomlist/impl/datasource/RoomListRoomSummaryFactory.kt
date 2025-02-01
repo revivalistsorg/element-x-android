@@ -10,7 +10,8 @@ package io.element.android.features.roomlist.impl.datasource
 import io.element.android.features.roomlist.impl.model.RoomListRoomSummary
 import io.element.android.features.roomlist.impl.model.RoomSummaryDisplayType
 import io.element.android.libraries.core.extensions.orEmpty
-import io.element.android.libraries.dateformatter.api.LastMessageTimestampFormatter
+import io.element.android.libraries.dateformatter.api.DateFormatter
+import io.element.android.libraries.dateformatter.api.DateFormatterMode
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.eventformatter.api.RoomLastMessageFormatter
 import io.element.android.libraries.matrix.api.room.CurrentUserMembership
@@ -22,7 +23,7 @@ import kotlinx.collections.immutable.toImmutableList
 import javax.inject.Inject
 
 class RoomListRoomSummaryFactory @Inject constructor(
-    private val lastMessageTimestampFormatter: LastMessageTimestampFormatter,
+    private val dateFormatter: DateFormatter,
     private val roomLastMessageFormatter: RoomLastMessageFormatter,
 ) {
     fun create(roomSummary: RoomSummary): RoomListRoomSummary {
@@ -36,7 +37,11 @@ class RoomListRoomSummaryFactory @Inject constructor(
             numberOfUnreadMentions = roomInfo.numUnreadMentions,
             numberOfUnreadNotifications = roomInfo.numUnreadNotifications,
             isMarkedUnread = roomInfo.isMarkedUnread,
-            timestamp = lastMessageTimestampFormatter.format(roomSummary.lastMessageTimestamp),
+            timestamp = dateFormatter.format(
+                timestamp = roomSummary.lastMessageTimestamp,
+                mode = DateFormatterMode.TimeOrDate,
+                useRelative = true,
+            ),
             lastMessage = roomSummary.lastMessage?.let { message ->
                 roomLastMessageFormatter.format(message.event, roomInfo.isDm)
             }.orEmpty(),
@@ -48,10 +53,16 @@ class RoomListRoomSummaryFactory @Inject constructor(
             inviteSender = roomInfo.inviter?.toInviteSender(),
             isDm = roomInfo.isDm,
             canonicalAlias = roomInfo.canonicalAlias,
-            displayType = if (roomInfo.currentUserMembership == CurrentUserMembership.INVITED) {
-                RoomSummaryDisplayType.INVITE
-            } else {
-                RoomSummaryDisplayType.ROOM
+            displayType = when (roomInfo.currentUserMembership) {
+                CurrentUserMembership.INVITED -> {
+                    RoomSummaryDisplayType.INVITE
+                }
+                CurrentUserMembership.KNOCKED -> {
+                    RoomSummaryDisplayType.KNOCKED
+                }
+                else -> {
+                    RoomSummaryDisplayType.ROOM
+                }
             },
             heroes = roomInfo.heroes.map { user ->
                 user.getAvatarData(size = AvatarSize.RoomListItem)

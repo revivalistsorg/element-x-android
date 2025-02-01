@@ -126,17 +126,46 @@ enum class FeatureFlags(
         defaultValue = { false },
         isFinished = false,
     ),
-    IdentityPinningViolationNotifications(
-        key = "feature.identityPinningViolationNotifications",
-        title = "Identity pinning violation notifications",
+    Knock(
+        key = "feature.knock",
+        title = "Ask to join",
+        description = "Allow creating rooms which users can request access to.",
+        defaultValue = { false },
+        isFinished = false,
+    ),
+    MediaUploadOnSendQueue(
+        key = "feature.media_upload_through_send_queue",
+        title = "Media upload through send queue",
+        description = "Experimental support for treating media uploads as regular events, with an improved retry and cancellation implementation.",
+        defaultValue = { buildMeta -> buildMeta.buildType != BuildType.RELEASE },
+        isFinished = false,
+    ),
+    MediaCaptionCreation(
+        key = "feature.media_caption_creation",
+        title = "Allow creation of media captions",
         description = null,
-        defaultValue = { buildMeta ->
-            when (buildMeta.buildType) {
-                // Do not enable this feature in release builds
-                BuildType.RELEASE -> false
-                else -> true
-            }
-        },
+        defaultValue = { true },
+        isFinished = false,
+    ),
+    MediaCaptionWarning(
+        key = "feature.media_caption_creation_warning",
+        title = "Show a compatibility warning on media captions creation",
+        description = null,
+        defaultValue = { true },
+        isFinished = false,
+    ),
+    MediaGallery(
+        key = "feature.media_gallery",
+        title = "Allow user to open the media gallery",
+        description = null,
+        defaultValue = { true },
+        isFinished = false,
+    ),
+    EventCache(
+        key = "feature.event_cache",
+        title = "Use SDK Event cache",
+        description = "Warning: you must kill and restart the app for the change to take effect.",
+        defaultValue = { false },
         isFinished = false,
     ),
 }
