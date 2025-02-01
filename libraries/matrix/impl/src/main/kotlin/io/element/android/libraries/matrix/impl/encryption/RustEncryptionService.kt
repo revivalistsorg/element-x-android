@@ -38,6 +38,7 @@ import org.matrix.rustcomponents.sdk.BackupSteadyStateListener
 import org.matrix.rustcomponents.sdk.Client
 import org.matrix.rustcomponents.sdk.EnableRecoveryProgressListener
 import org.matrix.rustcomponents.sdk.Encryption
+import org.matrix.rustcomponents.sdk.UserIdentity
 import org.matrix.rustcomponents.sdk.BackupUploadState as RustBackupUploadState
 import org.matrix.rustcomponents.sdk.EnableRecoveryProgress as RustEnableRecoveryProgress
 import org.matrix.rustcomponents.sdk.SteadyStateException as RustSteadyStateException
@@ -92,10 +93,6 @@ internal class RustEncryptionService(
         }
     }
         .stateIn(sessionCoroutineScope, SharingStarted.Eagerly, false)
-
-    fun destroy() {
-        service.destroy()
-    }
 
     override suspend fun enableBackups(): Result<Unit> = withContext(dispatchers.io) {
         runCatching {
@@ -204,8 +201,18 @@ internal class RustEncryptionService(
         }
     }
 
+    override suspend fun isUserVerified(userId: UserId): Result<Boolean> = runCatching {
+        getUserIdentity(userId).isVerified()
+    }
+
     override suspend fun pinUserIdentity(userId: UserId): Result<Unit> = runCatching {
-        val userIdentity = service.getUserIdentity(userId.value) ?: error("User identity not found")
-        userIdentity.pin()
+        getUserIdentity(userId).pin()
+    }
+
+    private suspend fun getUserIdentity(userId: UserId): UserIdentity {
+        return service.userIdentity(
+            userId = userId.value,
+            // requestFromHomeserverIfNeeded = true,
+        ) ?: error("User identity not found")
     }
 }

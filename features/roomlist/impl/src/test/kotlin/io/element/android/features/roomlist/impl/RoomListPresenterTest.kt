@@ -22,17 +22,17 @@ import io.element.android.features.logout.api.direct.aDirectLogoutState
 import io.element.android.features.networkmonitor.api.NetworkMonitor
 import io.element.android.features.networkmonitor.test.FakeNetworkMonitor
 import io.element.android.features.roomlist.impl.datasource.RoomListDataSource
-import io.element.android.features.roomlist.impl.datasource.RoomListRoomSummaryFactory
+import io.element.android.features.roomlist.impl.datasource.aRoomListRoomSummaryFactory
 import io.element.android.features.roomlist.impl.filters.RoomListFiltersState
 import io.element.android.features.roomlist.impl.filters.aRoomListFiltersState
 import io.element.android.features.roomlist.impl.model.createRoomListRoomSummary
 import io.element.android.features.roomlist.impl.search.RoomListSearchEvents
 import io.element.android.features.roomlist.impl.search.RoomListSearchState
 import io.element.android.features.roomlist.impl.search.aRoomListSearchState
+import io.element.android.libraries.androidutils.system.DateTimeObserver
 import io.element.android.libraries.architecture.Presenter
-import io.element.android.libraries.dateformatter.api.LastMessageTimestampFormatter
-import io.element.android.libraries.dateformatter.test.A_FORMATTED_DATE
-import io.element.android.libraries.dateformatter.test.FakeLastMessageTimestampFormatter
+import io.element.android.libraries.dateformatter.api.DateFormatter
+import io.element.android.libraries.dateformatter.test.FakeDateFormatter
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
 import io.element.android.libraries.eventformatter.api.RoomLastMessageFormatter
 import io.element.android.libraries.eventformatter.test.FakeRoomLastMessageFormatter
@@ -83,6 +83,7 @@ import io.element.android.tests.testutils.lambda.value
 import io.element.android.tests.testutils.test
 import io.element.android.tests.testutils.testCoroutineDispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -134,7 +135,7 @@ class RoomListPresenterTest {
         }.test {
             val initialState = awaitItem()
             assertThat(initialState.showAvatarIndicator).isTrue()
-            sessionVerificationService.givenNeedsSessionVerification(false)
+            sessionVerificationService.emitNeedsSessionVerification(false)
             encryptionService.emitBackupState(BackupState.ENABLED)
             val finalState = awaitItem()
             assertThat(finalState.showAvatarIndicator).isFalse()
@@ -186,6 +187,7 @@ class RoomListPresenterTest {
                 createRoomListRoomSummary(
                     numberOfUnreadMentions = 1,
                     numberOfUnreadMessages = 2,
+                    timestamp = "0 TimeOrDate true",
                 )
             )
             cancelAndIgnoreRemainingEvents()
@@ -229,7 +231,7 @@ class RoomListPresenterTest {
             roomListService = roomListService,
             encryptionService = encryptionService,
             sessionVerificationService = FakeSessionVerificationService().apply {
-                givenNeedsSessionVerification(false)
+                emitNeedsSessionVerification(false)
             },
             syncService = FakeSyncService(MutableStateFlow(SyncState.Running)),
         )
@@ -286,6 +288,7 @@ class RoomListPresenterTest {
                             isDm = false,
                             isFavorite = false,
                             markAsUnreadFeatureFlagEnabled = true,
+                            eventCacheFeatureFlagEnabled = false,
                             hasNewContent = false,
                         )
                     )
@@ -303,6 +306,7 @@ class RoomListPresenterTest {
                             isDm = false,
                             isFavorite = true,
                             markAsUnreadFeatureFlagEnabled = true,
+                            eventCacheFeatureFlagEnabled = false,
                             hasNewContent = false,
                         )
                     )
@@ -333,6 +337,7 @@ class RoomListPresenterTest {
                         isDm = false,
                         isFavorite = false,
                         markAsUnreadFeatureFlagEnabled = true,
+                        eventCacheFeatureFlagEnabled = false,
                         hasNewContent = false,
                     )
                 )
@@ -631,9 +636,7 @@ class RoomListPresenterTest {
         networkMonitor: NetworkMonitor = FakeNetworkMonitor(),
         snackbarDispatcher: SnackbarDispatcher = SnackbarDispatcher(),
         leaveRoomState: LeaveRoomState = aLeaveRoomState(),
-        lastMessageTimestampFormatter: LastMessageTimestampFormatter = FakeLastMessageTimestampFormatter().apply {
-            givenFormat(A_FORMATTED_DATE)
-        },
+        dateFormatter: DateFormatter = FakeDateFormatter(),
         roomLastMessageFormatter: RoomLastMessageFormatter = FakeRoomLastMessageFormatter(),
         sessionPreferencesStore: SessionPreferencesStore = InMemorySessionPreferencesStore(),
         featureFlagService: FeatureFlagService = FakeFeatureFlagService(),
@@ -649,13 +652,14 @@ class RoomListPresenterTest {
         leaveRoomPresenter = { leaveRoomState },
         roomListDataSource = RoomListDataSource(
             roomListService = client.roomListService,
-            roomListRoomSummaryFactory = RoomListRoomSummaryFactory(
-                lastMessageTimestampFormatter = lastMessageTimestampFormatter,
+            roomListRoomSummaryFactory = aRoomListRoomSummaryFactory(
+                dateFormatter = dateFormatter,
                 roomLastMessageFormatter = roomLastMessageFormatter,
             ),
             coroutineDispatchers = testCoroutineDispatchers(),
             notificationSettingsService = client.notificationSettingsService(),
-            appScope = backgroundScope
+            appScope = backgroundScope,
+            dateTimeObserver = FakeDateTimeObserver(),
         ),
         featureFlagService = featureFlagService,
         indicatorService = DefaultIndicatorService(
@@ -671,4 +675,12 @@ class RoomListPresenterTest {
         notificationCleaner = notificationCleaner,
         logoutPresenter = { aDirectLogoutState() },
     )
+}
+
+class FakeDateTimeObserver : DateTimeObserver {
+    override val changes = MutableSharedFlow<DateTimeObserver.Event>(extraBufferCapacity = 1)
+
+    fun given(event: DateTimeObserver.Event) {
+        changes.tryEmit(event)
+    }
 }

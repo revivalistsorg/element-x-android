@@ -146,7 +146,7 @@ fun ActionListView(
             onDismissRequest = ::onDismiss,
             modifier = modifier,
         ) {
-            SheetContent(
+            ActionListViewContent(
                 state = state,
                 onActionClick = ::onItemActionClick,
                 onEmojiReactionClick = ::onEmojiReactionClick,
@@ -161,7 +161,7 @@ fun ActionListView(
 }
 
 @Composable
-private fun SheetContent(
+private fun ActionListViewContent(
     state: ActionListState,
     onActionClick: (TimelineItemAction) -> Unit,
     onEmojiReactionClick: (String) -> Unit,
@@ -185,6 +185,7 @@ private fun SheetContent(
                     Column {
                         MessageSummary(
                             event = target.event,
+                            sentTimeFull = target.sentTimeFull,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
@@ -245,7 +246,11 @@ private fun SheetContent(
 
 @Suppress("MultipleEmitters") // False positive
 @Composable
-private fun MessageSummary(event: TimelineItem.Event, modifier: Modifier = Modifier) {
+private fun MessageSummary(
+    event: TimelineItem.Event,
+    sentTimeFull: String,
+    modifier: Modifier = Modifier,
+) {
     val content: @Composable () -> Unit
     val icon: @Composable () -> Unit = { Avatar(avatarData = event.senderAvatar.copy(size = AvatarSize.MessageActionSender)) }
     val contentStyle = ElementTheme.typography.fontBodyMdRegular.copy(color = MaterialTheme.colorScheme.secondary)
@@ -269,19 +274,19 @@ private fun MessageSummary(event: TimelineItem.Event, modifier: Modifier = Modif
             content = { ContentForBody(stringResource(CommonStrings.common_shared_location)) }
         }
         is TimelineItemImageContent -> {
-            content = { ContentForBody(event.content.body) }
+            content = { ContentForBody(event.content.bestDescription) }
         }
         is TimelineItemStickerContent -> {
-            content = { ContentForBody(event.content.body) }
+            content = { ContentForBody(event.content.bestDescription) }
         }
         is TimelineItemVideoContent -> {
-            content = { ContentForBody(event.content.body) }
+            content = { ContentForBody(event.content.bestDescription) }
         }
         is TimelineItemFileContent -> {
-            content = { ContentForBody(event.content.body) }
+            content = { ContentForBody(event.content.bestDescription) }
         }
         is TimelineItemAudioContent -> {
-            content = { ContentForBody(event.content.body) }
+            content = { ContentForBody(event.content.bestDescription) }
         }
         is TimelineItemVoiceContent -> {
             content = { ContentForBody(textContent) }
@@ -300,20 +305,23 @@ private fun MessageSummary(event: TimelineItem.Event, modifier: Modifier = Modif
         icon()
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
-            SenderName(
-                senderId = event.senderId,
-                senderProfile = event.senderProfile,
-                senderNameMode = SenderNameMode.ActionList,
-            )
+            Row {
+                SenderName(
+                    modifier = Modifier.weight(1f),
+                    senderId = event.senderId,
+                    senderProfile = event.senderProfile,
+                    senderNameMode = SenderNameMode.ActionList,
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = sentTimeFull,
+                    style = ElementTheme.typography.fontBodyXsRegular,
+                    color = MaterialTheme.colorScheme.secondary,
+                    textAlign = TextAlign.End,
+                )
+            }
             content()
         }
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            event.sentTime,
-            style = ElementTheme.typography.fontBodyXsRegular,
-            color = MaterialTheme.colorScheme.secondary,
-            textAlign = TextAlign.End,
-        )
     }
 }
 
@@ -442,10 +450,10 @@ private fun EmojiButton(
 
 @PreviewsDayNight
 @Composable
-internal fun SheetContentPreview(
+internal fun ActionListViewContentPreview(
     @PreviewParameter(ActionListStateProvider::class) state: ActionListState
 ) = ElementPreview {
-    SheetContent(
+    ActionListViewContent(
         state = state,
         onActionClick = {},
         onEmojiReactionClick = {},

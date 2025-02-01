@@ -84,7 +84,8 @@ class TimelineEventContentMapper(
                 }
                 is TimelineItemContent.Sticker -> {
                     StickerContent(
-                        body = it.body,
+                        filename = it.body,
+                        body = null,
                         info = it.info.map(),
                         source = it.source.map(),
                     )
@@ -139,8 +140,15 @@ private fun RustMembershipChange.map(): MembershipChange {
 
 private fun RustUtdCause.map(): UtdCause {
     return when (this) {
-        RustUtdCause.MEMBERSHIP -> UtdCause.Membership
+        RustUtdCause.SENT_BEFORE_WE_JOINED -> UtdCause.SentBeforeWeJoined
         RustUtdCause.UNKNOWN -> UtdCause.Unknown
+        RustUtdCause.VERIFICATION_VIOLATION -> UtdCause.VerificationViolation
+        RustUtdCause.UNSIGNED_DEVICE -> UtdCause.UnsignedDevice
+        RustUtdCause.UNKNOWN_DEVICE -> UtdCause.UnknownDevice
+        RustUtdCause.HISTORICAL_MESSAGE_AND_BACKUP_IS_DISABLED -> UtdCause.HistoricalMessageAndBackupIsDisabled
+        RustUtdCause.HISTORICAL_MESSAGE_AND_DEVICE_IS_UNVERIFIED -> UtdCause.HistoricalMessageAndDeviceIsUnverified
+        RustUtdCause.WITHHELD_FOR_UNVERIFIED_OR_INSECURE_DEVICE -> UtdCause.WithheldUnverifiedOrInsecureDevice
+        RustUtdCause.WITHHELD_BY_SENDER -> UtdCause.WithheldBySender
     }
 }
 

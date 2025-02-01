@@ -41,17 +41,6 @@ open class JoinRoomStateProvider : PreviewParameterProvider<JoinRoomState> {
                 contentState = aLoadedContentState(joinAuthorisationStatus = JoinAuthorisationStatus.CanJoin)
             ),
             aJoinRoomState(
-                contentState = aLoadedContentState(
-                    joinAuthorisationStatus = JoinAuthorisationStatus.CanKnock,
-                    topic = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt" +
-                        " ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco" +
-                        " laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in" +
-                        " voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat" +
-                        " non proident sunt in culpa qui officia deserunt mollit anim id est laborum",
-                    numberOfMembers = 888,
-                )
-            ),
-            aJoinRoomState(
                 contentState = aLoadedContentState(joinAuthorisationStatus = JoinAuthorisationStatus.IsInvited(null))
             ),
             aJoinRoomState(
@@ -81,6 +70,35 @@ open class JoinRoomStateProvider : PreviewParameterProvider<JoinRoomState> {
                     isDm = true,
                 )
             ),
+            aJoinRoomState(
+                contentState = aLoadedContentState(
+                    joinAuthorisationStatus = JoinAuthorisationStatus.CanKnock,
+                    topic = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt" +
+                        " ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco" +
+                        " laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in" +
+                        " voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat" +
+                        " non proident sunt in culpa qui officia deserunt mollit anim id est laborum",
+                    numberOfMembers = 888,
+                )
+            ),
+            aJoinRoomState(
+                knockMessage = "Let me in please!",
+                contentState = aLoadedContentState(
+                    joinAuthorisationStatus = JoinAuthorisationStatus.CanKnock,
+                    topic = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt" +
+                        " ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco" +
+                        " laboris nisi ut aliquip ex ea commodo consequat duis aute irure dolor in reprehenderit in" +
+                        " voluptate velit esse cillum dolore eu fugiat nulla pariatur excepteur sint occaecat cupidatat" +
+                        " non proident sunt in culpa qui officia deserunt mollit anim id est laborum",
+                    numberOfMembers = 888,
+                )
+            ),
+            aJoinRoomState(
+                contentState = aLoadedContentState(
+                    name = "A knocked Room",
+                    joinAuthorisationStatus = JoinAuthorisationStatus.IsKnocked
+                )
+            )
         )
 }
 
@@ -124,13 +142,17 @@ fun aJoinRoomState(
     acceptDeclineInviteState: AcceptDeclineInviteState = anAcceptDeclineInviteState(),
     joinAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
     knockAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
+    cancelKnockAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
+    knockMessage: String = "",
     eventSink: (JoinRoomEvents) -> Unit = {}
 ) = JoinRoomState(
     contentState = contentState,
     acceptDeclineInviteState = acceptDeclineInviteState,
     joinAction = joinAction,
     knockAction = knockAction,
+    cancelKnockAction = cancelKnockAction,
     applicationName = "AppName",
+    knockMessage = knockMessage,
     eventSink = eventSink
 )
 

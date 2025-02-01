@@ -12,7 +12,6 @@ import io.element.android.features.messages.impl.actionlist.ActionListState
 import io.element.android.features.messages.impl.actionlist.anActionListState
 import io.element.android.features.messages.impl.crypto.identity.IdentityChangeState
 import io.element.android.features.messages.impl.crypto.identity.anIdentityChangeState
-import io.element.android.features.messages.impl.messagecomposer.AttachmentsState
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerState
 import io.element.android.features.messages.impl.messagecomposer.aMessageComposerState
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerState
@@ -33,13 +32,15 @@ import io.element.android.features.messages.impl.timeline.protection.aTimelinePr
 import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessageComposerState
 import io.element.android.features.messages.impl.voicemessages.composer.aVoiceMessageComposerState
 import io.element.android.features.messages.impl.voicemessages.composer.aVoiceMessagePreviewState
+import io.element.android.features.roomcall.api.RoomCallState
+import io.element.android.features.roomcall.api.aStandByCallState
+import io.element.android.features.roomcall.api.anOngoingCallState
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.matrix.api.core.RoomId
-import io.element.android.libraries.textcomposer.aRichTextEditorState
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
-import io.element.android.libraries.textcomposer.model.TextEditorState
+import io.element.android.libraries.textcomposer.model.aTextEditorStateRich
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 
@@ -61,17 +62,7 @@ open class MessagesStateProvider : PreviewParameterProvider<MessagesState> {
                 voiceMessageComposerState = aVoiceMessageComposerState(showPermissionRationaleDialog = true),
             ),
             aMessagesState(
-                composerState = aMessageComposerState(
-                    attachmentsState = AttachmentsState.Sending.Processing(persistentListOf())
-                ),
-            ),
-            aMessagesState(
-                composerState = aMessageComposerState(
-                    attachmentsState = AttachmentsState.Sending.Uploading(0.33f)
-                ),
-            ),
-            aMessagesState(
-                callState = RoomCallState.ONGOING,
+                roomCallState = anOngoingCallState(),
             ),
             aMessagesState(
                 enableVoiceMessages = true,
@@ -81,7 +72,7 @@ open class MessagesStateProvider : PreviewParameterProvider<MessagesState> {
                 ),
             ),
             aMessagesState(
-                callState = RoomCallState.DISABLED,
+                roomCallState = aStandByCallState(canStartCall = false),
             ),
             aMessagesState(
                 pinnedMessagesBannerState = aLoadedPinnedMessagesBannerState(
@@ -97,7 +88,7 @@ fun aMessagesState(
     roomAvatar: AsyncData<AvatarData> = AsyncData.Success(AvatarData("!id:domain", "Room name", size = AvatarSize.TimelineRoom)),
     userEventPermissions: UserEventPermissions = aUserEventPermissions(),
     composerState: MessageComposerState = aMessageComposerState(
-        textEditorState = TextEditorState.Rich(aRichTextEditorState(initialText = "Hello", initialFocus = true)),
+        textEditorState = aTextEditorStateRich(initialText = "Hello", initialFocus = true),
         isFullScreen = false,
         mode = MessageComposerMode.Normal,
     ),
@@ -116,7 +107,7 @@ fun aMessagesState(
     hasNetworkConnection: Boolean = true,
     showReinvitePrompt: Boolean = false,
     enableVoiceMessages: Boolean = true,
-    callState: RoomCallState = RoomCallState.ENABLED,
+    roomCallState: RoomCallState = aStandByCallState(),
     pinnedMessagesBannerState: PinnedMessagesBannerState = aLoadedPinnedMessagesBannerState(),
     eventSink: (MessagesEvents) -> Unit = {},
 ) = MessagesState(
@@ -140,7 +131,7 @@ fun aMessagesState(
     showReinvitePrompt = showReinvitePrompt,
     enableTextFormatting = true,
     enableVoiceMessages = enableVoiceMessages,
-    callState = callState,
+    roomCallState = roomCallState,
     appName = "Element",
     pinnedMessagesBannerState = pinnedMessagesBannerState,
     eventSink = eventSink,
