@@ -89,14 +89,14 @@ fun ConfirmAccountProviderView(
                         .fillMaxWidth()
                         .testTag(TestTags.loginContinue)
                 )
-                TextButton(
+/*                TextButton(
                     text = stringResource(id = R.string.screen_account_provider_change),
                     onClick = onChange,
                     enabled = true,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag(TestTags.loginChangeServer)
-                )
+                )*/
             }
         }
     ) {
