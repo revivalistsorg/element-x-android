@@ -25,7 +25,7 @@ android {
                 value = if (isEnterpriseBuild) {
                     "1:912726360885:android:d273c2077ec3291500427c"
                 } else {
-                    "1:912726360885:android:d097de99a4c23d2700427c"
+                    "1:122812006178:android:93535d61e908ebb945ef7b"
                 }
             )
         }
@@ -36,7 +36,7 @@ android {
                 value = if (isEnterpriseBuild) {
                     "1:912726360885:android:f8de9126a94143d300427c"
                 } else {
-                    "1:912726360885:android:def0a4e454042e9b00427c"
+                    "1:122812006178:android:93535d61e908ebb945ef7b"
                 }
             )
         }
