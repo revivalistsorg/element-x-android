@@ -91,12 +91,28 @@ class NotificationSettingsPresenter @Inject constructor(
         var currentDistributorName by remember { mutableStateOf<AsyncData<String>>(AsyncData.Uninitialized) }
         var refreshPushProvider by remember { mutableIntStateOf(0) }
 
+        fun CoroutineScope.fallbackToFirebasePushProvider() = launch {
+            val (pushProvider, distributor) = distributors.find { it.second.name == "Firebase" } ?: return@launch
+            pushService.registerWith(
+                matrixClient = matrixClient,
+                pushProvider = pushProvider,
+                distributor = distributor
+            ).onSuccess {
+                val p = pushService.getCurrentPushProvider()
+                val name = p?.getCurrentDistributor(matrixClient.sessionId)?.name
+                if (name != null) {
+                    currentDistributorName = AsyncData.Success(name)
+                }
+            }
+        }
+
         LaunchedEffect(refreshPushProvider) {
             val p = pushService.getCurrentPushProvider()
             val name = p?.getCurrentDistributor(matrixClient.sessionId)?.name
             currentDistributorName = if (name != null) {
                 AsyncData.Success(name)
             } else {
+                fallbackToFirebasePushProvider()
                 AsyncData.Failure(Exception("Failed to get current push provider"))
             }
         }

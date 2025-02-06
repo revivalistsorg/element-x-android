@@ -28,6 +28,9 @@ fun Activity.openUrlInChromeCustomTab(
     darkTheme: Boolean,
     url: String
 ) {
+
+    openUrlInExternalApp(url)
+    return
     try {
         CustomTabsIntent.Builder()
             .setDefaultColorSchemeParams(
