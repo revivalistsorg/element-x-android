@@ -221,6 +221,7 @@ private fun RoomsViewList(
                     )
                 }
             }
+             
             SecurityBannerState.RecoveryKeyConfirmation -> {
                 item {
                     ConfirmRecoveryKeyBanner(
