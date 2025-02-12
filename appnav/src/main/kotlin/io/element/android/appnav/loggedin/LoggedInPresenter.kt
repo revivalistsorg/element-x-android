@@ -69,7 +69,7 @@ class LoggedInPresenter @Inject constructor(
                             ensurePusherIsRegistered(pusherRegistrationState)
                         }
                         SessionVerifiedStatus.NotVerified -> {
-                            pusherRegistrationState.value = AsyncData.Failure(PusherRegistrationFailure.AccountNotVerified())
+                            ensurePusherIsRegistered(pusherRegistrationState)
                         }
                     }
                 }
