@@ -166,7 +166,6 @@ fun Context.openUrlInExternalApp(
     errorMessage: String = getString(R.string.error_no_compatible_app_found),
 ) {
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-    intent.setPackage("com.android.chrome")
     if (this !is Activity) {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
