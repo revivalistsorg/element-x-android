@@ -48,9 +48,9 @@ android {
         } else {
             "org.therevivalists.app"
         }
-        targetSdk = Versions.targetSdk
-        versionCode = Versions.versionCode
-        versionName = Versions.versionName
+        targetSdk = Versions.TARGET_SDK
+        versionCode = Versions.VERSION_CODE
+        versionName = Versions.VERSION_NAME
 
         // Keep abiFilter for the universalApk
         ndk {
