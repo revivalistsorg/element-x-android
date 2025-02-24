@@ -172,7 +172,9 @@ class ConfigureRoomPresenter @Inject constructor(
                 CreateRoomParameters(
                     name = config.roomName,
                     topic = config.topic,
-                    isEncrypted = config.roomVisibility is RoomVisibilityState.Private,
+                    // Because we skip device verification. It shows a warning in private room in all msgs that msg has been sent from an unverified device. 
+                    // Hence disabling encryption in private rooms too.                     
+                    isEncrypted = false, 
                     isDirect = false,
                     visibility = RoomVisibility.Private,
                     preset = RoomPreset.PRIVATE_CHAT,
