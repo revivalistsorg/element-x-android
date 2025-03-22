@@ -171,7 +171,7 @@ class ConfigureRoomPresenter @Inject constructor(
             } else {
                 CreateRoomParameters(
                     name = config.roomName,
-                    topic = config.topic,
+                    topic = config.topic,                                   
                     isEncrypted = config.roomVisibility is RoomVisibilityState.Private,
                     isDirect = false,
                     visibility = RoomVisibility.Private,
