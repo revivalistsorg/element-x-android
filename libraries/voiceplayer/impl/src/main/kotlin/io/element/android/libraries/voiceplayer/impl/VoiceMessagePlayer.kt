@@ -78,6 +78,13 @@ interface VoiceMessagePlayer {
      */
     fun seekTo(positionMs: Long)
 
+    /**
+     * adjust playback speedn.
+     *
+     * @param positionMs The position in milliseconds.
+     */
+    fun setSpeed(speed: Float)
+
     data class State(
         /**
          * Whether the player is ready to play.
@@ -99,6 +106,10 @@ interface VoiceMessagePlayer {
          * The duration of the current content, if available.
          */
         val duration: Long?,
+        /**
+         * The speed of playback
+         */
+        val speed: Float,
     )
 }
 
@@ -147,6 +158,7 @@ class DefaultVoiceMessagePlayer(
             isPlaying = false,
             isEnded = false,
             currentPosition = 0L,
+            speed = 1f,
             duration = null
         )
     )
@@ -160,6 +172,7 @@ class DefaultVoiceMessagePlayer(
                     isEnded = mediaPlayerState.isEnded,
                     currentPosition = mediaPlayerState.currentPosition,
                     duration = mediaPlayerState.duration,
+                    speed = mediaPlayerState.speed
                 )
             }
         } else {
@@ -176,6 +189,7 @@ class DefaultVoiceMessagePlayer(
             isEnded = internalState.isEnded,
             currentPosition = internalState.currentPosition,
             duration = internalState.duration,
+            speed = internalState.speed,
         )
     }.distinctUntilChanged()
 
@@ -212,6 +226,16 @@ class DefaultVoiceMessagePlayer(
         } else {
             internalState.update {
                 it.copy(currentPosition = positionMs)
+            }
+        }
+    }
+
+    override fun setSpeed(speed: Float) {
+        if (inControl()) {
+            mediaPlayer.setSpeed(speed)
+        } else {
+            internalState.update {
+                it.copy(speed = speed)
             }
         }
     }
