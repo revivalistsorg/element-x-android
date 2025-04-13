@@ -617,6 +617,7 @@ private fun MessageEventBubbleContent(
         is TimelineItemVideoContent -> if (event.content.showCaption) TimestampPosition.Aligned else TimestampPosition.Overlay
         is TimelineItemStickerContent,
         is TimelineItemLocationContent -> TimestampPosition.Overlay
+        is TimelineItemVoiceContent -> TimestampPosition.Below
         is TimelineItemPollContent -> TimestampPosition.Below
         else -> TimestampPosition.Default
     }

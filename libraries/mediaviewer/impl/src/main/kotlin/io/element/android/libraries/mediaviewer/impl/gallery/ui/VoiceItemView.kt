@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -95,6 +96,16 @@ private fun VoiceInfoRow(
         state.eventSink(VoiceMessageEvents.PlayPause)
     }
 
+    fun changeSpeed() {
+        val newSpeed = state.playbackSpeed
+        val newSpeedValue = when (newSpeed) {
+            1.0f -> 1.5f
+            1.5f -> 2f
+            else -> 1f
+        }
+        state.eventSink(VoiceMessageEvents.ChangeSpeed(newSpeedValue))
+    }
+
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
@@ -135,6 +146,14 @@ private fun VoiceInfoRow(
             },
             seekEnabled = true,
         )
+        TextButton(onClick = ::changeSpeed) {
+            Text(
+                text = "${state.playbackSpeed}x",
+                color = ElementTheme.colors.textSecondary,
+                style = ElementTheme.typography.fontBodyMdMedium,
+                maxLines = 1,
+            )
+        }
     }
 }
 

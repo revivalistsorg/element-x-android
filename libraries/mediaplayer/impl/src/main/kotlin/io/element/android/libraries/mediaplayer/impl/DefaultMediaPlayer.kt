@@ -43,6 +43,7 @@ class DefaultMediaPlayer @Inject constructor(
                 it.copy(
                     currentPosition = player.currentPosition,
                     duration = duration,
+                    speed = speed,
                     isPlaying = isPlaying,
                 )
             }
@@ -58,6 +59,7 @@ class DefaultMediaPlayer @Inject constructor(
                 it.copy(
                     currentPosition = player.currentPosition,
                     duration = duration,
+                    speed = speed,
                     mediaId = mediaItem?.mediaId,
                 )
             }
@@ -70,6 +72,7 @@ class DefaultMediaPlayer @Inject constructor(
                     isEnded = playbackState == Player.STATE_ENDED,
                     currentPosition = player.currentPosition,
                     duration = duration,
+                    speed = speed,
                 )
             }
         }
@@ -88,6 +91,7 @@ class DefaultMediaPlayer @Inject constructor(
             isEnded = false,
             mediaId = null,
             currentPosition = 0L,
+            speed = 1f,
             duration = null,
         )
     )
@@ -145,6 +149,13 @@ class DefaultMediaPlayer @Inject constructor(
         }
     }
 
+    override fun setSpeed(speed: Float) {
+        player.setSpeed(speed)
+        _state.update {
+            it.copy(speed = speed)
+        }
+    }
+
     override fun close() {
         player.release()
     }
@@ -163,4 +174,7 @@ class DefaultMediaPlayer @Inject constructor(
         get() = player.duration.let {
             if (it == C.TIME_UNSET) null else it
         }
+
+    private val speed: Float
+        get() = player.speed
 }

@@ -47,6 +47,11 @@ interface MediaPlayer : AutoCloseable {
     fun seekTo(positionMs: Long)
 
     /**
+     * set playback speed
+     */
+    fun setSpeed(speed: Float)
+
+    /**
      * Releases any resources associated with this player.
      */
     override fun close()
@@ -79,5 +84,9 @@ interface MediaPlayer : AutoCloseable {
          * The duration of the current content, if available.
          */
         val duration: Long?,
+        /**
+         * The speed of current playback.
+         */
+        val speed: Float,
     )
 }

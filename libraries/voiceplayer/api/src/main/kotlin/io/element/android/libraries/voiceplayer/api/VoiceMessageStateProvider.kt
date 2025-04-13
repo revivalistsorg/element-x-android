@@ -52,5 +52,6 @@ fun aVoiceMessageState(
     progress = progress,
     time = time,
     showCursor = showCursor,
+    playbackSpeed = 1f,
     eventSink = {},
 )
