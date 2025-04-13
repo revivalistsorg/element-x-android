@@ -41,8 +41,8 @@ class SentryAnalyticsProvider @Inject constructor(
         Timber.tag(analyticsTag.value).d("Initializing Sentry")
         if (Sentry.isEnabled()) return
 
-        val dsn = if (SentryConfig.DNS.isNotBlank()) {
-            SentryConfig.DNS
+        val dsn = if (SentryConfig.DSN.isNotBlank()) {
+            SentryConfig.DSN
         } else {
             Timber.w("No Sentry DSN provided, Sentry will not be initialized")
             return
