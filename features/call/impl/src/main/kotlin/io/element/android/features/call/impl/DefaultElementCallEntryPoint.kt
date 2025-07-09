@@ -34,7 +34,7 @@ class DefaultElementCallEntryPoint @Inject constructor(
         context.startActivity(IntentProvider.createIntent(context, callType))
     }
 
-    override fun handleIncomingCall(
+    override suspend fun handleIncomingCall(
         callType: CallType.RoomCall,
         eventId: EventId,
         senderId: UserId,
@@ -43,6 +43,7 @@ class DefaultElementCallEntryPoint @Inject constructor(
         avatarUrl: String?,
         timestamp: Long,
         notificationChannelId: String,
+        textContent: String?,
     ) {
         val incomingCallNotificationData = CallNotificationData(
             sessionId = callType.sessionId,
@@ -54,6 +55,7 @@ class DefaultElementCallEntryPoint @Inject constructor(
             avatarUrl = avatarUrl,
             timestamp = timestamp,
             notificationChannelId = notificationChannelId,
+            textContent = textContent,
         )
         activeCallManager.registerIncomingCall(notificationData = incomingCallNotificationData)
     }

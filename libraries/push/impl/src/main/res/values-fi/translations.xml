@@ -13,8 +13,7 @@
     <item quantity="one">"%d ilmoitus"</item>
     <item quantity="other">"%d ilmoitusta"</item>
   </plurals>
-  <string name="notification_fallback_content">"Ilmoitus"</string>
-  <string name="notification_incoming_call">"Saapuva puhelu"</string>
+  <string name="notification_incoming_call">"📹 Saapuva puhelu"</string>
   <string name="notification_inline_reply_failed">"** Lähetys epäonnistui - avaa huone"</string>
   <string name="notification_invitation_action_join">"Liity"</string>
   <string name="notification_invitation_action_reject">"Hylkää"</string>
@@ -64,6 +63,7 @@
     <item quantity="one">"Löytyi %1$d push-palveluntarjoaja: %2$s"</item>
     <item quantity="other">"Löytyi %1$d push-palveluntarjoajaa: %2$s"</item>
   </plurals>
+  <string name="troubleshoot_notifications_test_detect_push_provider_success_2">"Sovellus on rakennettu tukemaan: %1$s"</string>
   <string name="troubleshoot_notifications_test_detect_push_provider_title">"Push-palveluntarjoajien havaitseminen"</string>
   <string name="troubleshoot_notifications_test_display_notification_description">"Tarkistaa, että sovellus voi näyttää ilmoituksen."</string>
   <string name="troubleshoot_notifications_test_display_notification_failure">"Ilmoitusta ei ole klikattu."</string>

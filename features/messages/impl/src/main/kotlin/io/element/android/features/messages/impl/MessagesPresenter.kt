@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -31,6 +32,7 @@ import io.element.android.features.messages.impl.actionlist.ActionListEvents
 import io.element.android.features.messages.impl.actionlist.ActionListState
 import io.element.android.features.messages.impl.actionlist.model.TimelineItemAction
 import io.element.android.features.messages.impl.crypto.identity.IdentityChangeState
+import io.element.android.features.messages.impl.link.LinkState
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerEvents
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerState
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerState
@@ -48,10 +50,13 @@ import io.element.android.features.messages.impl.timeline.model.event.TimelineIt
 import io.element.android.features.messages.impl.timeline.protection.TimelineProtectionState
 import io.element.android.features.messages.impl.voicemessages.composer.VoiceMessageComposerState
 import io.element.android.features.roomcall.api.RoomCallState
+import io.element.android.features.roommembermoderation.api.RoomMemberModerationEvents
+import io.element.android.features.roommembermoderation.api.RoomMemberModerationState
 import io.element.android.libraries.androidutils.clipboard.ClipboardHelper
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
@@ -60,21 +65,23 @@ import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.designsystem.utils.snackbar.collectSnackbarMessageAsState
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
+import io.element.android.libraries.matrix.api.encryption.EncryptionService
+import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.permalink.PermalinkParser
-import io.element.android.libraries.matrix.api.room.MatrixRoom
-import io.element.android.libraries.matrix.api.room.MatrixRoomInfo
-import io.element.android.libraries.matrix.api.room.MatrixRoomMembersState
+import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.room.MessageEventType
+import io.element.android.libraries.matrix.api.room.RoomInfo
+import io.element.android.libraries.matrix.api.room.RoomMembersState
 import io.element.android.libraries.matrix.api.room.isDm
 import io.element.android.libraries.matrix.api.room.powerlevels.canPinUnpin
 import io.element.android.libraries.matrix.api.room.powerlevels.canRedactOther
 import io.element.android.libraries.matrix.api.room.powerlevels.canRedactOwn
 import io.element.android.libraries.matrix.api.room.powerlevels.canSendMessage
 import io.element.android.libraries.matrix.api.sync.SyncService
-import io.element.android.libraries.matrix.api.sync.isOnline
 import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
 import io.element.android.libraries.matrix.ui.messages.reply.map
 import io.element.android.libraries.matrix.ui.model.getAvatarData
+import io.element.android.libraries.matrix.ui.room.getDirectRoomMember
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.services.analytics.api.AnalyticsService
@@ -86,18 +93,20 @@ import timber.log.Timber
 
 class MessagesPresenter @AssistedInject constructor(
     @Assisted private val navigator: MessagesNavigator,
-    private val room: MatrixRoom,
+    private val room: JoinedRoom,
     @Assisted private val composerPresenter: Presenter<MessageComposerState>,
     private val voiceMessageComposerPresenter: Presenter<VoiceMessageComposerState>,
     @Assisted private val timelinePresenter: Presenter<TimelineState>,
     private val timelineProtectionPresenter: Presenter<TimelineProtectionState>,
     private val identityChangeStatePresenter: Presenter<IdentityChangeState>,
+    private val linkPresenter: Presenter<LinkState>,
     @Assisted private val actionListPresenter: Presenter<ActionListState>,
     private val customReactionPresenter: Presenter<CustomReactionState>,
     private val reactionSummaryPresenter: Presenter<ReactionSummaryState>,
     private val readReceiptBottomSheetPresenter: Presenter<ReadReceiptBottomSheetState>,
     private val pinnedMessagesBannerPresenter: Presenter<PinnedMessagesBannerState>,
     private val roomCallStatePresenter: Presenter<RoomCallState>,
+    private val roomMemberModerationPresenter: Presenter<RoomMemberModerationState>,
     private val syncService: SyncService,
     private val snackbarDispatcher: SnackbarDispatcher,
     private val dispatchers: CoroutineDispatchers,
@@ -108,6 +117,7 @@ class MessagesPresenter @AssistedInject constructor(
     private val timelineController: TimelineController,
     private val permalinkParser: PermalinkParser,
     private val analyticsService: AnalyticsService,
+    private val encryptionService: EncryptionService,
 ) : Presenter<MessagesState> {
     @AssistedFactory
     interface Factory {
@@ -121,9 +131,9 @@ class MessagesPresenter @AssistedInject constructor(
 
     @Composable
     override fun present(): MessagesState {
-        htmlConverterProvider.Update(currentUserId = room.sessionId)
+        htmlConverterProvider.Update()
 
-        val roomInfo by room.roomInfoFlow.collectAsState(null)
+        val roomInfo by room.roomInfoFlow.collectAsState()
         val localCoroutineScope = rememberCoroutineScope()
         val composerState = composerPresenter.present()
         val voiceMessageComposerState = voiceMessageComposerPresenter.present()
@@ -131,52 +141,74 @@ class MessagesPresenter @AssistedInject constructor(
         val timelineProtectionState = timelineProtectionPresenter.present()
         val identityChangeState = identityChangeStatePresenter.present()
         val actionListState = actionListPresenter.present()
+        val linkState = linkPresenter.present()
         val customReactionState = customReactionPresenter.present()
         val reactionSummaryState = reactionSummaryPresenter.present()
         val readReceiptBottomSheetState = readReceiptBottomSheetPresenter.present()
         val pinnedMessagesBannerState = pinnedMessagesBannerPresenter.present()
         val roomCallState = roomCallStatePresenter.present()
-
+        val roomMemberModerationState = roomMemberModerationPresenter.present()
         val syncUpdateFlow = room.syncUpdateFlow.collectAsState()
 
         val userEventPermissions by userEventPermissions(syncUpdateFlow.value)
 
-        val roomName: AsyncData<String> by remember {
-            derivedStateOf { roomInfo?.name?.let { AsyncData.Success(it) } ?: AsyncData.Uninitialized }
-        }
-        val roomAvatar: AsyncData<AvatarData> by remember {
-            derivedStateOf { roomInfo?.avatarData()?.let { AsyncData.Success(it) } ?: AsyncData.Uninitialized }
+        val roomAvatar by remember {
+            derivedStateOf { roomInfo.avatarData() }
         }
         val heroes by remember {
-            derivedStateOf { roomInfo?.heroes().orEmpty().toPersistentList() }
+            derivedStateOf { roomInfo.heroes().toPersistentList() }
         }
 
         var hasDismissedInviteDialog by rememberSaveable {
             mutableStateOf(false)
         }
-
         LaunchedEffect(Unit) {
             // Remove the unread flag on entering but don't send read receipts
             // as those will be handled by the timeline.
             withContext(dispatchers.io) {
                 room.setUnreadFlag(isUnread = false)
+
+                // If for some reason the encryption state is unknown, fetch it
+                if (roomInfo.isEncrypted == null) {
+                    room.getUpdatedIsEncrypted()
+                }
             }
         }
 
         val inviteProgress = remember { mutableStateOf<AsyncData<Unit>>(AsyncData.Uninitialized) }
         var showReinvitePrompt by remember { mutableStateOf(false) }
-        LaunchedEffect(hasDismissedInviteDialog, composerState.textEditorState.hasFocus(), syncUpdateFlow.value) {
+        val composerHasFocus by remember { derivedStateOf { composerState.textEditorState.hasFocus() } }
+        LaunchedEffect(hasDismissedInviteDialog, composerHasFocus, roomInfo) {
             withContext(dispatchers.io) {
-                showReinvitePrompt = !hasDismissedInviteDialog && composerState.textEditorState.hasFocus() && room.isDm && room.activeMemberCount == 1L
+                showReinvitePrompt = !hasDismissedInviteDialog && composerHasFocus && roomInfo.isDm && roomInfo.activeMembersCount == 1L
             }
         }
-        val isOnline by syncService.isOnline().collectAsState()
+        val isOnline by syncService.isOnline.collectAsState()
 
         val snackbarMessage by snackbarDispatcher.collectSnackbarMessageAsState()
 
         var enableVoiceMessages by remember { mutableStateOf(false) }
         LaunchedEffect(featureFlagsService) {
             enableVoiceMessages = featureFlagsService.isFeatureEnabled(FeatureFlags.VoiceMessages)
+        }
+
+        var dmUserVerificationState by remember { mutableStateOf<IdentityState?>(null) }
+
+        val membersState by room.membersStateFlow.collectAsState()
+        val dmRoomMember by room.getDirectRoomMember(membersState)
+        val roomMemberIdentityStateChanges = identityChangeState.roomMemberIdentityStateChanges
+
+        LifecycleResumeEffect(dmRoomMember, roomInfo.isEncrypted) {
+            if (roomInfo.isEncrypted == true) {
+                val dmRoomMemberId = dmRoomMember?.userId
+                localCoroutineScope.launch {
+                    dmRoomMemberId?.let { userId ->
+                        dmUserVerificationState = roomMemberIdentityStateChanges.find { it.identityRoomMember.userId == userId }?.identityState
+                            ?: encryptionService.getUserIdentity(userId).getOrNull()
+                    }
+                }
+            }
+            onPauseOrDispose {}
         }
 
         fun handleEvents(event: MessagesEvents) {
@@ -202,12 +234,15 @@ class MessagesPresenter @AssistedInject constructor(
                     }
                 }
                 is MessagesEvents.Dismiss -> actionListState.eventSink(ActionListEvents.Clear)
+                is MessagesEvents.OnUserClicked -> {
+                    roomMemberModerationState.eventSink(RoomMemberModerationEvents.ShowActionsForUser(event.user))
+                }
             }
         }
 
         return MessagesState(
             roomId = room.roomId,
-            roomName = roomName,
+            roomName = roomInfo.name,
             roomAvatar = roomAvatar,
             heroes = heroes,
             composerState = composerState,
@@ -216,6 +251,7 @@ class MessagesPresenter @AssistedInject constructor(
             timelineState = timelineState,
             timelineProtectionState = timelineProtectionState,
             identityChangeState = identityChangeState,
+            linkState = linkState,
             actionListState = actionListState,
             customReactionState = customReactionState,
             reactionSummaryState = reactionSummaryState,
@@ -229,6 +265,9 @@ class MessagesPresenter @AssistedInject constructor(
             appName = buildMeta.applicationName,
             roomCallState = roomCallState,
             pinnedMessagesBannerState = pinnedMessagesBannerState,
+            dmUserVerificationState = dmUserVerificationState,
+            roomMemberModerationState = roomMemberModerationState,
+            successorRoom = roomInfo.successorRoom,
             eventSink = { handleEvents(it) }
         )
     }
@@ -246,16 +285,16 @@ class MessagesPresenter @AssistedInject constructor(
         }
     }
 
-    private fun MatrixRoomInfo.avatarData(): AvatarData {
+    private fun RoomInfo.avatarData(): AvatarData {
         return AvatarData(
             id = id.value,
             name = name,
-            url = avatarUrl ?: room.avatarUrl,
+            url = avatarUrl,
             size = AvatarSize.TimelineRoom
         )
     }
 
-    private fun MatrixRoomInfo.heroes(): List<AvatarData> {
+    private fun RoomInfo.heroes(): List<AvatarData> {
         return heroes.map { user ->
             user.getAvatarData(size = AvatarSize.TimelineRoom)
         }
@@ -347,10 +386,10 @@ class MessagesPresenter @AssistedInject constructor(
 
     private fun CoroutineScope.reinviteOtherUser(inviteProgress: MutableState<AsyncData<Unit>>) = launch(dispatchers.io) {
         inviteProgress.value = AsyncData.Loading()
-        runCatching {
+        runCatchingExceptions {
             val memberList = when (val memberState = room.membersStateFlow.value) {
-                is MatrixRoomMembersState.Ready -> memberState.roomMembers
-                is MatrixRoomMembersState.Error -> memberState.prevRoomMembers.orEmpty()
+                is RoomMembersState.Ready -> memberState.roomMembers
+                is RoomMembersState.Error -> memberState.prevRoomMembers.orEmpty()
                 else -> emptyList()
             }
 

@@ -16,8 +16,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -25,6 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
@@ -50,7 +53,15 @@ fun GroupHeaderView(
 
     Box(
         modifier = modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .toggleable(
+                value = isExpanded,
+                onValueChange = { onClick() },
+                role = Role.DropdownList,
+            )
+            .clearAndSetSemantics {
+                contentDescription = text
+            },
         contentAlignment = Alignment.Center
     ) {
         Surface(
@@ -67,7 +78,7 @@ fun GroupHeaderView(
             ) {
                 Text(
                     text = text,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = ElementTheme.colors.textSecondary,
                     style = ElementTheme.typography.fontBodyMdRegular,
                 )
                 val rotation: Float by animateFloatAsState(
@@ -82,7 +93,7 @@ fun GroupHeaderView(
                     modifier = Modifier.rotate(rotation),
                     imageVector = CompoundIcons.ChevronRight(),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.secondary
+                    tint = ElementTheme.colors.iconSecondary
                 )
             }
         }

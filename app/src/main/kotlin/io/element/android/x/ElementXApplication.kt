@@ -9,13 +9,15 @@ package io.element.android.x
 
 import android.app.Application
 import androidx.startup.AppInitializer
+import io.element.android.appconfig.RageshakeConfig
+import io.element.android.appconfig.isEnabled
 import io.element.android.features.cachecleaner.api.CacheCleanerInitializer
 import io.element.android.libraries.di.DaggerComponentOwner
 import io.element.android.x.di.AppComponent
 import io.element.android.x.di.DaggerAppComponent
 import io.element.android.x.info.logApplicationInfo
 import io.element.android.x.initializer.CrashInitializer
-import io.element.android.x.initializer.TracingInitializer
+import io.element.android.x.initializer.PlatformInitializer
 
 class ElementXApplication : Application(), DaggerComponentOwner {
     override val daggerComponent: AppComponent = DaggerAppComponent.factory().create(this)
@@ -23,8 +25,10 @@ class ElementXApplication : Application(), DaggerComponentOwner {
     override fun onCreate() {
         super.onCreate()
         AppInitializer.getInstance(this).apply {
-            initializeComponent(CrashInitializer::class.java)
-            initializeComponent(TracingInitializer::class.java)
+            if (RageshakeConfig.isEnabled) {
+                initializeComponent(CrashInitializer::class.java)
+            }
+            initializeComponent(PlatformInitializer::class.java)
             initializeComponent(CacheCleanerInitializer::class.java)
         }
         logApplicationInfo(this)

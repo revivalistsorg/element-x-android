@@ -8,8 +8,9 @@
 package io.element.android.features.login.impl.screens.createaccount
 
 import com.google.common.truth.Truth.assertThat
+import io.element.android.appconfig.AuthenticationConfig
+import io.element.android.features.enterprise.test.FakeEnterpriseService
 import io.element.android.features.login.impl.accountprovider.AccountProviderDataSource
-import io.element.android.features.login.impl.util.defaultAccountProvider
 import io.element.android.libraries.matrix.api.auth.external.ExternalSession
 import kotlinx.serialization.SerializationException
 import org.junit.Assert.assertThrows
@@ -27,9 +28,7 @@ class DefaultMessageParserTest {
 
     @Test
     fun `DefaultMessageParser is able to parse correct message`() {
-        val sut = DefaultMessageParser(
-            AccountProviderDataSource()
-        )
+        val sut = createDefaultMessageParser()
         assertThat(sut.parse(validMessage)).isEqualTo(
             anExternalSession(
                 homeserverUrl = "home_server",
@@ -39,9 +38,7 @@ class DefaultMessageParserTest {
 
     @Test
     fun `DefaultMessageParser should throw Exception in case of error`() {
-        val sut = DefaultMessageParser(
-            AccountProviderDataSource()
-        )
+        val sut = createDefaultMessageParser()
         // kotlinx.serialization.json.internal.JsonDecodingException
         assertThrows(SerializationException::class.java) { sut.parse("invalid json") }
         // missing userId
@@ -60,14 +57,18 @@ class DefaultMessageParserTest {
 
     @Test
     fun `DefaultMessageParser should be successful even is homeserver url is missing`() {
-        val sut = DefaultMessageParser(
-            AccountProviderDataSource()
-        )
+        val sut = createDefaultMessageParser()
         // missing homeServer
         assertThat(sut.parse(validMessage.replace(""""home_server": "home_server",""", ""))).isEqualTo(
             anExternalSession(
-                homeserverUrl = defaultAccountProvider.url,
+                homeserverUrl = AuthenticationConfig.MATRIX_ORG_URL,
             )
+        )
+    }
+
+    private fun createDefaultMessageParser(): DefaultMessageParser {
+        return DefaultMessageParser(
+            AccountProviderDataSource(FakeEnterpriseService())
         )
     }
 }

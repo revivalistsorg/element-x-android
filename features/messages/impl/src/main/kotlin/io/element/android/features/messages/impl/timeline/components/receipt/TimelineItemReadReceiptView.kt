@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +26,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -36,6 +37,7 @@ import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.messages.impl.timeline.model.ReadReceiptData
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.avatar.getBestName
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -43,7 +45,6 @@ import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSendState
 import io.element.android.libraries.testtags.TestTags
-import io.element.android.libraries.testtags.testTag
 import io.element.android.libraries.ui.strings.CommonPlurals
 import io.element.android.libraries.ui.strings.CommonStrings
 import kotlinx.collections.immutable.ImmutableList
@@ -57,16 +58,19 @@ fun TimelineItemReadReceiptView(
 ) {
     if (state.receipts.isNotEmpty()) {
         if (renderReadReceipts) {
-            ReadReceiptsRow(modifier = modifier) {
+            ReadReceiptsRow(
+                modifier = modifier.clearAndSetSemantics {
+                    hideFromAccessibility()
+                }
+            ) {
                 ReadReceiptsAvatars(
                     receipts = state.receipts,
                     modifier = Modifier
-                            .testTag(TestTags.messageReadReceipts)
-                            .clip(RoundedCornerShape(4.dp))
-                            .clickable {
-                                onReadReceiptsClick()
-                            }
-                            .padding(2.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable {
+                            onReadReceiptsClick()
+                        }
+                        .padding(2.dp)
                 )
             }
         }
@@ -109,9 +113,9 @@ private fun ReadReceiptsRow(
 ) {
     Row(
         modifier = modifier
-                .fillMaxWidth()
-                .height(AvatarSize.TimelineReadReceipt.dp + 8.dp)
-                .padding(horizontal = 18.dp),
+            .fillMaxWidth()
+            .height(AvatarSize.TimelineReadReceipt.dp + 8.dp)
+            .padding(horizontal = 18.dp),
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -131,11 +135,12 @@ private fun ReadReceiptsAvatars(
 ) {
     val avatarSize = AvatarSize.TimelineReadReceipt.dp
     val avatarStrokeSize = 1.dp
-    val avatarStrokeColor = MaterialTheme.colorScheme.background
+    val avatarStrokeColor = ElementTheme.colors.bgCanvasDefault
     val receiptDescription = computeReceiptDescription(receipts)
     Row(
         modifier = modifier
             .clearAndSetSemantics {
+                testTag = TestTags.messageReadReceipts.value
                 contentDescription = receiptDescription
             },
         horizontalArrangement = Arrangement.spacedBy(4.dp - avatarStrokeSize),
@@ -150,15 +155,16 @@ private fun ReadReceiptsAvatars(
                 .forEachIndexed { index, readReceiptData ->
                     Box(
                         modifier = Modifier
-                                .padding(end = (12.dp + avatarStrokeSize * 2) * index)
-                                .size(size = avatarSize + avatarStrokeSize * 2)
-                                .clip(CircleShape)
-                                .background(avatarStrokeColor)
-                                .zIndex(index.toFloat()),
+                            .padding(end = (12.dp + avatarStrokeSize * 2) * index)
+                            .size(size = avatarSize + avatarStrokeSize * 2)
+                            .clip(CircleShape)
+                            .background(avatarStrokeColor)
+                            .zIndex(index.toFloat()),
                         contentAlignment = Alignment.Center,
                     ) {
                         Avatar(
                             avatarData = readReceiptData.avatarData,
+                            avatarType = AvatarType.User,
                         )
                     }
                 }

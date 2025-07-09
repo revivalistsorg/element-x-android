@@ -10,8 +10,6 @@
 package io.element.android.features.preferences.impl.developer
 
 import com.google.common.truth.Truth.assertThat
-import io.element.android.appconfig.ElementCallConfig
-import io.element.android.features.logout.test.FakeLogoutUseCase
 import io.element.android.features.preferences.impl.developer.tracing.LogLevelItem
 import io.element.android.features.preferences.impl.tasks.FakeClearCacheUseCase
 import io.element.android.features.preferences.impl.tasks.FakeComputeCacheSizeUseCase
@@ -25,11 +23,8 @@ import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.matrix.test.core.aBuildMeta
 import io.element.android.libraries.preferences.test.InMemoryAppPreferencesStore
 import io.element.android.tests.testutils.WarmUpRule
-import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -48,8 +43,6 @@ class DeveloperSettingsPresenterTest {
                 assertThat(state.cacheSize).isEqualTo(AsyncData.Uninitialized)
                 assertThat(state.customElementCallBaseUrlState).isNotNull()
                 assertThat(state.customElementCallBaseUrlState.baseUrl).isNull()
-                assertThat(state.isSimpleSlidingSyncEnabled).isFalse()
-                assertThat(state.hideImagesAndVideos).isFalse()
                 assertThat(state.rageshakeState.isEnabled).isFalse()
                 assertThat(state.rageshakeState.isSupported).isTrue()
                 assertThat(state.rageshakeState.sensitivity).isEqualTo(0.3f)
@@ -85,7 +78,7 @@ class DeveloperSettingsPresenterTest {
         presenter.test {
             skipItems(2)
             awaitItem().also { state ->
-                val feature = state.features.first()
+                val feature = state.features.first { !it.isEnabled }
                 state.eventSink(DeveloperSettingsEvents.UpdateEnabledFeature(feature, !feature.isEnabled))
             }
             awaitItem().also { state ->
@@ -134,7 +127,6 @@ class DeveloperSettingsPresenterTest {
             }
             awaitItem().also { state ->
                 assertThat(state.customElementCallBaseUrlState.baseUrl).isEqualTo("https://call.element.ahoy")
-                assertThat(state.customElementCallBaseUrlState.defaultUrl).isEqualTo(ElementCallConfig.DEFAULT_BASE_URL)
             }
         }
     }
@@ -150,56 +142,6 @@ class DeveloperSettingsPresenterTest {
             assertThat(urlValidator("http://")).isFalse()
             assertThat(urlValidator("geo://test")).isFalse()
             assertThat(urlValidator("https://call.element.io")).isTrue()
-        }
-    }
-
-    @Test
-    fun `present - toggling simplified sliding sync changes the preferences and logs out the user`() = runTest {
-        val logoutCallRecorder = lambdaRecorder<Boolean, String?> { "" }
-        val logoutUseCase = FakeLogoutUseCase(logoutLambda = logoutCallRecorder)
-        val preferences = InMemoryAppPreferencesStore()
-        val presenter = createDeveloperSettingsPresenter(preferencesStore = preferences, logoutUseCase = logoutUseCase)
-        presenter.test {
-            skipItems(2)
-            awaitItem().also { state ->
-                assertThat(state.isSimpleSlidingSyncEnabled).isFalse()
-                state.eventSink(DeveloperSettingsEvents.SetSimplifiedSlidingSyncEnabled(true))
-            }
-            awaitItem().also { state ->
-                assertThat(state.isSimpleSlidingSyncEnabled).isTrue()
-                assertThat(preferences.isSimplifiedSlidingSyncEnabledFlow().first()).isTrue()
-                advanceUntilIdle()
-                logoutCallRecorder.assertions().isCalledOnce()
-                state.eventSink(DeveloperSettingsEvents.SetSimplifiedSlidingSyncEnabled(false))
-            }
-            awaitItem().also { state ->
-                assertThat(state.isSimpleSlidingSyncEnabled).isFalse()
-                assertThat(preferences.isSimplifiedSlidingSyncEnabledFlow().first()).isFalse()
-                advanceUntilIdle()
-                logoutCallRecorder.assertions().isCalledExactly(2)
-            }
-        }
-    }
-
-    @Test
-    fun `present - toggling hide image and video`() = runTest {
-        val preferences = InMemoryAppPreferencesStore()
-        val presenter = createDeveloperSettingsPresenter(preferencesStore = preferences)
-        presenter.test {
-            skipItems(2)
-            awaitItem().also { state ->
-                assertThat(state.hideImagesAndVideos).isFalse()
-                state.eventSink(DeveloperSettingsEvents.SetHideImagesAndVideos(true))
-            }
-            awaitItem().also { state ->
-                assertThat(state.hideImagesAndVideos).isTrue()
-                assertThat(preferences.doesHideImagesAndVideosFlow().first()).isTrue()
-                state.eventSink(DeveloperSettingsEvents.SetHideImagesAndVideos(false))
-            }
-            awaitItem().also { state ->
-                assertThat(state.hideImagesAndVideos).isFalse()
-                assertThat(preferences.doesHideImagesAndVideosFlow().first()).isFalse()
-            }
         }
     }
 
@@ -225,7 +167,6 @@ class DeveloperSettingsPresenterTest {
         clearCacheUseCase: FakeClearCacheUseCase = FakeClearCacheUseCase(),
         preferencesStore: InMemoryAppPreferencesStore = InMemoryAppPreferencesStore(),
         buildMeta: BuildMeta = aBuildMeta(),
-        logoutUseCase: FakeLogoutUseCase = FakeLogoutUseCase(logoutLambda = { "" })
     ): DeveloperSettingsPresenter {
         return DeveloperSettingsPresenter(
             featureFlagService = featureFlagService,
@@ -234,7 +175,6 @@ class DeveloperSettingsPresenterTest {
             rageshakePresenter = { aRageshakePreferencesState() },
             appPreferencesStore = preferencesStore,
             buildMeta = buildMeta,
-            logoutUseCase = logoutUseCase,
         )
     }
 }

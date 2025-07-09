@@ -8,7 +8,6 @@
 package io.element.android.features.messages.impl.timeline.components.event
 
 import android.text.SpannedString
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -20,8 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
@@ -38,13 +35,14 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import coil.compose.AsyncImagePainter
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import io.element.android.compound.theme.ElementTheme
+import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.messages.impl.timeline.aTimelineItemEvent
 import io.element.android.features.messages.impl.timeline.components.ATimelineItemEventRow
 import io.element.android.features.messages.impl.timeline.components.layout.ContentAvoidingLayout
@@ -64,9 +62,10 @@ import io.element.android.libraries.matrix.ui.media.MAX_THUMBNAIL_WIDTH
 import io.element.android.libraries.matrix.ui.media.MediaRequestData
 import io.element.android.libraries.textcomposer.ElementRichTextEditorStyle
 import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.libraries.ui.utils.time.isTalkbackActive
 import io.element.android.wysiwyg.compose.EditorStyledText
+import io.element.android.wysiwyg.link.Link
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimelineItemVideoView(
     content: TimelineItemVideoContent,
@@ -74,14 +73,15 @@ fun TimelineItemVideoView(
     onContentClick: (() -> Unit)?,
     onLongClick: (() -> Unit)?,
     onShowContentClick: () -> Unit,
-    onLinkClick: (String) -> Unit,
+    onLinkClick: (Link) -> Unit,
+    onLinkLongClick: (Link) -> Unit,
     onContentLayoutChange: (ContentAvoidingLayoutData) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val description = stringResource(CommonStrings.common_video)
-    Column(
-        modifier = modifier.semantics { contentDescription = description }
-    ) {
+    val isTalkbackActive = isTalkbackActive()
+    val a11yLabel = stringResource(CommonStrings.common_video)
+    val description = content.caption?.let { "$a11yLabel: $it" } ?: a11yLabel
+    Column(modifier = modifier) {
         val containerModifier = if (content.showCaption) {
             Modifier
                 .padding(top = 6.dp)
@@ -103,7 +103,16 @@ fun TimelineItemVideoView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(if (isLoaded) Modifier.background(Color.White) else Modifier)
-                        .then(if (onContentClick != null) Modifier.combinedClickable(onClick = onContentClick, onLongClick = onLongClick) else Modifier),
+                        .then(
+                            if (!isTalkbackActive && onContentClick != null) {
+                                Modifier.combinedClickable(
+                                    onClick = onContentClick,
+                                    onLongClick = onLongClick
+                                )
+                            } else {
+                                Modifier
+                            }
+                        ),
                     model = MediaRequestData(
                         source = content.thumbnailSource,
                         kind = MediaRequestData.Kind.Thumbnail(
@@ -111,7 +120,7 @@ fun TimelineItemVideoView(
                             height = content.thumbnailHeight?.toLong() ?: MAX_THUMBNAIL_HEIGHT,
                         )
                     ),
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     alignment = Alignment.Center,
                     contentDescription = description,
                     onState = { isLoaded = it is AsyncImagePainter.State.Success },
@@ -122,9 +131,10 @@ fun TimelineItemVideoView(
                     contentAlignment = Alignment.Center,
                 ) {
                     Image(
-                        Icons.Default.PlayArrow,
+                        imageVector = CompoundIcons.PlaySolid(),
                         contentDescription = stringResource(id = CommonStrings.a11y_play),
                         colorFilter = ColorFilter.tint(Color.White),
+                        modifier = Modifier.semantics { hideFromAccessibility() }
                     )
                 }
             }
@@ -148,6 +158,7 @@ fun TimelineItemVideoView(
                         .widthIn(min = MIN_HEIGHT_IN_DP.dp * aspectRatio, max = MAX_HEIGHT_IN_DP.dp * aspectRatio),
                     text = caption,
                     onLinkClickedListener = onLinkClick,
+                    onLinkLongClickedListener = onLinkLongClick,
                     style = ElementRichTextEditorStyle.textStyle(),
                     releaseOnDetach = false,
                     onTextLayout = ContentAvoidingLayout.measureLegacyLastTextLine(onContentLayoutChange = onContentLayoutChange),
@@ -167,6 +178,7 @@ internal fun TimelineItemVideoViewPreview(@PreviewParameter(TimelineItemVideoCon
         onContentClick = {},
         onLongClick = {},
         onLinkClick = {},
+        onLinkLongClick = {},
         onContentLayoutChange = {},
     )
 }
@@ -181,6 +193,7 @@ internal fun TimelineItemVideoViewHideMediaContentPreview() = ElementPreview {
         onContentClick = {},
         onLongClick = {},
         onLinkClick = {},
+        onLinkLongClick = {},
         onContentLayoutChange = {},
     )
 }

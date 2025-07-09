@@ -41,6 +41,7 @@ import io.element.android.features.messages.impl.pinned.banner.aLoadedPinnedMess
 import io.element.android.features.messages.impl.timeline.FOCUS_ON_PINNED_EVENT_DEBOUNCE_DURATION_IN_MILLIS
 import io.element.android.features.messages.impl.timeline.TimelineEvents
 import io.element.android.features.messages.impl.timeline.aTimelineItemEvent
+import io.element.android.features.messages.impl.timeline.aTimelineItemList
 import io.element.android.features.messages.impl.timeline.aTimelineItemReadReceipts
 import io.element.android.features.messages.impl.timeline.aTimelineRoomInfo
 import io.element.android.features.messages.impl.timeline.aTimelineState
@@ -50,19 +51,27 @@ import io.element.android.features.messages.impl.timeline.components.reactionsum
 import io.element.android.features.messages.impl.timeline.components.receipt.aReadReceiptData
 import io.element.android.features.messages.impl.timeline.components.receipt.bottomsheet.ReadReceiptBottomSheetEvents
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
+import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemTextContent
+import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
+import io.element.android.libraries.matrix.api.timeline.item.event.getAvatarUrl
+import io.element.android.libraries.matrix.api.timeline.item.event.getDisplayName
+import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.test.AN_EVENT_ID
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.ui.strings.CommonStrings
-import io.element.android.tests.testutils.EnsureCalledOnceWithParam
+import io.element.android.tests.testutils.EnsureCalledOnceWithTwoParamsAndResult
 import io.element.android.tests.testutils.EnsureNeverCalled
 import io.element.android.tests.testutils.EnsureNeverCalledWithParam
-import io.element.android.tests.testutils.EnsureNeverCalledWithParamAndResult
+import io.element.android.tests.testutils.EnsureNeverCalledWithTwoParams
+import io.element.android.tests.testutils.EnsureNeverCalledWithTwoParamsAndResult
 import io.element.android.tests.testutils.EventsRecorder
+import io.element.android.tests.testutils.assertNoNodeWithText
 import io.element.android.tests.testutils.clickOn
 import io.element.android.tests.testutils.ensureCalledOnce
-import io.element.android.tests.testutils.ensureCalledOnceWithParam
 import io.element.android.tests.testutils.pressBack
+import io.element.android.tests.testutils.setSafeContent
 import kotlinx.collections.immutable.persistentListOf
 import org.junit.Rule
 import org.junit.Test
@@ -101,7 +110,7 @@ class MessagesViewTest {
                 state = state,
                 onRoomDetailsClick = callback,
             )
-            rule.onNodeWithText(state.roomName.dataOrNull().orEmpty()).performClick()
+            rule.onNodeWithText(state.roomName.orEmpty(), useUnmergedTree = true).performClick()
         }
     }
 
@@ -125,11 +134,15 @@ class MessagesViewTest {
     fun `clicking on an Event invoke expected callback`() {
         val eventsRecorder = EventsRecorder<MessagesEvents>(expectEvents = false)
         val state = aMessagesState(
+            timelineState = aTimelineState(
+                timelineItems = aTimelineItemList(aTimelineItemTextContent()),
+            ),
             eventSink = eventsRecorder
         )
         val timelineItem = state.timelineState.timelineItems.first()
-        val callback = EnsureCalledOnceWithParam(
-            expectedParam = timelineItem,
+        val callback = EnsureCalledOnceWithTwoParamsAndResult(
+            expectedParam1 = true,
+            expectedParam2 = timelineItem,
             result = true,
         )
         rule.setMessagesView(
@@ -180,6 +193,9 @@ class MessagesViewTest {
                 canSendReaction = userHasPermissionToSendReaction,
                 canPinUnpin = userCanPinEvent,
             ),
+            timelineState = aTimelineState(
+                timelineItems = aTimelineItemList(aTimelineItemTextContent()),
+            ),
         )
         val timelineItem = state.timelineState.timelineItems.first() as TimelineItem.Event
         rule.setMessagesView(
@@ -196,6 +212,7 @@ class MessagesViewTest {
     }
 
     @Test
+    @Config(qualifiers = "h1024dp")
     fun `clicking on a read receipt list emits the expected Event`() {
         val eventsRecorder = EventsRecorder<ReadReceiptBottomSheetEvents>()
         val state = aMessagesState(
@@ -219,7 +236,7 @@ class MessagesViewTest {
         rule.setMessagesView(
             state = state,
         )
-        rule.onNodeWithTag(TestTags.messageReadReceipts.value).performClick()
+        rule.onNodeWithTag(TestTags.messageReadReceipts.value, useUnmergedTree = true).performClick()
         eventsRecorder.assertSingle(ReadReceiptBottomSheetEvents.EventSelected(timelineItem))
     }
 
@@ -299,21 +316,42 @@ class MessagesViewTest {
 
     @Test
     @Config(qualifiers = "h1024dp")
-    fun `clicking on the sender of an Event invoke expected callback`() {
-        val eventsRecorder = EventsRecorder<MessagesEvents>(expectEvents = false)
+    fun `clicking on the avatar of the sender of an Event emits the expected event`() {
+        val eventsRecorder = EventsRecorder<MessagesEvents>()
         val state = aMessagesState(
             eventSink = eventsRecorder
         )
-        val timelineItem = state.timelineState.timelineItems.first()
-        ensureCalledOnceWithParam(
-            param = (timelineItem as TimelineItem.Event).senderId
-        ) { callback ->
-            rule.setMessagesView(
-                state = state,
-                onUserDataClick = callback,
+        val timelineEvent = state.timelineState.timelineItems.filterIsInstance<TimelineItem.Event>().first()
+        rule.setMessagesView(state = state)
+        rule.onNodeWithTag(TestTags.timelineItemSenderAvatar.value, useUnmergedTree = true).performClick()
+        eventsRecorder.assertSingle(
+            MessagesEvents.OnUserClicked(
+                MatrixUser(
+                    userId = timelineEvent.senderId,
+                    displayName = timelineEvent.senderProfile.getDisplayName(),
+                    avatarUrl = timelineEvent.senderProfile.getAvatarUrl()
+                )
             )
-            rule.onNodeWithTag(TestTags.timelineItemSenderInfo.value).performClick()
-        }
+        )
+    }
+
+    @Test
+    @Config(qualifiers = "h1024dp")
+    fun `clicking on the display name of the sender of an Event emits expected event`() {
+        val eventsRecorder = EventsRecorder<MessagesEvents>()
+        val state = aMessagesState(eventSink = eventsRecorder)
+        val timelineEvent = state.timelineState.timelineItems.filterIsInstance<TimelineItem.Event>().first()
+        rule.setMessagesView(state = state)
+        rule.onNodeWithTag(TestTags.timelineItemSenderAvatar.value, useUnmergedTree = true).performClick()
+        eventsRecorder.assertSingle(
+            MessagesEvents.OnUserClicked(
+                MatrixUser(
+                    userId = timelineEvent.senderId,
+                    displayName = timelineEvent.senderProfile.getDisplayName(),
+                    avatarUrl = timelineEvent.senderProfile.getAvatarUrl()
+                )
+            )
+        )
     }
 
     @Test
@@ -347,13 +385,19 @@ class MessagesViewTest {
     fun `clicking on a reaction emits the expected Event`() {
         val eventsRecorder = EventsRecorder<MessagesEvents>()
         val state = aMessagesState(
-            eventSink = eventsRecorder
+            timelineState = aTimelineState(
+                timelineItems = aTimelineItemList(aTimelineItemTextContent()),
+            ),
+            eventSink = eventsRecorder,
         )
         val timelineItem = state.timelineState.timelineItems.first() as TimelineItem.Event
         rule.setMessagesView(
             state = state,
         )
-        rule.onAllNodesWithText("👍️").onFirst().performClick()
+        rule.onAllNodesWithText(
+            text = "👍️",
+            useUnmergedTree = true,
+        ).onFirst().performClick()
         eventsRecorder.assertSingle(MessagesEvents.ToggleReaction("👍️", timelineItem.eventOrTransactionId))
     }
 
@@ -361,6 +405,9 @@ class MessagesViewTest {
     fun `long clicking on a reaction emits the expected Event`() {
         val eventsRecorder = EventsRecorder<ReactionSummaryEvents>()
         val state = aMessagesState(
+            timelineState = aTimelineState(
+                timelineItems = aTimelineItemList(aTimelineItemTextContent()),
+            ),
             reactionSummaryState = aReactionSummaryState(
                 target = null,
                 eventSink = eventsRecorder,
@@ -370,7 +417,10 @@ class MessagesViewTest {
         rule.setMessagesView(
             state = state,
         )
-        rule.onAllNodesWithText("👍️").onFirst().performTouchInput { longClick() }
+        rule.onAllNodesWithText(
+            text = "👍️",
+            useUnmergedTree = true,
+        ).onFirst().performTouchInput { longClick() }
         eventsRecorder.assertSingle(ReactionSummaryEvents.ShowReactionSummary(timelineItem.eventId!!, timelineItem.reactionsState.reactions, "👍️"))
     }
 
@@ -378,6 +428,9 @@ class MessagesViewTest {
     fun `clicking on more reaction emits the expected Event`() {
         val eventsRecorder = EventsRecorder<CustomReactionEvents>()
         val state = aMessagesState(
+            timelineState = aTimelineState(
+                timelineItems = aTimelineItemList(aTimelineItemTextContent()),
+            ),
             customReactionState = aCustomReactionState(
                 eventSink = eventsRecorder,
             ),
@@ -394,7 +447,11 @@ class MessagesViewTest {
     @Test
     fun `clicking on more reaction from action list emits the expected Event`() {
         val eventsRecorder = EventsRecorder<CustomReactionEvents>()
-        val state = aMessagesState()
+        val state = aMessagesState(
+            timelineState = aTimelineState(
+                timelineItems = aTimelineItemList(aTimelineItemTextContent()),
+            ),
+        )
         val timelineItem = state.timelineState.timelineItems.first() as TimelineItem.Event
         val stateWithActionListState = state.copy(
             actionListState = anActionListState(
@@ -506,25 +563,53 @@ class MessagesViewTest {
         rule.onNodeWithText("This is a pinned message").performClick()
         eventsRecorder.assertSingle(TimelineEvents.FocusOnEvent(AN_EVENT_ID, debounce = FOCUS_ON_PINNED_EVENT_DEBOUNCE_DURATION_IN_MILLIS.milliseconds))
     }
+
+    @Test
+    fun `clicking on successor room button emits expected event`() {
+        val eventsRecorder = EventsRecorder<TimelineEvents>()
+        val successorRoomId = RoomId("!successor:server.org")
+        val state = aMessagesState(
+            successorRoom = SuccessorRoom(
+                roomId = successorRoomId,
+                reason = "This room has been upgraded"
+            ),
+            timelineState = aTimelineState(eventSink = eventsRecorder)
+        )
+        rule.setMessagesView(state = state)
+        val text = rule.activity.getString(R.string.screen_room_timeline_tombstoned_room_action)
+        // The bottomsheet subcompose seems to make the node to appear twice
+        rule.onAllNodesWithText(text).onFirst().performClick()
+        eventsRecorder.assertSingle(TimelineEvents.NavigateToRoom(successorRoomId))
+    }
+
+    @Test
+    fun `no banner shown when there is no successor room`() {
+        val eventsRecorder = EventsRecorder<MessagesEvents>(expectEvents = false)
+        val state = aMessagesState(
+            successorRoom = null,
+            eventSink = eventsRecorder
+        )
+        rule.setMessagesView(state = state)
+        rule.assertNoNodeWithText(R.string.screen_room_timeline_tombstoned_room_message)
+        rule.assertNoNodeWithText(R.string.screen_room_timeline_tombstoned_room_action)
+    }
 }
 
 private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setMessagesView(
     state: MessagesState,
     onBackClick: () -> Unit = EnsureNeverCalled(),
     onRoomDetailsClick: () -> Unit = EnsureNeverCalled(),
-    onEventClick: (event: TimelineItem.Event) -> Boolean = EnsureNeverCalledWithParamAndResult(),
+    onEventClick: (isLive: Boolean, event: TimelineItem.Event) -> Boolean = EnsureNeverCalledWithTwoParamsAndResult(),
     onUserDataClick: (UserId) -> Unit = EnsureNeverCalledWithParam(),
-    onLinkClick: (String) -> Unit = EnsureNeverCalledWithParam(),
+    onLinkClick: (String, Boolean) -> Unit = EnsureNeverCalledWithTwoParams(),
     onSendLocationClick: () -> Unit = EnsureNeverCalled(),
     onCreatePollClick: () -> Unit = EnsureNeverCalled(),
     onJoinCallClick: () -> Unit = EnsureNeverCalled(),
     onViewAllPinnedMessagesClick: () -> Unit = EnsureNeverCalled(),
 ) {
-    setContent {
+    setSafeContent {
         // Cannot use the RichTextEditor, so simulate a LocalInspectionMode
-        CompositionLocalProvider(
-            LocalInspectionMode provides true
-        ) {
+        CompositionLocalProvider(LocalInspectionMode provides true) {
             MessagesView(
                 state = state,
                 onBackClick = onBackClick,
@@ -536,7 +621,7 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setMessa
                 onCreatePollClick = onCreatePollClick,
                 onJoinCallClick = onJoinCallClick,
                 onViewAllPinnedMessagesClick = onViewAllPinnedMessagesClick,
-                knockRequestsBannerView = {}
+                knockRequestsBannerView = {},
             )
         }
     }

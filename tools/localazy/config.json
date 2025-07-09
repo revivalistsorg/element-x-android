@@ -4,7 +4,8 @@
       "name" : ":appnav",
       "includeRegex" : [
         "banner\\.migrate_to_native_sliding_sync\\.force_logout.title",
-        "banner\\.migrate_to_native_sliding_sync\\.action"
+        "banner\\.migrate_to_native_sliding_sync\\.action",
+        "banner\\.migrate_to_native_sliding_sync\\.app_force_logout\\.title"
       ]
     },
     {
@@ -36,13 +37,8 @@
     {
       "name" : ":features:roomaliasresolver:impl",
       "includeRegex" : [
-        "screen_room_alias_resolver_.*"
-      ]
-    },
-    {
-      "name" : ":features:onboarding:impl",
-      "includeRegex" : [
-        "screen_onboarding_.*"
+        "screen_room_alias_resolver_.*",
+        "screen.join_room.loading_alert_title"
       ]
     },
     {
@@ -54,7 +50,9 @@
     {
       "name" : ":features:invite:impl",
       "includeRegex" : [
-        "screen_invites_.*"
+        "screen_invites_.*",
+        "screen\\.join_room\\.decline_and_block_.*",
+        "screen\\.decline_and_block\\..*"
       ]
     },
     {
@@ -62,7 +60,9 @@
       "includeRegex" : [
         "screen_create_room_.*",
         "screen\\.create_room\\..*",
-        "screen_start_chat_.*"
+        "screen_start_chat_.*",
+        "screen\\.start_chat\\..*",
+        "screen_room_directory_search_title*"
       ]
     },
     {
@@ -143,6 +143,7 @@
     {
       "name" : ":features:login:impl",
       "includeRegex" : [
+        "screen_onboarding_.*",
         "screen_login_.*",
         "screen_server_confirmation_.*",
         "screen_change_server_.*",
@@ -161,17 +162,17 @@
       ]
     },
     {
-      "name" : ":features:roomlist:impl",
+      "name" : ":features:home:impl",
       "includeRegex" : [
         "screen_roomlist_.*",
+        "screen\\.roomlist\\..*",
         "session_verification_banner_.*",
         "confirm_recovery_key_banner_.*",
         "banner\\.set_up_recovery\\..*",
-        "banner\\.migrate_to_native_sliding_sync\\..*",
+        "banner\\.battery_optimization\\..*",
         "full_screen_intent_banner_.*",
         "screen_migration_.*",
-        "screen_invites_.*",
-        "screen\\.join_room\\.knock_sent_title"
+        "screen_invites_.*"
       ]
     },
     {
@@ -210,6 +211,7 @@
         "screen_room_message.*",
         "screen_room_retry.*",
         "screen_room_timeline.*",
+        "screen\\.room_timeline.*",
         "screen_room_typing.*"
       ]
     },
@@ -229,7 +231,9 @@
       "name" : ":features:ftue:impl",
       "includeRegex" : [
         "screen_welcome_.*",
-        "screen_notification_optin_.*"
+        "screen_notification_optin_.*",
+        "screen_identity_.*",
+        "screen_session_verification_enter_recovery_key"
       ]
     },
     {
@@ -238,6 +242,12 @@
         "screen_create_poll_.*",
         "screen_edit_poll_.*",
         "screen_polls_history_.*"
+      ]
+    },
+    {
+      "name" : ":features:poll:api",
+      "includeRegex" : [
+        "a11y\\.polls\\..*"
       ]
     },
     {
@@ -267,13 +277,15 @@
     {
       "name" : ":libraries:troubleshoot:impl",
       "includeRegex" : [
-        "troubleshoot_notifications_screen_.*"
+        "troubleshoot_notifications_screen_.*",
+        "screen\\.push_history\\..*"
       ]
     },
     {
       "name" : ":libraries:matrixui",
       "includeRegex" : [
-        "screen_invites_invited_you"
+        "screen_invites_invited_you",
+        "screen\\.bottom_sheet\\.create_dm\\..*"
       ]
     },
     {
@@ -309,6 +321,18 @@
         "screen\\.knock_requests_list\\..*",
         "screen\\.room\\.single_knock_request.*",
         "screen\\.room\\.multiple_knock_requests.*"
+      ]
+    },
+    {
+      "name" : ":features:reportroom:impl",
+      "includeRegex" : [
+        "screen\\.report_room\\..*"
+      ]
+    },
+    {
+      "name" : ":features:roommembermoderation:impl",
+      "includeRegex" : [
+        "screen\\.bottom_sheet\\.manage_room_member\\..*"
       ]
     }
   ]

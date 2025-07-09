@@ -30,7 +30,7 @@ import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.designsystem.theme.components.SearchBarResultState
 import io.element.android.libraries.matrix.api.core.UserId
-import io.element.android.libraries.matrix.api.room.MatrixRoom
+import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.powerlevels.UserRoleChange
 import io.element.android.libraries.matrix.api.room.powerlevels.usersWithRole
@@ -50,7 +50,7 @@ import kotlinx.coroutines.launch
 
 class ChangeRolesPresenter @AssistedInject constructor(
     @Assisted private val role: RoomMember.Role,
-    private val room: MatrixRoom,
+    private val room: JoinedRoom,
     private val dispatchers: CoroutineDispatchers,
     private val analyticsService: AnalyticsService,
 ) : Presenter<ChangeRolesState> {
@@ -106,10 +106,10 @@ class ChangeRolesPresenter @AssistedInject constructor(
 
         val hasPendingChanges = usersWithRole.value != selectedUsers.value
 
-        val roomInfo by room.roomInfoFlow.collectAsState(initial = null)
+        val roomInfo by room.roomInfoFlow.collectAsState()
         fun canChangeMemberRole(userId: UserId): Boolean {
             // An admin can't remove or demote another admin
-            val powerLevel = roomInfo?.userPowerLevels?.get(userId) ?: 0L
+            val powerLevel = roomInfo.roomPowerLevels?.users?.get(userId) ?: 0L
             return RoomMember.Role.forPowerLevel(powerLevel) != RoomMember.Role.ADMIN
         }
 

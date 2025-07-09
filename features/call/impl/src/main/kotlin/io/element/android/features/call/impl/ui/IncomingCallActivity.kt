@@ -19,12 +19,17 @@ import io.element.android.features.call.impl.di.CallBindings
 import io.element.android.features.call.impl.notifications.CallNotificationData
 import io.element.android.features.call.impl.utils.ActiveCallManager
 import io.element.android.features.call.impl.utils.CallState
+import io.element.android.features.enterprise.api.EnterpriseService
 import io.element.android.libraries.architecture.bindings
+import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.designsystem.theme.ElementThemeApp
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -47,6 +52,15 @@ class IncomingCallActivity : AppCompatActivity() {
     @Inject
     lateinit var appPreferencesStore: AppPreferencesStore
 
+    @Inject
+    lateinit var enterpriseService: EnterpriseService
+
+    @Inject
+    lateinit var buildMeta: BuildMeta
+
+    @AppCoroutineScope
+    @Inject lateinit var appCoroutineScope: CoroutineScope
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -64,7 +78,11 @@ class IncomingCallActivity : AppCompatActivity() {
         val notificationData = intent?.let { IntentCompat.getParcelableExtra(it, EXTRA_NOTIFICATION_DATA, CallNotificationData::class.java) }
         if (notificationData != null) {
             setContent {
-                ElementThemeApp(appPreferencesStore) {
+                ElementThemeApp(
+                    appPreferencesStore = appPreferencesStore,
+                    enterpriseService = enterpriseService,
+                    buildMeta = buildMeta,
+                ) {
                     IncomingCallScreen(
                         notificationData = notificationData,
                         onAnswer = ::onAnswer,
@@ -90,6 +108,8 @@ class IncomingCallActivity : AppCompatActivity() {
 
     private fun onCancel() {
         val activeCall = activeCallManager.activeCall.value ?: return
-        activeCallManager.hungUpCall(callType = activeCall.callType)
+        appCoroutineScope.launch {
+            activeCallManager.hungUpCall(callType = activeCall.callType)
+        }
     }
 }

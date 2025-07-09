@@ -12,21 +12,21 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -42,14 +42,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
+import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.roomdetails.impl.R
-import io.element.android.features.roomdetails.impl.members.moderation.RoomMembersModerationView
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
+import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.LinearProgressIndicator
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.SearchBar
@@ -58,7 +58,9 @@ import io.element.android.libraries.designsystem.theme.components.SegmentedButto
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TextButton
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
+import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.room.RoomMember
+import io.element.android.libraries.matrix.api.room.getBestName
 import io.element.android.libraries.matrix.api.room.toMatrixUser
 import io.element.android.libraries.matrix.ui.components.MatrixUserRow
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -94,7 +96,7 @@ fun RoomMemberListView(
         }
     ) { padding ->
         var selectedSection by remember { mutableStateOf(SelectedSection.entries[initialSelectedSectionIndex]) }
-        if (!state.moderationState.canDisplayBannedUsers && selectedSection == SelectedSection.BANNED) {
+        if (!state.moderationState.canBan && selectedSection == SelectedSection.BANNED) {
             SideEffect {
                 selectedSection = SelectedSection.MEMBERS
             }
@@ -122,7 +124,7 @@ fun RoomMemberListView(
                 RoomMemberList(
                     roomMembers = state.roomMembers,
                     showMembersCount = true,
-                    canDisplayBannedUsersControls = state.moderationState.canDisplayBannedUsers,
+                    canDisplayBannedUsersControls = state.moderationState.canBan,
                     selectedSection = selectedSection,
                     onSelectedSectionChange = { selectedSection = it },
                     onSelectUser = ::onSelectUser,
@@ -130,14 +132,8 @@ fun RoomMemberListView(
             }
         }
     }
-
-    RoomMembersModerationView(
-        state = state.moderationState,
-        onDisplayMemberProfile = navigator::openRoomMemberDetails
-    )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun RoomMemberList(
     roomMembers: AsyncData<RoomMembers>,
@@ -269,7 +265,7 @@ private fun LazyListScope.failureItem(failure: Throwable) {
 
 private fun LazyListScope.roomMemberListSection(
     headerText: @Composable (() -> String)?,
-    members: ImmutableList<RoomMember>?,
+    members: ImmutableList<RoomMemberWithIdentityState>?,
     onMemberSelected: (RoomMember) -> Unit,
 ) {
     headerText?.let {
@@ -278,41 +274,70 @@ private fun LazyListScope.roomMemberListSection(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                 text = it(),
                 style = ElementTheme.typography.fontBodyLgRegular,
-                color = MaterialTheme.colorScheme.secondary,
+                color = ElementTheme.colors.textSecondary,
             )
         }
     }
     items(members.orEmpty()) { matrixUser ->
         RoomMemberListItem(
             modifier = Modifier.fillMaxWidth(),
-            roomMember = matrixUser,
-            onClick = { onMemberSelected(matrixUser) }
+            roomMemberWithIdentity = matrixUser,
+            onClick = { onMemberSelected(matrixUser.roomMember) }
         )
     }
 }
 
 @Composable
 private fun RoomMemberListItem(
-    roomMember: RoomMember,
+    roomMemberWithIdentity: RoomMemberWithIdentityState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val roleText = when (roomMember.role) {
+    val roleText = when (roomMemberWithIdentity.roomMember.role) {
         RoomMember.Role.ADMIN -> stringResource(R.string.screen_room_member_list_role_administrator)
         RoomMember.Role.MODERATOR -> stringResource(R.string.screen_room_member_list_role_moderator)
         RoomMember.Role.USER -> null
     }
+
     MatrixUserRow(
         modifier = modifier.clickable(onClick = onClick),
-        matrixUser = roomMember.toMatrixUser(),
+        matrixUser = roomMemberWithIdentity.roomMember.toMatrixUser(),
         avatarSize = AvatarSize.UserListItem,
-        trailingContent = roleText?.let {
-            @Composable {
-                Text(
-                    text = it,
-                    style = ElementTheme.typography.fontBodySmRegular,
-                    color = ElementTheme.colors.textSecondary,
-                )
+        trailingContent = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                when (roomMemberWithIdentity.identityState) {
+                    IdentityState.Verified -> {
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            imageVector = CompoundIcons.Verified(),
+                            contentDescription = stringResource(CommonStrings.common_verified),
+                            tint = ElementTheme.colors.iconSuccessPrimary
+                        )
+                    }
+                    IdentityState.VerificationViolation -> {
+                        Icon(
+                            modifier = Modifier.size(20.dp),
+                            imageVector = CompoundIcons.ErrorSolid(),
+                            contentDescription = stringResource(
+                                CommonStrings.crypto_identity_change_profile_pin_violation,
+                                roomMemberWithIdentity.roomMember.getBestName()
+                            ),
+                            tint = ElementTheme.colors.iconCriticalPrimary
+                        )
+                    }
+                    else -> Unit
+                }
+
+                roleText?.let {
+                    Text(
+                        text = it,
+                        style = ElementTheme.typography.fontBodySmRegular,
+                        color = ElementTheme.colors.textSecondary,
+                    )
+                }
             }
         }
     )
@@ -326,12 +351,7 @@ private fun RoomMemberListTopBar(
     onInviteClick: () -> Unit,
 ) {
     TopAppBar(
-        title = {
-            Text(
-                text = stringResource(CommonStrings.common_people),
-                style = ElementTheme.typography.aliasScreenTitle,
-            )
-        },
+        titleStr = stringResource(CommonStrings.common_people),
         navigationIcon = { BackButton(onClick = onBackClick) },
         actions = {
             if (canInvite) {

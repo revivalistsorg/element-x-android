@@ -6,7 +6,7 @@
  */
 
 plugins {
-    id("io.element.android-library")
+    id("io.element.android-compose-library")
 }
 
 android {
@@ -14,6 +14,8 @@ android {
 
     dependencies {
         testImplementation(libs.test.junit)
+        testImplementation(libs.test.truth)
+        testImplementation(libs.coroutines.test)
         testImplementation(libs.test.truth)
     }
 }

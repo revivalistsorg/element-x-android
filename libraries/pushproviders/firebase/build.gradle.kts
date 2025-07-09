@@ -7,6 +7,7 @@
 
 @file:Suppress("UnstableApiUsage")
 
+import config.BuildTimeConfig
 import extension.setupAnvil
 
 plugins {
@@ -22,22 +23,14 @@ android {
             resValue(
                 type = "string",
                 name = "google_app_id",
-                value = if (isEnterpriseBuild) {
-                    "1:912726360885:android:d273c2077ec3291500427c"
-                } else {
-                    "1:912726360885:android:d097de99a4c23d2700427c"
-                }
+                value = BuildTimeConfig.GOOGLE_APP_ID_RELEASE,
             )
         }
         getByName("debug") {
             resValue(
                 type = "string",
                 name = "google_app_id",
-                value = if (isEnterpriseBuild) {
-                    "1:912726360885:android:f8de9126a94143d300427c"
-                } else {
-                    "1:912726360885:android:def0a4e454042e9b00427c"
-                }
+                value = BuildTimeConfig.GOOGLE_APP_ID_DEBUG,
             )
         }
         register("nightly") {
@@ -46,11 +39,7 @@ android {
             resValue(
                 type = "string",
                 name = "google_app_id",
-                value = if (isEnterpriseBuild) {
-                    "1:912726360885:android:3f7e1fe644d99d5a00427c"
-                } else {
-                    "1:912726360885:android:e17435e0beb0303000427c"
-                }
+                value = BuildTimeConfig.GOOGLE_APP_ID_NIGHTLY,
             )
         }
     }
@@ -61,6 +50,7 @@ setupAnvil()
 dependencies {
     implementation(libs.dagger)
     implementation(libs.androidx.corektx)
+    implementation(projects.features.enterprise.api)
     implementation(projects.libraries.architecture)
     implementation(projects.libraries.core)
     implementation(projects.libraries.di)
@@ -84,6 +74,8 @@ dependencies {
     testImplementation(libs.test.truth)
     testImplementation(libs.test.turbine)
     testImplementation(libs.test.robolectric)
+    testImplementation(libs.kotlinx.collections.immutable)
+    testImplementation(projects.features.enterprise.test)
     testImplementation(projects.libraries.matrix.test)
     testImplementation(projects.libraries.push.test)
     testImplementation(projects.libraries.pushstore.test)

@@ -8,6 +8,7 @@
 package io.element.android.libraries.matrix.impl.fixtures.factories
 
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiRoomPowerLevels
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_ROOM_NAME
 import org.matrix.rustcomponents.sdk.JoinRule
@@ -17,6 +18,9 @@ import org.matrix.rustcomponents.sdk.RoomHistoryVisibility
 import org.matrix.rustcomponents.sdk.RoomInfo
 import org.matrix.rustcomponents.sdk.RoomMember
 import org.matrix.rustcomponents.sdk.RoomNotificationMode
+import org.matrix.rustcomponents.sdk.RoomPowerLevels
+import org.matrix.rustcomponents.sdk.SuccessorRoom
+import uniffi.matrix_sdk_base.EncryptionState
 
 fun aRustRoomInfo(
     id: String = A_ROOM_ID.value,
@@ -24,10 +28,10 @@ fun aRustRoomInfo(
     rawName: String? = A_ROOM_NAME,
     topic: String? = null,
     avatarUrl: String? = null,
+    encryptionState: EncryptionState = EncryptionState.UNKNOWN,
     isDirect: Boolean = false,
     isPublic: Boolean = false,
     isSpace: Boolean = false,
-    isTombstoned: Boolean = false,
     isFavourite: Boolean = false,
     canonicalAlias: String? = null,
     alternativeAliases: List<String> = listOf(),
@@ -37,7 +41,7 @@ fun aRustRoomInfo(
     activeMembersCount: ULong = 0uL,
     invitedMembersCount: ULong = 0uL,
     joinedMembersCount: ULong = 0uL,
-    userPowerLevels: Map<String, Long> = mapOf(),
+    roomPowerLevels: RoomPowerLevels = FakeFfiRoomPowerLevels(),
     highlightCount: ULong = 0uL,
     notificationCount: ULong = 0uL,
     userDefinedNotificationMode: RoomNotificationMode? = null,
@@ -51,16 +55,17 @@ fun aRustRoomInfo(
     roomCreator: UserId? = null,
     joinRule: JoinRule? = null,
     historyVisibility: RoomHistoryVisibility = RoomHistoryVisibility.Joined,
+    successorRoom: SuccessorRoom? = null,
 ) = RoomInfo(
     id = id,
     displayName = displayName,
     rawName = rawName,
     topic = topic,
     avatarUrl = avatarUrl,
+    encryptionState = encryptionState,
     isDirect = isDirect,
     isPublic = isPublic,
     isSpace = isSpace,
-    isTombstoned = isTombstoned,
     isFavourite = isFavourite,
     canonicalAlias = canonicalAlias,
     alternativeAliases = alternativeAliases,
@@ -70,7 +75,7 @@ fun aRustRoomInfo(
     activeMembersCount = activeMembersCount,
     invitedMembersCount = invitedMembersCount,
     joinedMembersCount = joinedMembersCount,
-    userPowerLevels = userPowerLevels,
+    powerLevels = roomPowerLevels,
     highlightCount = highlightCount,
     notificationCount = notificationCount,
     cachedUserDefinedNotificationMode = userDefinedNotificationMode,
@@ -83,5 +88,6 @@ fun aRustRoomInfo(
     pinnedEventIds = pinnedEventIds,
     creator = roomCreator?.value,
     joinRule = joinRule,
-    historyVisibility = historyVisibility
+    historyVisibility = historyVisibility,
+    successorRoom = successorRoom,
 )

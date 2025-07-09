@@ -11,10 +11,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
@@ -37,9 +38,13 @@ internal fun TimelineItemDaySeparatorView(
         contentAlignment = Alignment.Center,
     ) {
         Text(
+            modifier = Modifier
+                .semantics {
+                    heading()
+                },
             text = model.formattedDate,
             style = ElementTheme.typography.fontBodyMdMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = ElementTheme.colors.textPrimary,
         )
     }
 }

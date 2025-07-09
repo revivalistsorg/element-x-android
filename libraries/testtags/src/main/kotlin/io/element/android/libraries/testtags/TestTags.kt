@@ -98,9 +98,15 @@ object TestTags {
     val floatingActionButton = TestTag("floating-action-button")
 
     /**
+     * Timeline.
+     */
+    val timeline = TestTag("timeline")
+
+    /**
      * Timeline item.
      */
-    val timelineItemSenderInfo = TestTag("timeline_item-sender_info")
+    val timelineItemSenderAvatar = TestTag("timeline_item-sender_avatar")
+    val timelineItemSenderName = TestTag("timeline_item-sender_name")
 
     /**
      * Search field.

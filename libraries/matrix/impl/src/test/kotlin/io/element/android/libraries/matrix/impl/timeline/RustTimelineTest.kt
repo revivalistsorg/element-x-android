@@ -12,15 +12,15 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
-import io.element.android.libraries.matrix.api.room.MatrixRoom
+import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.timeline.MatrixTimelineItem
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.virtual.VirtualTimelineItem
-import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeRustRoomListService
-import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeRustTimeline
-import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeRustTimelineDiff
+import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiRoomListService
+import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiTimeline
+import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiTimelineDiff
 import io.element.android.libraries.matrix.impl.room.RoomContentForwarder
-import io.element.android.libraries.matrix.test.room.FakeMatrixRoom
+import io.element.android.libraries.matrix.test.room.FakeJoinedRoom
 import io.element.android.libraries.matrix.test.room.aRoomInfo
 import io.element.android.services.toolbox.api.systemclock.SystemClock
 import io.element.android.services.toolbox.test.systemclock.A_FAKE_TIMESTAMP
@@ -34,13 +34,13 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.matrix.rustcomponents.sdk.TimelineChange
-import uniffi.matrix_sdk_ui.LiveBackPaginationStatus
+import uniffi.matrix_sdk.RoomPaginationStatus
 import org.matrix.rustcomponents.sdk.Timeline as InnerTimeline
 
 class RustTimelineTest {
     @Test
     fun `ensure that the timeline emits new loading item when pagination does not bring new events`() = runTest {
-        val inner = FakeRustTimeline()
+        val inner = FakeFfiTimeline()
         val systemClock = FakeSystemClock()
         val sut = createRustTimeline(
             inner = inner,
@@ -51,17 +51,12 @@ class RustTimelineTest {
             runCurrent()
             inner.emitDiff(
                 listOf(
-                    FakeRustTimelineDiff(
+                    FakeFfiTimelineDiff(
                         item = null,
                         change = TimelineChange.RESET,
                     )
                 )
             )
-            with(awaitItem()) {
-                assertThat(size).isEqualTo(1)
-                // Typing notification
-                assertThat((get(0) as MatrixTimelineItem.Virtual).virtual).isEqualTo(VirtualTimelineItem.TypingNotification)
-            }
             with(awaitItem()) {
                 assertThat(size).isEqualTo(2)
                 // The loading
@@ -78,10 +73,10 @@ class RustTimelineTest {
             // Start pagination
             sut.paginate(Timeline.PaginationDirection.BACKWARDS)
             // Simulate SDK starting pagination
-            inner.emitPaginationStatus(LiveBackPaginationStatus.Paginating)
+            inner.emitPaginationStatus(RoomPaginationStatus.Paginating)
             // No new events received
             // Simulate SDK stopping pagination, more event to load
-            inner.emitPaginationStatus(LiveBackPaginationStatus.Idle(hitStartOfTimeline = false))
+            inner.emitPaginationStatus(RoomPaginationStatus.Idle(hitTimelineStart = false))
             // expect an item to be emitted, with an updated timestamp
             with(awaitItem()) {
                 assertThat(size).isEqualTo(2)
@@ -103,10 +98,10 @@ private fun TestScope.createRustTimeline(
     inner: InnerTimeline,
     mode: Timeline.Mode = Timeline.Mode.LIVE,
     systemClock: SystemClock = FakeSystemClock(),
-    matrixRoom: MatrixRoom = FakeMatrixRoom().apply { givenRoomInfo(aRoomInfo()) },
+    joinedRoom: JoinedRoom = FakeJoinedRoom().apply { givenRoomInfo(aRoomInfo()) },
     coroutineScope: CoroutineScope = backgroundScope,
     dispatcher: CoroutineDispatcher = testCoroutineDispatchers().io,
-    roomContentForwarder: RoomContentForwarder = RoomContentForwarder(FakeRustRoomListService()),
+    roomContentForwarder: RoomContentForwarder = RoomContentForwarder(FakeFfiRoomListService()),
     featureFlagsService: FeatureFlagService = FakeFeatureFlagService(),
     onNewSyncedEvent: () -> Unit = {},
 ): RustTimeline {
@@ -114,7 +109,7 @@ private fun TestScope.createRustTimeline(
         inner = inner,
         mode = mode,
         systemClock = systemClock,
-        matrixRoom = matrixRoom,
+        joinedRoom = joinedRoom,
         coroutineScope = coroutineScope,
         dispatcher = dispatcher,
         roomContentForwarder = roomContentForwarder,

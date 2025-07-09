@@ -11,7 +11,8 @@ import com.squareup.anvil.annotations.ContributesBinding
 import io.element.android.libraries.di.RoomScope
 import io.element.android.libraries.di.SingleIn
 import io.element.android.libraries.matrix.api.core.EventId
-import io.element.android.libraries.matrix.api.room.MatrixRoom
+import io.element.android.libraries.matrix.api.room.CreateTimelineParams
+import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.timeline.MatrixTimelineItem
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.TimelineProvider
@@ -41,7 +42,7 @@ import javax.inject.Inject
 @SingleIn(RoomScope::class)
 @ContributesBinding(RoomScope::class, boundType = TimelineProvider::class)
 class TimelineController @Inject constructor(
-    private val room: MatrixRoom,
+    private val room: JoinedRoom,
 ) : Closeable, TimelineProvider {
     private val coroutineScope = CoroutineScope(SupervisorJob())
 
@@ -64,7 +65,7 @@ class TimelineController @Inject constructor(
     }
 
     suspend fun focusOnEvent(eventId: EventId): Result<Unit> {
-        return room.timelineFocusedOnEvent(eventId)
+        return room.createTimeline(CreateTimelineParams.Focused(eventId))
             .onFailure {
                 if (it is CancellationException) {
                     throw it

@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -57,12 +56,12 @@ import io.element.android.libraries.designsystem.components.ProgressDialog
 import io.element.android.libraries.designsystem.components.async.AsyncActionView
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.components.dialogs.ConfirmationDialog
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.text.toDp
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.Button
 import io.element.android.libraries.designsystem.theme.components.ButtonSize
 import io.element.android.libraries.designsystem.theme.components.CircularProgressIndicator
@@ -319,7 +318,10 @@ private fun KnockRequestItem(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
-        Avatar(knockRequest.getAvatarData(AvatarSize.KnockRequestItem))
+        Avatar(
+            avatarData = knockRequest.getAvatarData(AvatarSize.KnockRequestItem),
+            avatarType = AvatarType.User,
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             // Name and date
@@ -331,7 +333,7 @@ private fun KnockRequestItem(
                     text = knockRequest.getBestName(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = ElementTheme.colors.textPrimary,
                     style = ElementTheme.typography.fontBodyLgMedium,
                 )
                 val formattedDate = knockRequest.formattedDate
@@ -339,7 +341,7 @@ private fun KnockRequestItem(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = formattedDate,
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = ElementTheme.colors.textSecondary,
                         style = ElementTheme.typography.fontBodySmRegular,
                     )
                 }
@@ -348,7 +350,7 @@ private fun KnockRequestItem(
             if (!knockRequest.displayName.isNullOrEmpty()) {
                 Text(
                     text = knockRequest.userId.value,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = ElementTheme.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = ElementTheme.typography.fontBodyMdRegular,
@@ -476,12 +478,7 @@ private fun KnockRequestsEmptyList(
 @Composable
 private fun KnockRequestsListTopBar(onBackClick: () -> Unit) {
     TopAppBar(
-        title = {
-            Text(
-                text = stringResource(R.string.screen_knock_requests_list_title),
-                style = ElementTheme.typography.aliasScreenTitle,
-            )
-        },
+        titleStr = stringResource(R.string.screen_knock_requests_list_title),
         navigationIcon = { BackButton(onClick = onBackClick) },
     )
 }

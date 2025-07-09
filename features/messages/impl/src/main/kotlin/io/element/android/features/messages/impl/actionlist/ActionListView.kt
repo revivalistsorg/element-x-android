@@ -27,10 +27,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -39,7 +39,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -51,6 +52,7 @@ import io.element.android.features.messages.impl.crypto.sendfailure.VerifiedUser
 import io.element.android.features.messages.impl.crypto.sendfailure.VerifiedUserSendFailure.ChangedIdentity
 import io.element.android.features.messages.impl.crypto.sendfailure.VerifiedUserSendFailure.None
 import io.element.android.features.messages.impl.crypto.sendfailure.VerifiedUserSendFailure.UnsignedDevice
+import io.element.android.features.messages.impl.timeline.a11y.a11yReactionAction
 import io.element.android.features.messages.impl.timeline.components.MessageShieldView
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemAudioContent
@@ -71,6 +73,7 @@ import io.element.android.features.messages.impl.timeline.model.event.TimelineIt
 import io.element.android.features.messages.impl.utils.messagesummary.DefaultMessageSummaryFormatter
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.list.ListItemContent
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -189,6 +192,7 @@ private fun ActionListViewContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
+                                .clearAndSetSemantics {},
                         )
                         if (target.event.messageShield != null) {
                             MessageShieldView(
@@ -252,8 +256,13 @@ private fun MessageSummary(
     modifier: Modifier = Modifier,
 ) {
     val content: @Composable () -> Unit
-    val icon: @Composable () -> Unit = { Avatar(avatarData = event.senderAvatar.copy(size = AvatarSize.MessageActionSender)) }
-    val contentStyle = ElementTheme.typography.fontBodyMdRegular.copy(color = MaterialTheme.colorScheme.secondary)
+    val icon: @Composable () -> Unit = {
+        Avatar(
+            avatarData = event.senderAvatar.copy(size = AvatarSize.MessageActionSender),
+            avatarType = AvatarType.User,
+        )
+    }
+    val contentStyle = ElementTheme.typography.fontBodyMdRegular.copy(color = ElementTheme.colors.textSecondary)
 
     @Composable
     fun ContentForBody(body: String) {
@@ -316,7 +325,7 @@ private fun MessageSummary(
                 Text(
                     text = sentTimeFull,
                     style = ElementTheme.typography.fontBodyXsRegular,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = ElementTheme.colors.textSecondary,
                     textAlign = TextAlign.End,
                 )
             }
@@ -348,17 +357,26 @@ private fun EmojiReactionsRow(
         )
         for (emoji in defaultEmojis) {
             val isHighlighted = highlightedEmojis.contains(emoji)
-            EmojiButton(emoji, isHighlighted, onEmojiReactionClick)
+            EmojiButton(
+                modifier = Modifier
+                    // Make it appear after the more useful actions for the accessibility service
+                    .semantics {
+                        traversalIndex = 1f
+                    },
+                emoji = emoji,
+                isHighlighted = isHighlighted,
+                onClick = onEmojiReactionClick
+            )
         }
         Box(
             modifier = Modifier
                 .size(48.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = CompoundIcons.ReactionAdd(),
                 contentDescription = stringResource(id = CommonStrings.a11y_react_with_other_emojis),
-                tint = MaterialTheme.colorScheme.secondary,
+                tint = ElementTheme.colors.iconSecondary,
                 modifier = Modifier
                     .size(24.dp)
                     .clickable(
@@ -367,6 +385,10 @@ private fun EmojiReactionsRow(
                         indication = ripple(bounded = false, radius = emojiRippleRadius),
                         interactionSource = remember { MutableInteractionSource() }
                     )
+                    // Make it appear after the more useful actions for the accessibility service
+                    .semantics {
+                        traversalIndex = 1f
+                    }
             )
         }
     }
@@ -379,6 +401,7 @@ private fun VerifiedUserSendFailureView(
     modifier: Modifier = Modifier,
 ) {
     @Composable
+    @ReadOnlyComposable
     fun VerifiedUserSendFailure.headline(): String {
         return when (this) {
             is None -> ""
@@ -392,7 +415,7 @@ private fun VerifiedUserSendFailureView(
         modifier = modifier
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.Error())),
+        leadingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.ErrorSolid())),
         trailingContent = ListItemContent.Icon(IconSource.Vector(CompoundIcons.ChevronRight())),
         headlineContent = {
             Text(
@@ -414,36 +437,32 @@ private fun EmojiButton(
     emoji: String,
     isHighlighted: Boolean,
     onClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val backgroundColor = if (isHighlighted) {
         ElementTheme.colors.bgActionPrimaryRest
     } else {
         Color.Transparent
     }
-    val description = if (isHighlighted) {
-        stringResource(id = CommonStrings.a11y_remove_reaction_with, emoji)
-    } else {
-        stringResource(id = CommonStrings.a11y_react_with, emoji)
-    }
+    val a11yClickLabel = a11yReactionAction(
+        emoji = emoji,
+        userAlreadyReacted = isHighlighted,
+    )
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(48.dp)
             .background(backgroundColor, CircleShape)
-            .clearAndSetSemantics {
-                contentDescription = description
-            },
+            .clickable(
+                onClickLabel = a11yClickLabel,
+                onClick = { onClick(emoji) },
+                indication = ripple(bounded = false, radius = emojiRippleRadius),
+                interactionSource = remember { MutableInteractionSource() }
+            ),
         contentAlignment = Alignment.Center
     ) {
         Text(
             emoji,
             style = ElementTheme.typography.fontBodyLgRegular.copy(fontSize = 24.dp.toSp(), color = Color.White),
-            modifier = Modifier
-                .clickable(
-                    enabled = true,
-                    onClick = { onClick(emoji) },
-                    indication = ripple(bounded = false, radius = emojiRippleRadius),
-                    interactionSource = remember { MutableInteractionSource() }
-                )
         )
     }
 }

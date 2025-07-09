@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -36,7 +35,6 @@ import io.element.android.libraries.designsystem.components.async.AsyncActionVie
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.Button
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
@@ -64,12 +62,7 @@ fun ReportMessageView(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        stringResource(CommonStrings.action_report_content),
-                        style = ElementTheme.typography.aliasScreenTitle,
-                    )
-                },
+                titleStr = stringResource(CommonStrings.action_report_content),
                 navigationIcon = {
                     BackButton(onClick = onBackClick)
                 }
@@ -113,7 +106,7 @@ fun ReportMessageView(
                     Text(
                         text = stringResource(R.string.screen_report_content_block_user_hint),
                         style = ElementTheme.typography.fontBodyMdRegular,
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = ElementTheme.colors.textSecondary,
                     )
                 }
                 Switch(

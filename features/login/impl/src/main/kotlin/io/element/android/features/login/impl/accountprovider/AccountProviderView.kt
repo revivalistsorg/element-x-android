@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +39,7 @@ fun AccountProviderView(
     item: AccountProvider,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    selected: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -67,8 +67,8 @@ fun AccountProviderView(
                 } else {
                     RoundedIconAtom(
                         size = RoundedIconAtomSize.Medium,
-                        imageVector = CompoundIcons.Search(),
-                        tint = MaterialTheme.colorScheme.primary,
+                        imageVector = CompoundIcons.Host(),
+                        tint = ElementTheme.colors.iconPrimary,
                     )
                 }
                 Text(
@@ -77,16 +77,25 @@ fun AccountProviderView(
                         .weight(1f),
                     text = item.title,
                     style = ElementTheme.typography.fontBodyLgMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = ElementTheme.colors.textPrimary,
                 )
                 if (item.isPublic) {
                     Icon(
                         modifier = Modifier
                             .padding(start = 10.dp)
                             .size(16.dp),
-                        resourceId = R.drawable.ic_public,
+                        imageVector = CompoundIcons.Public(),
                         contentDescription = null,
-                        tint = Color.Unspecified,
+                        tint = ElementTheme.colors.iconSecondary,
+                    )
+                }
+                if (selected) {
+                    Icon(
+                        modifier = Modifier
+                            .padding(start = 10.dp),
+                        imageVector = CompoundIcons.Check(),
+                        contentDescription = null,
+                        tint = ElementTheme.colors.iconAccentPrimary,
                     )
                 }
             }
@@ -96,7 +105,7 @@ fun AccountProviderView(
                         .padding(start = 46.dp, bottom = 12.dp, end = 26.dp),
                     text = item.subtitle,
                     style = ElementTheme.typography.fontBodyMdRegular,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = ElementTheme.colors.textSecondary,
                 )
             }
         }

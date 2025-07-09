@@ -9,7 +9,6 @@ package io.element.android.libraries.fullscreenintent.impl
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.runtime.Composable
@@ -17,12 +16,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toUri
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.di.SingleIn
+import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsEvents
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsState
 import io.element.android.libraries.preferences.api.store.PreferenceDataStoreFactory
 import io.element.android.services.toolbox.api.intent.ExternalIntentLauncher
@@ -60,15 +61,20 @@ class FullScreenIntentPermissionsPresenter @Inject constructor(
         val coroutineScope = rememberCoroutineScope()
         val isGranted = notificationManagerCompat.canUseFullScreenIntent()
         val isBannerDismissed by isFullScreenIntentBannerDismissed.collectAsState(initial = true)
+
+        fun handleEvents(event: FullScreenIntentPermissionsEvents) {
+            when (event) {
+                FullScreenIntentPermissionsEvents.Dismiss -> coroutineScope.launch {
+                    dismissFullScreenIntentBanner()
+                }
+                FullScreenIntentPermissionsEvents.OpenSettings -> openFullScreenIntentSettings()
+            }
+        }
+
         return FullScreenIntentPermissionsState(
             permissionGranted = isGranted,
             shouldDisplayBanner = !isBannerDismissed && !isGranted,
-            dismissFullScreenIntentBanner = {
-                coroutineScope.launch {
-                    dismissFullScreenIntentBanner()
-                }
-            },
-            openFullScreenIntentSettings = ::openFullScreenIntentSettings,
+            eventSink = ::handleEvents,
         )
     }
 
@@ -77,7 +83,7 @@ class FullScreenIntentPermissionsPresenter @Inject constructor(
             try {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
-                    Uri.parse("package:${buildMeta.applicationId}")
+                    "package:${buildMeta.applicationId}".toUri()
                 )
                 externalIntentLauncher.launch(intent)
             } catch (e: ActivityNotFoundException) {

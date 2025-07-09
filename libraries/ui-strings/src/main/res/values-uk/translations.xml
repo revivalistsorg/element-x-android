@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="a11y_add_reaction">"Додати реакцію: %1$s"</string>
+  <string name="a11y_avatar">"Аватар"</string>
   <string name="a11y_delete">"Видалити"</string>
   <plurals name="a11y_digits_entered">
     <item quantity="one">"Введена %1$d цифра"</item>
@@ -7,11 +9,13 @@
     <item quantity="many">"Введено %1$d цифр"</item>
   </plurals>
   <string name="a11y_hide_password">"Cховати пароль"</string>
+  <string name="a11y_join_call">"Приєднатися до виклику"</string>
   <string name="a11y_jump_to_bottom">"Перейти вниз"</string>
   <string name="a11y_notifications_mentions_only">"Тільки згадки"</string>
   <string name="a11y_notifications_muted">"Звук вимкнено"</string>
   <string name="a11y_page_n">"Сторінка %1$d"</string>
   <string name="a11y_pause">"Пауза"</string>
+  <string name="a11y_paused_voice_message">"Голосове повідомлення, тривалість: %1$s, поточна позиція: %2$s"</string>
   <string name="a11y_pin_field">"Поле PIN-коду"</string>
   <string name="a11y_play">"Відтворити"</string>
   <string name="a11y_poll">"Опитування"</string>
@@ -26,12 +30,14 @@
   </plurals>
   <string name="a11y_read_receipts_single">"Прочитано %1$s"</string>
   <string name="a11y_read_receipts_tap_to_show_all">"Натисніть, щоб показати все"</string>
-  <string name="a11y_remove_reaction_with">"Видалити реакцію з %1$s"</string>
+  <string name="a11y_remove_reaction">"Видалити реакцію з %1$s"</string>
+  <string name="a11y_remove_reaction_with">"Прибрати реакцію %1$s"</string>
   <string name="a11y_send_files">"Надіслати файли"</string>
   <string name="a11y_show_password">"Показати пароль"</string>
   <string name="a11y_start_call">"Розпочати виклик"</string>
   <string name="a11y_user_menu">"Меню користувача"</string>
   <string name="a11y_view_details">"Переглянути подробиці"</string>
+  <string name="a11y_voice_message">"Голосове повідомлення, тривалість: %1$s"</string>
   <string name="a11y_voice_message_record">"Записати голосове повідомлення."</string>
   <string name="a11y_voice_message_stop_recording">"Припинити запис"</string>
   <string name="action_accept">"Прийняти"</string>
@@ -58,9 +64,11 @@
   <string name="action_deactivate">"Деактивувати"</string>
   <string name="action_deactivate_account">"Деактивувати обліковий запис"</string>
   <string name="action_decline">"Відхилити"</string>
+  <string name="action_decline_and_block">"Відхилити та заблокувати"</string>
   <string name="action_delete_poll">"Видалити опитування"</string>
   <string name="action_disable">"Вимкнути"</string>
   <string name="action_discard">"Відкинути"</string>
+  <string name="action_dismiss">"Відхилити"</string>
   <string name="action_done">"Готово"</string>
   <string name="action_edit">"Редагувати"</string>
   <string name="action_edit_caption">"Редагувати підпис"</string>
@@ -102,8 +110,11 @@
   <string name="action_remove_message">"Вилучити повідомлення"</string>
   <string name="action_reply">"Відповісти"</string>
   <string name="action_reply_in_thread">"Відповісти в гілці"</string>
+  <string name="action_report">"Поскаржитися"</string>
   <string name="action_report_bug">"Повідомити про помилку"</string>
   <string name="action_report_content">"Повідомити про вміст"</string>
+  <string name="action_report_dm">"Поскаржитися на розмову"</string>
+  <string name="action_report_room">"Поскаржитися на кімнату"</string>
   <string name="action_reset">"Скинути"</string>
   <string name="action_reset_identity">"Скинути ідентичність"</string>
   <string name="action_retry">"Спробувати ще раз"</string>
@@ -131,10 +142,13 @@
   <string name="action_view_source">"Переглянути джерело"</string>
   <string name="action_yes">"Так"</string>
   <string name="action_yes_try_again">"Так, повторити спробу"</string>
+  <string name="banner_migrate_to_native_sliding_sync_description">"Ваш сервер тепер підтримує новий, швидший протокол. Вийдіть із системи та увійдіть знову, щоб оновити систему зараз. Якщо ви зробите це зараз, це допоможе вам уникнути примусового виходу з системи, коли старий протокол буде видалено пізніше."</string>
+  <string name="banner_migrate_to_native_sliding_sync_title">"Доступне оновлення"</string>
   <string name="common_about">"Відомості"</string>
   <string name="common_acceptable_use_policy">"Політика прийнятного використання"</string>
   <string name="common_adding_caption">"Додавання підпису"</string>
   <string name="common_advanced_settings">"Додаткові налаштування"</string>
+  <string name="common_an_image">"зображення"</string>
   <string name="common_analytics">"Аналітика"</string>
   <string name="common_appearance">"Тема"</string>
   <string name="common_audio">"Аудіо"</string>
@@ -145,7 +159,9 @@
   <string name="common_copied_to_clipboard">"Скопійовано до буферу обміну"</string>
   <string name="common_copyright">"Авторське право"</string>
   <string name="common_creating_room">"Створення кімнати…"</string>
+  <string name="common_current_user_canceled_knock">"Запит скасовано"</string>
   <string name="common_current_user_left_room">"Виходить з кімнати"</string>
+  <string name="common_current_user_rejected_invite">"Запрошення відхилено"</string>
   <string name="common_dark">"Темна"</string>
   <string name="common_decryption_error">"Помилка розшифрування"</string>
   <string name="common_developer_options">"Налаштування розробника"</string>
@@ -158,6 +174,7 @@
   <string name="common_editing">"Редагування"</string>
   <string name="common_editing_caption">"Редагування підпису"</string>
   <string name="common_emote">"* %1$s %2$s"</string>
+  <string name="common_empty_file">"Порожній файл"</string>
   <string name="common_encryption">"Шифрування"</string>
   <string name="common_encryption_enabled">"Шифрування ввімкнено"</string>
   <string name="common_enter_your_pin">"Введіть свій PIN-код"</string>
@@ -182,8 +199,15 @@
   <string name="common_invite_unknown_profile">"Цей Matrix-ID не знайдено, тому запрошення може не бути отримано."</string>
   <string name="common_leaving_room">"Вихід з кімнати"</string>
   <string name="common_light">"Світла"</string>
+  <string name="common_line_copied_to_clipboard">"Рядок скопійовано до буфера обміну"</string>
   <string name="common_link_copied_to_clipboard">"Посилання скопійовано в буфер обміну"</string>
   <string name="common_loading">"Завантаження"</string>
+  <string name="common_loading_more">"Завантаження наступних…"</string>
+  <plurals name="common_many_members">
+    <item quantity="one">"%d інший"</item>
+    <item quantity="few">"%d інші"</item>
+    <item quantity="many">"%d інші"</item>
+  </plurals>
   <plurals name="common_member_count">
     <item quantity="one">"%1$d учасник"</item>
     <item quantity="few">"%1$d учасники"</item>
@@ -195,8 +219,10 @@
   <string name="common_message_removed">"Повідомлення вилучено"</string>
   <string name="common_modern">"Модерн"</string>
   <string name="common_mute">"Вимкнути звук"</string>
+  <string name="common_name_and_id">"%1$s (%2$s)"</string>
   <string name="common_no_results">"Немає результатів"</string>
   <string name="common_no_room_name">"Немає назви кімнати"</string>
+  <string name="common_not_encrypted">"Не зашифровано"</string>
   <string name="common_offline">"Не в мережі"</string>
   <string name="common_open_source_licenses">"Ліцензії відкритого коду"</string>
   <string name="common_or">"або"</string>
@@ -205,6 +231,7 @@
   <string name="common_permalink">"Постійне посилання"</string>
   <string name="common_permission">"Дозвіл"</string>
   <string name="common_pinned">"Закріплено"</string>
+  <string name="common_please_check_internet_connection">"Перевірте з\'єднання з інтернетом"</string>
   <string name="common_please_wait">"Будь ласка, зачекайте…"</string>
   <string name="common_poll_end_confirmation">"Ви впевнені, що хочете закінчити це опитування?"</string>
   <string name="common_poll_summary">"Опитування: %1$s"</string>
@@ -218,8 +245,14 @@
   <string name="common_privacy_policy">"Політика конфіденційності"</string>
   <string name="common_reaction">"Реакція"</string>
   <string name="common_reactions">"Реакції"</string>
+  <string name="common_reason">"Причина"</string>
   <string name="common_recovery_key">"Ключ відновлення"</string>
   <string name="common_refreshing">"Оновлення…"</string>
+  <plurals name="common_replies">
+    <item quantity="one">"%1$d відповідь"</item>
+    <item quantity="few">"%1$d відповіді"</item>
+    <item quantity="many">"%1$d відповідей"</item>
+  </plurals>
   <string name="common_replying_to">"Відповідь %1$s"</string>
   <string name="common_report_a_bug">"Повідомити про ваду"</string>
   <string name="common_report_a_problem">"Повідомити про проблему"</string>
@@ -239,12 +272,14 @@
   <string name="common_sending">"Надсилання…"</string>
   <string name="common_sending_failed">"Не вдалося надіслати"</string>
   <string name="common_sent">"Надіслано"</string>
+  <string name="common_sentence_delimiter">". "</string>
   <string name="common_server_not_supported">"Сервер не підтримується"</string>
   <string name="common_server_url">"URL-адреса сервера"</string>
   <string name="common_settings">"Налаштування"</string>
   <string name="common_shared_location">"Поширене розташування"</string>
   <string name="common_signing_out">"Вихід"</string>
   <string name="common_something_went_wrong">"Щось пішло не так"</string>
+  <string name="common_something_went_wrong_message">"Ми зіткнулися з проблемою. Будь ласка, повторіть спробу."</string>
   <string name="common_starting_chat">"Початок бесіди…"</string>
   <string name="common_sticker">"Наліпка"</string>
   <string name="common_success">"Успіх"</string>
@@ -259,7 +294,7 @@
   <string name="common_unable_to_decrypt">"Неможливо розшифрувати"</string>
   <string name="common_unable_to_decrypt_insecure_device">"Надіслано з незахищеного пристрою"</string>
   <string name="common_unable_to_decrypt_no_access">"Ви не маєте доступу до цього повідомлення"</string>
-  <string name="common_unable_to_decrypt_verification_violation">"Підтверджена особа відправника змінилася"</string>
+  <string name="common_unable_to_decrypt_verification_violation">"Ідентичність відправника скинуто"</string>
   <string name="common_unable_to_invite_message">"Не вдалося надіслати запрошення одному чи кільком користувачам."</string>
   <string name="common_unable_to_invite_title">"Не вдалося надіслати запрошення"</string>
   <string name="common_unlock">"Розблокувати"</string>
@@ -273,16 +308,24 @@
   <string name="common_verified">"Перевірено"</string>
   <string name="common_verify_device">"Верифікувати пристрій"</string>
   <string name="common_verify_identity">"Підтвердити особу"</string>
+  <string name="common_verify_user">"Верифікувати користувача"</string>
   <string name="common_video">"Відео"</string>
   <string name="common_voice_message">"Голосове повідомлення"</string>
   <string name="common_waiting">"Очікування…"</string>
   <string name="common_waiting_for_decryption_key">"Чекаємо на це повідомлення"</string>
   <string name="common_you">"Ви"</string>
-  <string name="crypto_identity_change_pin_violation">"Ідентичність %1$s, схоже, змінилася. %2$s"</string>
-  <string name="crypto_identity_change_pin_violation_new">"Ідентичність %1$s %2$s схоже, змінилася. %3$s"</string>
+  <string name="crypto_identity_change_pin_violation">"Ідентичність %1$s скинуто. %2$s"</string>
+  <string name="crypto_identity_change_pin_violation_new">"Ідентичність %1$s %2$s скинуто. %3$s"</string>
   <string name="crypto_identity_change_pin_violation_new_user_id">"(%1$s)"</string>
-  <string name="crypto_identity_change_verification_violation_new">"Верифіковано особистість %1$s %2$s змінилася. %3$s"</string>
+  <string name="crypto_identity_change_profile_pin_violation">"Ідентичність %1$s скинуто."</string>
+  <string name="crypto_identity_change_verification_violation_new">"Ідентичність %1$s %2$s скинуто. %3$s"</string>
   <string name="crypto_identity_change_withdraw_verification_action">"Відкликати верифікацію"</string>
+  <string name="dialog_confirm_link_message">"Посилання %1$s спрямовує вас на інший сайт %2$s
+
+Ви впевнені, що хочете продовжити?"</string>
+  <string name="dialog_confirm_link_title">"Уважно перевірте це посилання"</string>
+  <string name="dialog_room_reported">"Скаргу на кімнату надіслано"</string>
+  <string name="dialog_room_reported_and_left">"Поскаржитися та вийти з кімнати"</string>
   <string name="dialog_title_confirmation">"Підтвердження"</string>
   <string name="dialog_title_error">"Помилка"</string>
   <string name="dialog_title_success">"Успіх"</string>
@@ -295,14 +338,17 @@
   <string name="error_failed_loading_messages">"Не вдалося завантажити повідомлення"</string>
   <string name="error_failed_locating_user">"%1$s не вдалося отримати доступ до вашого розташування. Повторіть спробу пізніше."</string>
   <string name="error_failed_uploading_voice_message">"Не вдалося завантажити голосове повідомлення."</string>
+  <string name="error_invalid_invite">"Кімната більше не існує або запрошення не чинне."</string>
   <string name="error_message_not_found">"Повідомлення не знайдено"</string>
   <string name="error_missing_location_auth_android">"%1$s не має дозволу на доступ до вашого розташування. Увімкнути доступ можна в Налаштуваннях."</string>
   <string name="error_missing_location_rationale_android">"%1$s не має дозволу на доступ до вашого розташування. Увімкніть доступ нижче."</string>
   <string name="error_missing_microphone_voice_rationale_android">"%1$s не має доступу до вашого мікрофона. Надайте доступ, щоб записати голосове повідомлення."</string>
+  <string name="error_network_or_server_issue">"Це може бути пов\'язано з проблемами мережі або сервера."</string>
   <string name="error_room_address_already_exists">"Ця адреса кімнати вже існує, будь ласка, спробуйте відредагувати поле адреси кімнати або змінити назву кімнати"</string>
   <string name="error_room_address_invalid_symbols">"Деякі символи не допускаються. Підтримуються тільки букви, цифри і наступні символи! $ &amp; ‘ ( ) * + / ; = ? @ [ ] - . _"</string>
   <string name="error_some_messages_have_not_been_sent">"Деякі повідомлення не були надіслані"</string>
   <string name="error_unknown">"Вибачте, сталася помилка"</string>
+  <string name="event_shield_mismatched_sender">"Відправник події не збігається з власником пристрою, який його надіслав."</string>
   <string name="event_shield_reason_authenticity_not_guaranteed">"Автентичність цього зашифрованого повідомлення не може бути гарантована на цьому пристрої."</string>
   <string name="event_shield_reason_previously_verified">"Зашифровано попередньо перевіреним користувачем."</string>
   <string name="event_shield_reason_sent_in_clear">"Не зашифровано."</string>
@@ -313,6 +359,10 @@
   <string name="invite_friends_text">"Вітаю, поспілкуйтеся зі мною в %1$s: %2$s"</string>
   <string name="login_initial_device_name_android">"%1$s Android"</string>
   <string name="preference_rageshake">"Повідомити про ваду за допомогою Rageshake"</string>
+  <string name="screen_create_poll_option_accessibility_label">"%1$s: %2$s"</string>
+  <string name="screen_create_poll_options_section_title">"Варіанти"</string>
+  <string name="screen_create_poll_remove_accessibility_label">"Вилучити %1$s"</string>
+  <string name="screen_create_poll_settings_section_title">"Налаштування"</string>
   <string name="screen_media_picker_error_failed_selection">"Не вдалося вибрати медіафайл, спробуйте ще раз."</string>
   <string name="screen_media_upload_preview_caption_warning">"Користувачі старих застосунків можуть не бачити підписи."</string>
   <string name="screen_media_upload_preview_error_failed_processing">"Не вдалося обробити медіафайл для завантаження, спробуйте ще раз."</string>
@@ -329,7 +379,7 @@
   <string name="screen_reset_identity_confirmation_title">"Не можете підтвердити? Перейдіть до свого облікового запису, щоб скинути облікові дані."</string>
   <string name="screen_resolve_send_failure_changed_identity_primary_button_title">"Відкликати верифікацію та відправити"</string>
   <string name="screen_resolve_send_failure_changed_identity_subtitle">"Ви все одно можете відкликати підтвердження та надіслати це повідомлення, або ви можете скасувати підписку на даний момент і спробувати пізніше після повторної перевірки %1$s."</string>
-  <string name="screen_resolve_send_failure_changed_identity_title">"Ваше повідомлення не було надіслано, оскільки підтверджена особистість %1$s змінилася"</string>
+  <string name="screen_resolve_send_failure_changed_identity_title">"Ваше повідомлення не надіслано, оскільки підтверджену особистість %1$s скинуто"</string>
   <string name="screen_resolve_send_failure_unsigned_device_primary_button_title">"Надіслати повідомлення в будь-якому випадку"</string>
   <string name="screen_resolve_send_failure_unsigned_device_subtitle">"%1$s використовує один або кілька неперевірених пристроїв. Ви можете відправити повідомлення в будь-якому випадку, або ж скасувати відправку і спробувати пізніше, коли %2$s перевірить всі пристрої."</string>
   <string name="screen_resolve_send_failure_unsigned_device_title">"Ваше повідомлення не було надіслано, тому що %1$s не перевірив усі пристрої"</string>
@@ -337,19 +387,22 @@
   <string name="screen_resolve_send_failure_you_unsigned_device_title">"Ваше повідомлення не було надіслано, оскільки ви не підтвердили один або декілька своїх пристроїв"</string>
   <string name="screen_room_error_failed_processing_media">"Не вдалося обробити медіафайл для завантаження, спробуйте ще раз."</string>
   <string name="screen_room_error_failed_retrieving_user_details">"Не вдалося отримати дані користувача"</string>
+  <string name="screen_room_event_pill">"Повідомлення в %1$s"</string>
+  <string name="screen_room_grouped_state_events_expand">"Розгорнути"</string>
+  <string name="screen_room_grouped_state_events_reduce">"Згорнути"</string>
+  <string name="screen_room_permalink_same_room_android">"Уже переглядаєте цю кімнату!"</string>
   <string name="screen_room_pinned_banner_indicator">"%1$s із %2$s"</string>
   <string name="screen_room_pinned_banner_indicator_description">"%1$s закріплених повідомлень"</string>
   <string name="screen_room_pinned_banner_loading_description">"Завантаження повідомлення…"</string>
   <string name="screen_room_pinned_banner_view_all_button_title">"Переглянути всі"</string>
   <string name="screen_room_title">"Бесіда"</string>
-  <string name="screen_roomlist_knock_event_sent_description">"Запит на приєднання надіслано"</string>
   <string name="screen_share_location_title">"Поділитися розташуванням"</string>
   <string name="screen_share_my_location_action">"Поділитися моїм розташуванням"</string>
   <string name="screen_share_open_apple_maps">"Відкрити в Apple Maps"</string>
   <string name="screen_share_open_google_maps">"Відкрити в Картах Google"</string>
   <string name="screen_share_open_osm_maps">"Відкрити в OpenStreetMap"</string>
   <string name="screen_share_this_location_action">"Поділитися цим місцем перебування"</string>
-  <string name="screen_timeline_item_menu_send_failure_changed_identity">"Повідомлення не надіслано, оскільки підтверджена особистість %1$s змінилася."</string>
+  <string name="screen_timeline_item_menu_send_failure_changed_identity">"Повідомлення не надіслано, оскільки підтверджену особистість %1$s скинуто."</string>
   <string name="screen_timeline_item_menu_send_failure_unsigned_device">"Повідомлення не надіслано, оскільки %1$s перевірив не всі пристрої."</string>
   <string name="screen_timeline_item_menu_send_failure_you_unsigned_device">"Повідомлення не надіслано, оскільки ви не підтвердили один або кілька своїх пристроїв."</string>
   <string name="screen_view_location_title">"Розташування"</string>

@@ -30,8 +30,9 @@ interface ElementCallEntryPoint {
      * @param avatarUrl The avatar url of the room or DM.
      * @param timestamp The timestamp of the event that started the call.
      * @param notificationChannelId The id of the notification channel to use for the call notification.
+     * @param textContent The text content of the notification. If null the default content from the system will be used.
      */
-    fun handleIncomingCall(
+    suspend fun handleIncomingCall(
         callType: CallType.RoomCall,
         eventId: EventId,
         senderId: UserId,
@@ -40,5 +41,6 @@ interface ElementCallEntryPoint {
         avatarUrl: String?,
         timestamp: Long,
         notificationChannelId: String,
+        textContent: String?,
     )
 }

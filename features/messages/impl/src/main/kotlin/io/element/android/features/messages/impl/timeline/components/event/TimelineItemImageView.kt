@@ -8,7 +8,6 @@
 package io.element.android.features.messages.impl.timeline.components.event
 
 import android.text.SpannedString
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
@@ -33,12 +32,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
-import coil.compose.AsyncImagePainter
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.features.messages.impl.timeline.aTimelineItemEvent
 import io.element.android.features.messages.impl.timeline.components.ATimelineItemEventRow
@@ -55,24 +52,25 @@ import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.textcomposer.ElementRichTextEditorStyle
 import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.libraries.ui.utils.time.isTalkbackActive
 import io.element.android.wysiwyg.compose.EditorStyledText
+import io.element.android.wysiwyg.link.Link
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimelineItemImageView(
     content: TimelineItemImageContent,
     hideMediaContent: Boolean,
     onContentClick: (() -> Unit)?,
     onLongClick: (() -> Unit)?,
-    onLinkClick: (String) -> Unit,
+    onLinkClick: (Link) -> Unit,
+    onLinkLongClick: (Link) -> Unit,
     onShowContentClick: () -> Unit,
     onContentLayoutChange: (ContentAvoidingLayoutData) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val description = stringResource(CommonStrings.common_image)
-    Column(
-        modifier = modifier.semantics { contentDescription = description },
-    ) {
+    val a11yLabel = stringResource(CommonStrings.common_image)
+    val description = content.caption?.let { "$a11yLabel: $it" } ?: a11yLabel
+    Column(modifier = modifier) {
         val containerModifier = if (content.showCaption) {
             Modifier.clip(RoundedCornerShape(10.dp))
         } else {
@@ -91,9 +89,18 @@ fun TimelineItemImageView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(if (isLoaded) Modifier.background(Color.White) else Modifier)
-                        .then(if (onContentClick != null) Modifier.combinedClickable(onClick = onContentClick, onLongClick = onLongClick) else Modifier),
+                        .then(
+                            if (!isTalkbackActive() && onContentClick != null) {
+                                Modifier.combinedClickable(
+                                    onClick = onContentClick,
+                                    onLongClick = onLongClick
+                                )
+                            } else {
+                                Modifier
+                            }
+                        ),
                     model = content.thumbnailMediaRequestData,
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     alignment = Alignment.Center,
                     contentDescription = description,
                     onState = { isLoaded = it is AsyncImagePainter.State.Success },
@@ -120,6 +127,7 @@ fun TimelineItemImageView(
                     text = caption,
                     style = ElementRichTextEditorStyle.textStyle(),
                     onLinkClickedListener = onLinkClick,
+                    onLinkLongClickedListener = onLinkLongClick,
                     releaseOnDetach = false,
                     onTextLayout = ContentAvoidingLayout.measureLegacyLastTextLine(onContentLayoutChange = onContentLayoutChange),
                 )
@@ -138,6 +146,7 @@ internal fun TimelineItemImageViewPreview(@PreviewParameter(TimelineItemImageCon
         onContentClick = {},
         onLongClick = {},
         onLinkClick = {},
+        onLinkLongClick = {},
         onContentLayoutChange = {},
     )
 }
@@ -152,6 +161,7 @@ internal fun TimelineItemImageViewHideMediaContentPreview() = ElementPreview {
         onContentClick = {},
         onLongClick = {},
         onLinkClick = {},
+        onLinkLongClick = {},
         onContentLayoutChange = {},
     )
 }

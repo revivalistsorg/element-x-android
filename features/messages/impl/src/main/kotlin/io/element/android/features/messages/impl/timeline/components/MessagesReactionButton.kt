@@ -9,7 +9,6 @@ package io.element.android.features.messages.impl.timeline.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -23,7 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
@@ -31,12 +29,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.features.messages.impl.R
+import io.element.android.features.messages.impl.timeline.a11y.a11yReactionAction
+import io.element.android.features.messages.impl.timeline.a11y.a11yReactionDetails
 import io.element.android.features.messages.impl.timeline.model.AggregatedReaction
 import io.element.android.features.messages.impl.timeline.model.AggregatedReactionProvider
 import io.element.android.features.messages.impl.timeline.model.aTimelineItemReactions
@@ -49,9 +51,9 @@ import io.element.android.libraries.designsystem.theme.components.Surface
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.media.MediaSource
 import io.element.android.libraries.matrix.ui.media.MediaRequestData
+import io.element.android.libraries.ui.strings.CommonStrings
 
 @Composable
-@OptIn(ExperimentalFoundationApi::class)
 @Suppress("ModifierClickableOrder") // This is needed to display the right ripple shape
 fun MessagesReactionButton(
     onClick: () -> Unit,
@@ -71,12 +73,24 @@ fun MessagesReactionButton(
         buttonColor
     }
 
+    val a11yText = when (content) {
+        is MessagesReactionsButtonContent.Icon -> stringResource(id = R.string.screen_room_timeline_add_reaction)
+        is MessagesReactionsButtonContent.Text -> content.text
+        is MessagesReactionsButtonContent.Reaction -> {
+            a11yReactionDetails(
+                emoji = content.reaction.key,
+                userAlreadyReacted = content.isHighlighted,
+                reactionCount = content.reaction.count,
+            )
+        }
+    }
+
     Surface(
         modifier = modifier
             .background(Color.Transparent)
             // Outer border, same colour as background
             .border(
-                BorderStroke(2.dp, MaterialTheme.colorScheme.background),
+                BorderStroke(2.dp, ElementTheme.colors.bgCanvasDefault),
                 shape = RoundedCornerShape(corner = CornerSize(14.dp))
             )
             .padding(vertical = 2.dp, horizontal = 2.dp)
@@ -84,12 +98,22 @@ fun MessagesReactionButton(
             .clip(RoundedCornerShape(corner = CornerSize(12.dp)))
             .combinedClickable(
                 onClick = onClick,
+                onClickLabel = (content as? MessagesReactionsButtonContent.Reaction)?.let {
+                    a11yReactionAction(
+                        emoji = content.reaction.key,
+                        userAlreadyReacted = content.isHighlighted
+                    )
+                },
+                onLongClickLabel = stringResource(CommonStrings.action_open_context_menu),
                 onLongClick = onLongClick
             )
             // Inner border, to highlight when selected
             .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(corner = CornerSize(12.dp)))
             .background(buttonColor, RoundedCornerShape(corner = CornerSize(12.dp)))
-            .padding(vertical = 4.dp, horizontal = 10.dp),
+            .padding(vertical = 4.dp, horizontal = 10.dp)
+            .clearAndSetSemantics {
+                contentDescription = a11yText
+            },
         color = buttonColor
     ) {
         when (content) {
@@ -122,7 +146,7 @@ private fun TextContent(
         .height(REACTION_EMOJI_LINE_HEIGHT.toDp()),
     text = text,
     style = ElementTheme.typography.fontBodyMdRegular,
-    color = ElementTheme.materialColors.primary
+    color = ElementTheme.colors.textPrimary
 )
 
 @Composable
@@ -131,7 +155,7 @@ private fun IconContent(
 ) = Icon(
     resourceId = resourceId,
     contentDescription = stringResource(id = R.string.screen_room_timeline_add_reaction),
-    tint = ElementTheme.materialColors.secondary,
+    tint = ElementTheme.colors.iconSecondary,
     modifier = Modifier
         .size(ADD_EMOJI_SIZE)
 )
@@ -164,7 +188,7 @@ private fun ReactionContent(
         Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = reaction.count.toString(),
-            color = if (reaction.isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary,
+            color = if (reaction.isHighlighted) ElementTheme.colors.textPrimary else ElementTheme.colors.textSecondary,
             style = ElementTheme.typography.fontBodyMdRegular,
         )
     }

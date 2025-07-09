@@ -24,6 +24,7 @@ android {
 setupAnvil()
 
 dependencies {
+    implementation(projects.appconfig)
     implementation(projects.libraries.core)
     implementation(projects.libraries.architecture)
     implementation(projects.libraries.matrix.api)
@@ -51,6 +52,9 @@ dependencies {
     implementation(projects.features.messages.api)
     implementation(projects.features.roomcall.api)
     implementation(projects.features.knockrequests.api)
+    implementation(projects.features.verifysession.api)
+    implementation(projects.features.reportroom.api)
+    implementation(projects.features.roommembermoderation.api)
 
     testImplementation(libs.test.junit)
     testImplementation(libs.coroutines.test)
@@ -63,6 +67,7 @@ dependencies {
     testImplementation(projects.libraries.mediaupload.test)
     testImplementation(projects.libraries.mediapickers.test)
     testImplementation(projects.libraries.permissions.test)
+    testImplementation(projects.libraries.preferences.test)
     testImplementation(projects.libraries.usersearch.test)
     testImplementation(projects.libraries.featureflag.test)
     testImplementation(projects.tests.testutils)

@@ -15,7 +15,7 @@ import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.media.MediaSource
-import io.element.android.libraries.matrix.api.room.MatrixRoom
+import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
 import io.element.android.libraries.matrix.api.timeline.item.event.toEventOrTransactionId
@@ -24,7 +24,8 @@ import io.element.android.libraries.matrix.test.A_SESSION_ID_2
 import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.matrix.test.media.FakeMatrixMediaLoader
 import io.element.android.libraries.matrix.test.media.aMediaSource
-import io.element.android.libraries.matrix.test.room.FakeMatrixRoom
+import io.element.android.libraries.matrix.test.room.FakeBaseRoom
+import io.element.android.libraries.matrix.test.room.FakeJoinedRoom
 import io.element.android.libraries.matrix.test.timeline.FakeTimeline
 import io.element.android.libraries.mediaviewer.api.MediaViewerEntryPoint
 import io.element.android.libraries.mediaviewer.api.anApkMediaInfo
@@ -77,9 +78,11 @@ class MediaViewerPresenterTest {
     @Test
     fun `present - initial state null Event`() = runTest {
         val presenter = createMediaViewerPresenter(
-            room = FakeMatrixRoom(
+            room = FakeJoinedRoom(
+                baseRoom = FakeBaseRoom(
                 canRedactOwnResult = { Result.success(true) },
             )
+        )
         )
         presenter.test {
             val initialState = awaitFirstItem()
@@ -95,9 +98,11 @@ class MediaViewerPresenterTest {
     fun `present - initial state cannot show info`() = runTest {
         val presenter = createMediaViewerPresenter(
             canShowInfo = false,
-            room = FakeMatrixRoom(
+            room = FakeJoinedRoom(
+                baseRoom = FakeBaseRoom(
                 canRedactOwnResult = { Result.success(true) },
             )
+        )
         )
         presenter.test {
             val initialState = awaitFirstItem()
@@ -113,9 +118,11 @@ class MediaViewerPresenterTest {
     fun `present - initial state Event`() = runTest {
         val presenter = createMediaViewerPresenter(
             eventId = AN_EVENT_ID,
-            room = FakeMatrixRoom(
+            room = FakeJoinedRoom(
+                baseRoom = FakeBaseRoom(
                 canRedactOwnResult = { Result.success(true) },
             )
+        )
         )
         presenter.test {
             val initialState = awaitFirstItem()
@@ -131,10 +138,12 @@ class MediaViewerPresenterTest {
     fun `present - initial state Event from other`() = runTest {
         val presenter = createMediaViewerPresenter(
             eventId = AN_EVENT_ID,
-            room = FakeMatrixRoom(
+            room = FakeJoinedRoom(
+                baseRoom = FakeBaseRoom(
                 sessionId = A_SESSION_ID_2,
                 canRedactOtherResult = { Result.success(false) },
             )
+        )
         )
         presenter.test {
             val initialState = awaitFirstItem()
@@ -216,9 +225,9 @@ class MediaViewerPresenterTest {
         )
         val presenter = createMediaViewerPresenter(
             mediaGalleryDataSource = mediaGalleryDataSource,
-            room = FakeMatrixRoom(
+            room = FakeJoinedRoom(baseRoom = FakeBaseRoom(
                 canRedactOwnResult = { Result.success(true) },
-            )
+            ))
         )
         val anImage = aMediaItemImage(
             mediaSourceUrl = aUrl,
@@ -432,9 +441,9 @@ class MediaViewerPresenterTest {
             startLambda = { },
         )
         val presenter = createMediaViewerPresenter(
-            room = FakeMatrixRoom(
+            room = FakeJoinedRoom(
                 liveTimeline = timeline,
-                canRedactOwnResult = { Result.success(true) },
+                baseRoom = FakeBaseRoom(canRedactOwnResult = { Result.success(true) }),
             ),
             mediaGalleryDataSource = mediaGalleryDataSource,
             mediaViewerNavigator = FakeMediaViewerNavigator(
@@ -519,7 +528,7 @@ class MediaViewerPresenterTest {
     @Test
     fun `present - snackbar displayed when there is no more items forward images and videos`() {
         `present - snackbar displayed when there is no more items forward`(
-            mode = MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos,
+            mode = MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos(timelineMode = Timeline.Mode.MEDIA),
             expectedSnackbarResId = R.string.screen_media_details_no_more_media_to_show,
         )
     }
@@ -527,7 +536,7 @@ class MediaViewerPresenterTest {
     @Test
     fun `present - snackbar displayed when there is no more items forward files and audio`() {
         `present - snackbar displayed when there is no more items forward`(
-            mode = MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios,
+            mode = MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios(timelineMode = Timeline.Mode.MEDIA),
             expectedSnackbarResId = R.string.screen_media_details_no_more_files_to_show,
         )
     }
@@ -547,7 +556,7 @@ class MediaViewerPresenterTest {
             awaitFirstItem()
             mediaGalleryDataSource.emitGroupedMediaItems(
                 AsyncData.Success(
-                    if (mode == MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios) {
+                    if (mode is MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios) {
                         GroupedMediaItems(
                             imageAndVideoItems = persistentListOf(),
                             fileItems = persistentListOf(aForwardLoadingIndicator, anImage, aBackwardLoadingIndicator),
@@ -568,7 +577,7 @@ class MediaViewerPresenterTest {
             // data source claims that there is no more items to load forward
             mediaGalleryDataSource.emitGroupedMediaItems(
                 AsyncData.Success(
-                    if (mode == MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios) {
+                    if (mode is MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios) {
                         GroupedMediaItems(
                             imageAndVideoItems = persistentListOf(),
                             fileItems = persistentListOf(anImage, aBackwardLoadingIndicator),
@@ -590,7 +599,7 @@ class MediaViewerPresenterTest {
     @Test
     fun `present - snackbar displayed when there is no more items backward images and videos`() {
         `present - snackbar displayed when there is no more items backward`(
-            mode = MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos,
+            mode = MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos(timelineMode = Timeline.Mode.MEDIA),
             expectedSnackbarResId = R.string.screen_media_details_no_more_media_to_show,
         )
     }
@@ -598,7 +607,7 @@ class MediaViewerPresenterTest {
     @Test
     fun `present - snackbar displayed when there is no more items backward files and audio`() {
         `present - snackbar displayed when there is no more items backward`(
-            mode = MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios,
+            mode = MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios(timelineMode = Timeline.Mode.MEDIA),
             expectedSnackbarResId = R.string.screen_media_details_no_more_files_to_show,
         )
     }
@@ -618,7 +627,7 @@ class MediaViewerPresenterTest {
             awaitFirstItem()
             mediaGalleryDataSource.emitGroupedMediaItems(
                 AsyncData.Success(
-                    if (mode == MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios) {
+                    if (mode is MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios) {
                         GroupedMediaItems(
                             imageAndVideoItems = persistentListOf(),
                             fileItems = persistentListOf(aForwardLoadingIndicator, anImage, aBackwardLoadingIndicator),
@@ -640,7 +649,7 @@ class MediaViewerPresenterTest {
             // data source claims that there is no more items to load backward
             mediaGalleryDataSource.emitGroupedMediaItems(
                 AsyncData.Success(
-                    if (mode == MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios) {
+                    if (mode is MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios) {
                         GroupedMediaItems(
                             imageAndVideoItems = persistentListOf(),
                             fileItems = persistentListOf(aForwardLoadingIndicator, anImage),
@@ -736,8 +745,8 @@ class MediaViewerPresenterTest {
         )
         val presenter = createMediaViewerPresenter(
             mediaViewerNavigator = navigator,
-            room = FakeMatrixRoom(
-                canRedactOwnResult = { Result.success(true) },
+            room = FakeJoinedRoom(
+                baseRoom = FakeBaseRoom(canRedactOwnResult = { Result.success(true) }),
             )
         )
         presenter.test {
@@ -766,7 +775,7 @@ class MediaViewerPresenterTest {
         ),
         canShowInfo: Boolean = true,
         mediaViewerNavigator: MediaViewerNavigator = FakeMediaViewerNavigator(),
-        room: MatrixRoom = FakeMatrixRoom(
+        room: JoinedRoom = FakeJoinedRoom(
             liveTimeline = FakeTimeline(),
         ),
     ): MediaViewerPresenter {
