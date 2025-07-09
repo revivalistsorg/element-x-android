@@ -9,6 +9,7 @@ package io.element.android.libraries.mediaplayer.impl
 
 import android.content.Context
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.squareup.anvil.annotations.ContributesTo
@@ -25,6 +26,8 @@ interface SimplePlayer {
     val currentPosition: Long
     val playbackState: Int
     val duration: Long
+    val speed: Float
+    fun setSpeed(speed: Float)
     fun clearMediaItems()
     fun setMediaItem(mediaItem: MediaItem, startPositionMs: Long)
     fun getCurrentMediaItem(): MediaItem?
@@ -56,6 +59,7 @@ class DefaultSimplePlayer(
     private val p: Player
 ) : SimplePlayer {
     override fun addListener(listener: SimplePlayer.Listener) {
+        p.playbackParameters = PlaybackParameters.DEFAULT
         p.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) = listener.onIsPlayingChanged(isPlaying)
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = listener.onMediaItemTransition(mediaItem)
@@ -69,6 +73,11 @@ class DefaultSimplePlayer(
         get() = p.playbackState
     override val duration: Long
         get() = p.duration
+
+    override val speed: Float
+        get() = p.playbackParameters.speed
+
+    override fun setSpeed(speed: Float) = p.setPlaybackParameters(PlaybackParameters(speed))
 
     override fun clearMediaItems() = p.clearMediaItems()
 

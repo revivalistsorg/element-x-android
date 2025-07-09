@@ -45,7 +45,8 @@ class VoiceMessagePresenter(
                 isPlaying = false,
                 isEnded = false,
                 currentPosition = 0L,
-                duration = null
+                duration = null,
+                speed = 1f
             )
         )
 
@@ -63,6 +64,11 @@ class VoiceMessagePresenter(
         val duration by remember {
             derivedStateOf { playerState.duration ?: duration.inWholeMilliseconds }
         }
+
+        val speed by remember {
+            derivedStateOf { playerState.speed }
+        }
+
         val progress by remember {
             derivedStateOf {
                 playerState.currentPosition / duration.toFloat()
@@ -110,6 +116,12 @@ class VoiceMessagePresenter(
                 is VoiceMessageEvents.Seek -> {
                     player.seekTo((event.percentage * duration).toLong())
                 }
+
+                is VoiceMessageEvents.ChangeSpeed -> {
+                    if (playerState.isPlaying) {
+                        player.setSpeed(event.speed)
+                    }
+                }
             }
         }
 
@@ -118,6 +130,7 @@ class VoiceMessagePresenter(
             progress = progress,
             time = time,
             showCursor = showCursor,
+            playbackSpeed = speed,
             eventSink = { eventSink(it) },
         )
     }

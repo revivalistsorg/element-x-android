@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,6 +66,16 @@ fun TimelineItemVoiceView(
         state.eventSink(VoiceMessageEvents.PlayPause)
     }
 
+    fun changeSpeed() {
+        val newSpeed = state.playbackSpeed
+        val newSpeedValue = when (newSpeed) {
+            1.0f -> 1.5f
+            1.5f -> 2f
+            else -> 1f
+        }
+        state.eventSink(VoiceMessageEvents.ChangeSpeed(newSpeedValue))
+    }
+
     val a11y = stringResource(CommonStrings.common_voice_message)
     Row(
         modifier = modifier
@@ -102,10 +113,19 @@ fun TimelineItemVoiceView(
             showCursor = state.showCursor,
             playbackProgress = state.progress,
             waveform = content.waveform,
-            modifier = Modifier.height(34.dp),
+            modifier = Modifier.height(34.dp).weight(1f),
             seekEnabled = !context.isScreenReaderEnabled(),
             onSeek = { state.eventSink(VoiceMessageEvents.Seek(it)) },
         )
+        TextButton(onClick = ::changeSpeed) {
+            Text(
+                text = "${state.playbackSpeed}x",
+                color = ElementTheme.colors.textSecondary,
+                style = ElementTheme.typography.fontBodyMdMedium,
+                maxLines = 1,
+            )
+        }
+
     }
 }
 
