@@ -9,7 +9,6 @@ package io.element.android.libraries.designsystem.components
 
 import android.graphics.Bitmap
 import android.graphics.Typeface
-import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.text.TextPaint
 import androidx.annotation.FloatRange
@@ -60,13 +59,11 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFontFamilyResolver
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -85,16 +82,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.toOffset
 import androidx.compose.ui.unit.toSize
-import coil.imageLoader
-import coil.request.DefaultRequestOptions
-import coil.request.ImageRequest
+import coil3.SingletonImageLoader
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import com.vanniktech.blurhash.BlurHash
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
-import io.element.android.libraries.designsystem.R
 import io.element.android.libraries.designsystem.colors.AvatarColorsProvider
+import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
+import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewGroup
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -103,6 +103,7 @@ import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.MediumTopAppBar
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
+import io.element.android.libraries.designsystem.utils.CommonDrawables
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.Dispatchers
@@ -328,7 +329,7 @@ fun Modifier.avatarBloom(
             ImageRequest.Builder(context)
                 .data(avatarData)
                 // Allow cache and default dispatchers
-                .defaults(DefaultRequestOptions())
+                .defaults(ImageRequest.Defaults())
                 // Needed to be able to read pixels from the Bitmap for the hash
                 .allowHardware(false)
                 // Reduce size so it loads faster for large avatars
@@ -340,9 +341,11 @@ fun Modifier.avatarBloom(
         var blurHash by rememberSaveable(avatarData) { mutableStateOf<String?>(null) }
         LaunchedEffect(avatarData) {
             withContext(Dispatchers.IO) {
-                val drawable =
-                    context.imageLoader.execute(painterRequest).drawable ?: return@withContext
-                val bitmap = (drawable as? BitmapDrawable)?.bitmap ?: return@withContext
+                val bitmap = SingletonImageLoader.get(context)
+                    .execute(painterRequest)
+                    .image
+                    ?.toBitmap()
+                    ?: return@withContext
                 blurHash = BlurHash.encode(
                     bitmap = bitmap,
                     componentX = BloomDefaults.HASH_COMPONENTS,
@@ -368,7 +371,7 @@ fun Modifier.avatarBloom(
         val initialsBitmap = initialsBitmap(
             width = BloomDefaults.ENCODE_SIZE_PX.toDp(),
             height = BloomDefaults.ENCODE_SIZE_PX.toDp(),
-            text = avatarData.initial,
+            text = avatarData.initialLetter,
             textColor = avatarColors.foreground,
             backgroundColor = avatarColors.background,
         )
@@ -463,7 +466,9 @@ internal fun BloomPreview() {
     var topAppBarHeight by remember { mutableIntStateOf(-1) }
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
-    ElementPreview {
+    ElementPreview(
+        drawableFallbackForImages = CommonDrawables.sample_avatar,
+    ) {
         Scaffold(
             modifier = Modifier
                 .fillMaxSize()
@@ -477,7 +482,7 @@ internal fun BloomPreview() {
                             }
                             .bloom(
                                 hash = blurhash,
-                                background = ElementTheme.materialColors.background,
+                                background = ElementTheme.colors.bgCanvasDefault,
                                 blurSize = DpSize(430.dp, 430.dp),
                                 offset = DpOffset(24.dp, 24.dp),
                                 clipToSize = if (topAppBarHeight > 0) DpSize(430.dp, topAppBarHeight.toDp()) else DpSize.Zero,
@@ -487,14 +492,14 @@ internal fun BloomPreview() {
                             scrolledContainerColor = Color.Black.copy(alpha = 0.05f),
                         ),
                         navigationIcon = {
-                            Image(
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .size(32.dp)
-                                    .clip(CircleShape),
-                                painter = painterResource(id = R.drawable.sample_avatar),
-                                contentScale = ContentScale.Crop,
-                                contentDescription = null
+                            Avatar(
+                                avatarData = AvatarData(
+                                    id = "sample-avatar",
+                                    name = "sample",
+                                    url = "aURL",
+                                    size = AvatarSize.CurrentUserTopBar,
+                                ),
+                                avatarType = AvatarType.User,
                             )
                         },
                         actions = {
@@ -554,9 +559,9 @@ internal fun BloomInitialsPreview(@PreviewParameter(InitialsColorIntProvider::cl
                         // Workaround to display a very subtle bloom for avatars with very soft colors
                         Color(0xFFF9F9F9)
                     } else {
-                        ElementTheme.materialColors.background
+                        ElementTheme.colors.bgCanvasDefault
                     },
-                    bottomSoftEdgeColor = ElementTheme.materialColors.background,
+                    bottomSoftEdgeColor = ElementTheme.colors.bgCanvasDefault,
                     blurSize = DpSize(256.dp, 256.dp),
                 ),
             contentAlignment = Alignment.Center

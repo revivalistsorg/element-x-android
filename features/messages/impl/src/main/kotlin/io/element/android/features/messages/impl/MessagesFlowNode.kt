@@ -28,6 +28,7 @@ import io.element.android.features.call.api.CallType
 import io.element.android.features.call.api.ElementCallEntryPoint
 import io.element.android.features.knockrequests.api.list.KnockRequestsListEntryPoint
 import io.element.android.features.location.api.Location
+import io.element.android.features.location.api.LocationService
 import io.element.android.features.location.api.SendLocationEntryPoint
 import io.element.android.features.location.api.ShowLocationEntryPoint
 import io.element.android.features.messages.api.MessagesEntryPoint
@@ -45,7 +46,6 @@ import io.element.android.features.messages.impl.timeline.model.event.TimelineIt
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemFileContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemImageContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemLocationContent
-import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStickerContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemVideoContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemVoiceContent
 import io.element.android.features.messages.impl.timeline.model.event.duration
@@ -57,6 +57,7 @@ import io.element.android.libraries.architecture.createNode
 import io.element.android.libraries.architecture.overlay.Overlay
 import io.element.android.libraries.architecture.overlay.operation.hide
 import io.element.android.libraries.architecture.overlay.operation.show
+import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.dateformatter.api.DateFormatter
 import io.element.android.libraries.dateformatter.api.DateFormatterMode
 import io.element.android.libraries.dateformatter.api.toHumanReadableDuration
@@ -68,21 +69,24 @@ import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.core.toRoomIdOrAlias
 import io.element.android.libraries.matrix.api.media.MediaSource
 import io.element.android.libraries.matrix.api.permalink.PermalinkData
-import io.element.android.libraries.matrix.api.room.MatrixRoom
+import io.element.android.libraries.matrix.api.room.BaseRoom
 import io.element.android.libraries.matrix.api.room.alias.matches
 import io.element.android.libraries.matrix.api.room.joinedRoomMembers
+import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.TimelineItemDebugInfo
-import io.element.android.libraries.matrix.ui.messages.LocalRoomMemberProfilesCache
 import io.element.android.libraries.matrix.ui.messages.RoomMemberProfilesCache
+import io.element.android.libraries.matrix.ui.messages.RoomNamesCache
 import io.element.android.libraries.mediaviewer.api.MediaInfo
 import io.element.android.libraries.mediaviewer.api.MediaViewerEntryPoint
-import io.element.android.libraries.textcomposer.mentions.LocalMentionSpanTheme
+import io.element.android.libraries.textcomposer.mentions.LocalMentionSpanUpdater
 import io.element.android.libraries.textcomposer.mentions.MentionSpanTheme
+import io.element.android.libraries.textcomposer.mentions.MentionSpanUpdater
 import io.element.android.services.analytics.api.AnalyticsService
 import io.element.android.services.analyticsproviders.api.trackers.captureInteraction
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 
 @ContributesNode(RoomScope::class)
@@ -96,13 +100,17 @@ class MessagesFlowNode @AssistedInject constructor(
     private val elementCallEntryPoint: ElementCallEntryPoint,
     private val mediaViewerEntryPoint: MediaViewerEntryPoint,
     private val analyticsService: AnalyticsService,
-    private val room: MatrixRoom,
+    private val locationService: LocationService,
+    private val room: BaseRoom,
     private val roomMemberProfilesCache: RoomMemberProfilesCache,
+    private val roomNamesCache: RoomNamesCache,
+    private val mentionSpanUpdater: MentionSpanUpdater,
     private val mentionSpanTheme: MentionSpanTheme,
     private val pinnedEventsTimelineProvider: PinnedEventsTimelineProvider,
     private val timelineController: TimelineController,
     private val knockRequestsListEntryPoint: KnockRequestsListEntryPoint,
     private val dateFormatter: DateFormatter,
+    private val coroutineDispatchers: CoroutineDispatchers,
 ) : BaseFlowNode<MessagesFlowNode.NavTarget>(
     backstack = BackStack(
         initialElement = plugins.filterIsInstance<MessagesEntryPoint.Params>().first().initialTarget.toNavTarget(),
@@ -170,13 +178,29 @@ class MessagesFlowNode @AssistedInject constructor(
                 timelineController.close()
             }
         )
+        setupCacheUpdaters()
+
+        pinnedEventsTimelineProvider.launchIn(lifecycleScope)
+    }
+
+    private fun setupCacheUpdaters() {
         room.membersStateFlow
             .onEach { membersState ->
-                roomMemberProfilesCache.replace(membersState.joinedRoomMembers())
+                withContext(coroutineDispatchers.computation) {
+                    roomMemberProfilesCache.replace(membersState.joinedRoomMembers())
+                }
             }
             .launchIn(lifecycleScope)
 
-        pinnedEventsTimelineProvider.launchIn(lifecycleScope)
+        matrixClient.roomListService
+            .allRooms
+            .summaries
+            .onEach {
+                withContext(coroutineDispatchers.computation) {
+                    roomNamesCache.replace(it)
+                }
+            }
+            .launchIn(lifecycleScope)
     }
 
     override fun resolve(navTarget: NavTarget, buildContext: BuildContext): Node {
@@ -187,8 +211,11 @@ class MessagesFlowNode @AssistedInject constructor(
                         callbacks.forEach { it.onRoomDetailsClick() }
                     }
 
-                    override fun onEventClick(event: TimelineItem.Event): Boolean {
-                        return processEventClick(event)
+                    override fun onEventClick(isLive: Boolean, event: TimelineItem.Event): Boolean {
+                        return processEventClick(
+                            timelineMode = if (isLive) Timeline.Mode.LIVE else Timeline.Mode.FOCUSED_ON_EVENT,
+                            event = event,
+                        )
                     }
 
                     override fun onPreviewAttachments(attachments: ImmutableList<Attachment>) {
@@ -316,7 +343,10 @@ class MessagesFlowNode @AssistedInject constructor(
             NavTarget.PinnedMessagesList -> {
                 val callback = object : PinnedMessagesListNode.Callback {
                     override fun onEventClick(event: TimelineItem.Event) {
-                        processEventClick(event)
+                        processEventClick(
+                            timelineMode = Timeline.Mode.PINNED_EVENTS,
+                            event = event,
+                        )
                     }
 
                     override fun onUserDataClick(userId: UserId) {
@@ -358,33 +388,23 @@ class MessagesFlowNode @AssistedInject constructor(
         callbacks.forEach { it.onPermalinkClick(permalinkData, pushToBackstack = false) }
     }
 
-    private fun processEventClick(event: TimelineItem.Event): Boolean {
+    private fun processEventClick(
+        timelineMode: Timeline.Mode,
+        event: TimelineItem.Event,
+    ): Boolean {
         val navTarget = when (event.content) {
             is TimelineItemImageContent -> {
                 buildMediaViewerNavTarget(
-                    mode = MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos,
+                    mode = MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos(timelineMode),
                     event = event,
                     content = event.content,
                     mediaSource = event.content.mediaSource,
                     thumbnailSource = event.content.thumbnailSource,
                 )
             }
-            is TimelineItemStickerContent -> {
-                /* Sticker may have an empty url and no thumbnail
-                   if encrypted on certain bridges */
-                event.content.preferredMediaSource?.let { preferredMediaSource ->
-                    buildMediaViewerNavTarget(
-                        mode = MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos,
-                        event = event,
-                        content = event.content,
-                        mediaSource = preferredMediaSource,
-                        thumbnailSource = event.content.thumbnailSource,
-                    )
-                }
-            }
             is TimelineItemVideoContent -> {
                 buildMediaViewerNavTarget(
-                    mode = MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos,
+                    mode = MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos(timelineMode),
                     event = event,
                     content = event.content,
                     mediaSource = event.content.mediaSource,
@@ -393,7 +413,7 @@ class MessagesFlowNode @AssistedInject constructor(
             }
             is TimelineItemFileContent -> {
                 buildMediaViewerNavTarget(
-                    mode = MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios,
+                    mode = MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios(timelineMode),
                     event = event,
                     content = event.content,
                     mediaSource = event.content.mediaSource,
@@ -402,7 +422,7 @@ class MessagesFlowNode @AssistedInject constructor(
             }
             is TimelineItemAudioContent -> {
                 buildMediaViewerNavTarget(
-                    mode = MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios,
+                    mode = MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios(timelineMode),
                     event = event,
                     content = event.content,
                     mediaSource = event.content.mediaSource,
@@ -413,7 +433,7 @@ class MessagesFlowNode @AssistedInject constructor(
                 NavTarget.LocationViewer(
                     location = event.content.location,
                     description = event.content.description,
-                )
+                ).takeIf { locationService.isServiceAvailable() }
             }
             else -> null
         }
@@ -467,10 +487,9 @@ class MessagesFlowNode @AssistedInject constructor(
 
     @Composable
     override fun View(modifier: Modifier) {
-        mentionSpanTheme.updateStyles(currentUserId = room.sessionId)
+        mentionSpanTheme.updateStyles()
         CompositionLocalProvider(
-            LocalRoomMemberProfilesCache provides roomMemberProfilesCache,
-            LocalMentionSpanTheme provides mentionSpanTheme,
+            LocalMentionSpanUpdater provides mentionSpanUpdater
         ) {
             BackstackWithOverlayBox(modifier)
         }

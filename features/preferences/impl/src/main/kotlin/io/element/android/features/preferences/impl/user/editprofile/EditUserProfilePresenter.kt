@@ -26,6 +26,7 @@ import io.element.android.libraries.androidutils.file.TemporaryUriDeleter
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runCatchingUpdatingState
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.core.mimetype.MimeTypes
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.user.MatrixUser
@@ -58,7 +59,7 @@ class EditUserProfilePresenter @AssistedInject constructor(
     @Composable
     override fun present(): EditUserProfileState {
         val cameraPermissionState = cameraPermissionPresenter.present()
-        var userAvatarUri by rememberSaveable { mutableStateOf(matrixUser.avatarUrl?.let { Uri.parse(it) }) }
+        var userAvatarUri by rememberSaveable { mutableStateOf(matrixUser.avatarUrl?.toUri()) }
         var userDisplayName by rememberSaveable { mutableStateOf(matrixUser.displayName) }
         val cameraPhotoPicker = mediaPickerProvider.registerCameraPhotoPicker(
             onResult = { uri ->
@@ -168,7 +169,7 @@ class EditUserProfilePresenter @AssistedInject constructor(
     }
 
     private suspend fun updateAvatar(avatarUri: Uri?): Result<Unit> {
-        return runCatching {
+        return runCatchingExceptions {
             if (avatarUri != null) {
                 val preprocessed = mediaPreProcessor.process(
                     uri = avatarUri,

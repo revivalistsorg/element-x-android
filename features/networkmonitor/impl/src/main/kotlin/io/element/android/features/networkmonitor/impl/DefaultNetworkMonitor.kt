@@ -12,7 +12,6 @@ package io.element.android.features.networkmonitor.impl
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
-import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import com.squareup.anvil.annotations.ContributesBinding
 import io.element.android.features.networkmonitor.api.NetworkMonitor
@@ -20,6 +19,7 @@ import io.element.android.features.networkmonitor.api.NetworkStatus
 import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.di.ApplicationContext
 import io.element.android.libraries.di.SingleIn
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.awaitClose
@@ -39,6 +39,7 @@ import javax.inject.Inject
 @SingleIn(AppScope::class)
 class DefaultNetworkMonitor @Inject constructor(
     @ApplicationContext context: Context,
+    @AppCoroutineScope
     appCoroutineScope: CoroutineScope,
 ) : NetworkMonitor {
     private val connectivityManager: ConnectivityManager = context.getSystemService(ConnectivityManager::class.java)
@@ -55,20 +56,18 @@ class DefaultNetworkMonitor @Inject constructor(
 
             override fun onLost(network: Network) {
                 if (activeNetworksCount.decrementAndGet() == 0) {
-                    trySendBlocking(NetworkStatus.Offline)
+                    trySendBlocking(NetworkStatus.Disconnected)
                 }
             }
 
             override fun onAvailable(network: Network) {
                 if (activeNetworksCount.incrementAndGet() > 0) {
-                    trySendBlocking(NetworkStatus.Online)
+                    trySendBlocking(NetworkStatus.Connected)
                 }
             }
         }
         trySendBlocking(connectivityManager.activeNetworkStatus())
-        val request = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-            .build()
+        val request = NetworkRequest.Builder().build()
 
         connectivityManager.registerNetworkCallback(request, callback)
         Timber.d("Subscribe")
@@ -85,17 +84,6 @@ class DefaultNetworkMonitor @Inject constructor(
         .stateIn(appCoroutineScope, SharingStarted.WhileSubscribed(), connectivityManager.activeNetworkStatus())
 
     private fun ConnectivityManager.activeNetworkStatus(): NetworkStatus {
-        return activeNetwork?.let {
-            getNetworkCapabilities(it)?.getNetworkStatus()
-        } ?: NetworkStatus.Offline
-    }
-
-    private fun NetworkCapabilities.getNetworkStatus(): NetworkStatus {
-        val hasInternet = hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-        return if (hasInternet) {
-            NetworkStatus.Online
-        } else {
-            NetworkStatus.Offline
-        }
+        return if (activeNetwork != null) NetworkStatus.Connected else NetworkStatus.Disconnected
     }
 }

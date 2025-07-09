@@ -1,16 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="a11y_add_reaction">"Add reaction: %1$s"</string>
+  <string name="a11y_avatar">"Avatar"</string>
   <string name="a11y_delete">"Delete"</string>
   <plurals name="a11y_digits_entered">
     <item quantity="one">"%1$d digit entered"</item>
     <item quantity="other">"%1$d digits entered"</item>
   </plurals>
   <string name="a11y_hide_password">"Hide password"</string>
+  <string name="a11y_join_call">"Join call"</string>
   <string name="a11y_jump_to_bottom">"Jump to bottom"</string>
   <string name="a11y_notifications_mentions_only">"Mentions only"</string>
   <string name="a11y_notifications_muted">"Muted"</string>
+  <string name="a11y_other_user_avatar">"Other user\'s avatar"</string>
   <string name="a11y_page_n">"Page %1$d"</string>
   <string name="a11y_pause">"Pause"</string>
+  <string name="a11y_paused_voice_message">"Voice message, duration: %1$s, current position: %2$s"</string>
   <string name="a11y_pin_field">"PIN field"</string>
   <string name="a11y_play">"Play"</string>
   <string name="a11y_poll">"Poll"</string>
@@ -24,14 +29,20 @@
   </plurals>
   <string name="a11y_read_receipts_single">"Read by %1$s"</string>
   <string name="a11y_read_receipts_tap_to_show_all">"Tap to show all"</string>
+  <string name="a11y_remove_reaction">"Remove reaction: %1$s"</string>
   <string name="a11y_remove_reaction_with">"Remove reaction with %1$s"</string>
+  <string name="a11y_room_avatar">"Room avatar"</string>
   <string name="a11y_send_files">"Send files"</string>
   <string name="a11y_show_password">"Show password"</string>
   <string name="a11y_start_call">"Start a call"</string>
+  <string name="a11y_user_avatar">"User avatar"</string>
   <string name="a11y_user_menu">"User menu"</string>
+  <string name="a11y_view_avatar">"View avatar"</string>
   <string name="a11y_view_details">"View details"</string>
+  <string name="a11y_voice_message">"Voice message, duration: %1$s"</string>
   <string name="a11y_voice_message_record">"Record voice message."</string>
   <string name="a11y_voice_message_stop_recording">"Stop recording"</string>
+  <string name="a11y_your_avatar">"Your avatar"</string>
   <string name="action_accept">"Accept"</string>
   <string name="action_add_caption">"Add caption"</string>
   <string name="action_add_to_timeline">"Add to timeline"</string>
@@ -56,9 +67,11 @@
   <string name="action_deactivate">"Deactivate"</string>
   <string name="action_deactivate_account">"Deactivate account"</string>
   <string name="action_decline">"Decline"</string>
+  <string name="action_decline_and_block">"Decline and block"</string>
   <string name="action_delete_poll">"Delete Poll"</string>
   <string name="action_disable">"Disable"</string>
   <string name="action_discard">"Discard"</string>
+  <string name="action_dismiss">"Dismiss"</string>
   <string name="action_done">"Done"</string>
   <string name="action_edit">"Edit"</string>
   <string name="action_edit_caption">"Edit caption"</string>
@@ -88,6 +101,7 @@
   <string name="action_no">"No"</string>
   <string name="action_not_now">"Not now"</string>
   <string name="action_ok">"OK"</string>
+  <string name="action_open_context_menu">"Open context menu"</string>
   <string name="action_open_settings">"Settings"</string>
   <string name="action_open_with">"Open with"</string>
   <string name="action_pin">"Pin"</string>
@@ -100,8 +114,11 @@
   <string name="action_remove_message">"Remove message"</string>
   <string name="action_reply">"Reply"</string>
   <string name="action_reply_in_thread">"Reply in thread"</string>
+  <string name="action_report">"Report"</string>
   <string name="action_report_bug">"Report bug"</string>
   <string name="action_report_content">"Report content"</string>
+  <string name="action_report_dm">"Report conversation"</string>
+  <string name="action_report_room">"Report room"</string>
   <string name="action_reset">"Reset"</string>
   <string name="action_reset_identity">"Reset identity"</string>
   <string name="action_retry">"Retry"</string>
@@ -109,7 +126,9 @@
   <string name="action_save">"Save"</string>
   <string name="action_search">"Search"</string>
   <string name="action_send">"Send"</string>
+  <string name="action_send_edited_message">"Send edited message"</string>
   <string name="action_send_message">"Send message"</string>
+  <string name="action_send_voice_message">"Send voice message"</string>
   <string name="action_share">"Share"</string>
   <string name="action_share_link">"Share link"</string>
   <string name="action_show">"Show"</string>
@@ -125,14 +144,18 @@
   <string name="action_tap_for_options">"Tap for options"</string>
   <string name="action_try_again">"Try again"</string>
   <string name="action_unpin">"Unpin"</string>
+  <string name="action_view">"View"</string>
   <string name="action_view_in_timeline">"View in timeline"</string>
   <string name="action_view_source">"View source"</string>
   <string name="action_yes">"Yes"</string>
   <string name="action_yes_try_again">"Yes, try again"</string>
+  <string name="banner_migrate_to_native_sliding_sync_description">"Your server now supports a new, faster protocol. Log out and log back in to upgrade now. Doing this now will help you avoid a forced logout when the old protocol is removed later."</string>
+  <string name="banner_migrate_to_native_sliding_sync_title">"Upgrade available"</string>
   <string name="common_about">"About"</string>
   <string name="common_acceptable_use_policy">"Acceptable use policy"</string>
   <string name="common_adding_caption">"Adding caption"</string>
   <string name="common_advanced_settings">"Advanced settings"</string>
+  <string name="common_an_image">"an image"</string>
   <string name="common_analytics">"Analytics"</string>
   <string name="common_appearance">"Appearance"</string>
   <string name="common_audio">"Audio"</string>
@@ -143,7 +166,9 @@
   <string name="common_copied_to_clipboard">"Copied to clipboard"</string>
   <string name="common_copyright">"Copyright"</string>
   <string name="common_creating_room">"Creating room…"</string>
+  <string name="common_current_user_canceled_knock">"Request canceled"</string>
   <string name="common_current_user_left_room">"Left room"</string>
+  <string name="common_current_user_rejected_invite">"Invite declined"</string>
   <string name="common_dark">"Dark"</string>
   <string name="common_decryption_error">"Decryption error"</string>
   <string name="common_developer_options">"Developer options"</string>
@@ -156,6 +181,7 @@
   <string name="common_editing">"Editing"</string>
   <string name="common_editing_caption">"Editing caption"</string>
   <string name="common_emote">"* %1$s %2$s"</string>
+  <string name="common_empty_file">"Empty file"</string>
   <string name="common_encryption">"Encryption"</string>
   <string name="common_encryption_enabled">"Encryption enabled"</string>
   <string name="common_enter_your_pin">"Enter your PIN"</string>
@@ -180,9 +206,14 @@ Reason: %1$s."</string>
   <string name="common_invite_unknown_profile">"This Matrix ID can\'t be found, so the invite might not be received."</string>
   <string name="common_leaving_room">"Leaving room"</string>
   <string name="common_light">"Light"</string>
+  <string name="common_line_copied_to_clipboard">"Line copied to clipboard"</string>
   <string name="common_link_copied_to_clipboard">"Link copied to clipboard"</string>
   <string name="common_loading">"Loading…"</string>
   <string name="common_loading_more">"Loading more…"</string>
+  <plurals name="common_many_members">
+    <item quantity="one">"%d other"</item>
+    <item quantity="other">"%d others"</item>
+  </plurals>
   <plurals name="common_member_count">
     <item quantity="one">"%1$d member"</item>
     <item quantity="other">"%1$d members"</item>
@@ -193,8 +224,10 @@ Reason: %1$s."</string>
   <string name="common_message_removed">"Message removed"</string>
   <string name="common_modern">"Modern"</string>
   <string name="common_mute">"Mute"</string>
+  <string name="common_name_and_id">"%1$s (%2$s)"</string>
   <string name="common_no_results">"No results"</string>
   <string name="common_no_room_name">"No room name"</string>
+  <string name="common_not_encrypted">"Not encrypted"</string>
   <string name="common_offline">"Offline"</string>
   <string name="common_open_source_licenses">"Open source licenses"</string>
   <string name="common_or">"or"</string>
@@ -203,6 +236,7 @@ Reason: %1$s."</string>
   <string name="common_permalink">"Permalink"</string>
   <string name="common_permission">"Permission"</string>
   <string name="common_pinned">"Pinned"</string>
+  <string name="common_please_check_internet_connection">"Please check your internet connection"</string>
   <string name="common_please_wait">"Please wait…"</string>
   <string name="common_poll_end_confirmation">"Are you sure you want to end this poll?"</string>
   <string name="common_poll_summary">"Poll: %1$s"</string>
@@ -215,8 +249,13 @@ Reason: %1$s."</string>
   <string name="common_privacy_policy">"Privacy policy"</string>
   <string name="common_reaction">"Reaction"</string>
   <string name="common_reactions">"Reactions"</string>
+  <string name="common_reason">"Reason"</string>
   <string name="common_recovery_key">"Recovery key"</string>
   <string name="common_refreshing">"Refreshing…"</string>
+  <plurals name="common_replies">
+    <item quantity="one">"%1$d reply"</item>
+    <item quantity="other">"%1$d replies"</item>
+  </plurals>
   <string name="common_replying_to">"Replying to %1$s"</string>
   <string name="common_report_a_bug">"Report a bug"</string>
   <string name="common_report_a_problem">"Report a problem"</string>
@@ -236,12 +275,14 @@ Reason: %1$s."</string>
   <string name="common_sending">"Sending…"</string>
   <string name="common_sending_failed">"Sending failed"</string>
   <string name="common_sent">"Sent"</string>
+  <string name="common_sentence_delimiter">". "</string>
   <string name="common_server_not_supported">"Server not supported"</string>
   <string name="common_server_url">"Server URL"</string>
   <string name="common_settings">"Settings"</string>
   <string name="common_shared_location">"Shared location"</string>
   <string name="common_signing_out">"Signing out"</string>
   <string name="common_something_went_wrong">"Something went wrong"</string>
+  <string name="common_something_went_wrong_message">"We encountered an issue. Please try again."</string>
   <string name="common_starting_chat">"Starting chat…"</string>
   <string name="common_sticker">"Sticker"</string>
   <string name="common_success">"Success"</string>
@@ -256,7 +297,7 @@ Reason: %1$s."</string>
   <string name="common_unable_to_decrypt">"Unable to decrypt"</string>
   <string name="common_unable_to_decrypt_insecure_device">"Sent from an insecure device"</string>
   <string name="common_unable_to_decrypt_no_access">"You don\'t have access to this message"</string>
-  <string name="common_unable_to_decrypt_verification_violation">"Sender\'s verified identity has changed"</string>
+  <string name="common_unable_to_decrypt_verification_violation">"Sender\'s verified identity was reset"</string>
   <string name="common_unable_to_invite_message">"Invites couldn\'t be sent to one or more users."</string>
   <string name="common_unable_to_invite_title">"Unable to send invite(s)"</string>
   <string name="common_unlock">"Unlock"</string>
@@ -270,16 +311,24 @@ Reason: %1$s."</string>
   <string name="common_verified">"Verified"</string>
   <string name="common_verify_device">"Verify device"</string>
   <string name="common_verify_identity">"Verify identity"</string>
+  <string name="common_verify_user">"Verify user"</string>
   <string name="common_video">"Video"</string>
   <string name="common_voice_message">"Voice message"</string>
   <string name="common_waiting">"Waiting…"</string>
   <string name="common_waiting_for_decryption_key">"Waiting for this message"</string>
   <string name="common_you">"You"</string>
-  <string name="crypto_identity_change_pin_violation">"%1$s\'s identity appears to have changed. %2$s"</string>
-  <string name="crypto_identity_change_pin_violation_new">"%1$s’s %2$s identity appears to have changed. %3$s"</string>
+  <string name="crypto_identity_change_pin_violation">"%1$s\'s identity was reset. %2$s"</string>
+  <string name="crypto_identity_change_pin_violation_new">"%1$s’s %2$s identity was reset. %3$s"</string>
   <string name="crypto_identity_change_pin_violation_new_user_id">"(%1$s)"</string>
-  <string name="crypto_identity_change_verification_violation_new">"%1$s’s %2$s verified identity has changed.  %3$s"</string>
+  <string name="crypto_identity_change_profile_pin_violation">"%1$s’s identity was reset."</string>
+  <string name="crypto_identity_change_verification_violation_new">"%1$s’s %2$s identity was reset. %3$s"</string>
   <string name="crypto_identity_change_withdraw_verification_action">"Withdraw verification"</string>
+  <string name="dialog_confirm_link_message">"The link %1$s is taking you to another site %2$s
+
+Are you sure you want to continue?"</string>
+  <string name="dialog_confirm_link_title">"Double-check this link"</string>
+  <string name="dialog_room_reported">"Room reported"</string>
+  <string name="dialog_room_reported_and_left">"Reported and left room"</string>
   <string name="dialog_title_confirmation">"Confirmation"</string>
   <string name="dialog_title_error">"Error"</string>
   <string name="dialog_title_success">"Success"</string>
@@ -292,14 +341,17 @@ Reason: %1$s."</string>
   <string name="error_failed_loading_messages">"Failed loading messages"</string>
   <string name="error_failed_locating_user">"%1$s could not access your location. Please try again later."</string>
   <string name="error_failed_uploading_voice_message">"Failed to upload your voice message."</string>
+  <string name="error_invalid_invite">"The room no longer exists or the invite is no longer valid."</string>
   <string name="error_message_not_found">"Message not found"</string>
   <string name="error_missing_location_auth_android">"%1$s does not have permission to access your location. You can enable access in Settings."</string>
   <string name="error_missing_location_rationale_android">"%1$s does not have permission to access your location. Enable access below."</string>
   <string name="error_missing_microphone_voice_rationale_android">"%1$s does not have permission to access your microphone. Enable access to record a voice message."</string>
+  <string name="error_network_or_server_issue">"This may be due to network or server issues."</string>
   <string name="error_room_address_already_exists">"This room address already exists. Please try editing the room address field or change the room name"</string>
   <string name="error_room_address_invalid_symbols">"Some characters are not allowed. Only letters, digits and the following symbols are supported ! $ &amp; ‘ ( ) * + / ; = ? @ [ ] - . _"</string>
   <string name="error_some_messages_have_not_been_sent">"Some messages have not been sent"</string>
   <string name="error_unknown">"Sorry, an error occurred"</string>
+  <string name="event_shield_mismatched_sender">"The sender of the event does not match the owner of the device that sent it."</string>
   <string name="event_shield_reason_authenticity_not_guaranteed">"The authenticity of this encrypted message can\'t be guaranteed on this device."</string>
   <string name="event_shield_reason_previously_verified">"Encrypted by a previously-verified user."</string>
   <string name="event_shield_reason_sent_in_clear">"Not encrypted."</string>
@@ -310,6 +362,10 @@ Reason: %1$s."</string>
   <string name="invite_friends_text">"Hey, talk to me on %1$s: %2$s"</string>
   <string name="login_initial_device_name_android">"%1$s Android"</string>
   <string name="preference_rageshake">"Rageshake to report bug"</string>
+  <string name="screen_create_poll_option_accessibility_label">"%1$s: %2$s"</string>
+  <string name="screen_create_poll_options_section_title">"Options"</string>
+  <string name="screen_create_poll_remove_accessibility_label">"Remove %1$s"</string>
+  <string name="screen_create_poll_settings_section_title">"Settings"</string>
   <string name="screen_media_picker_error_failed_selection">"Failed selecting media, please try again."</string>
   <string name="screen_media_upload_preview_caption_warning">"Captions might not be visible to people using older apps."</string>
   <string name="screen_media_upload_preview_error_failed_processing">"Failed processing media to upload, please try again."</string>
@@ -325,7 +381,7 @@ Reason: %1$s."</string>
   <string name="screen_reset_identity_confirmation_title">"Can\'t confirm? Go to your account to reset your identity."</string>
   <string name="screen_resolve_send_failure_changed_identity_primary_button_title">"Withdraw verification and send"</string>
   <string name="screen_resolve_send_failure_changed_identity_subtitle">"You can withdraw your verification and send this message anyway, or you can cancel for now and try again later after reverifying %1$s."</string>
-  <string name="screen_resolve_send_failure_changed_identity_title">"Your message was not sent because %1$s’s verified identity has changed"</string>
+  <string name="screen_resolve_send_failure_changed_identity_title">"Your message was not sent because %1$s’s verified identity was reset"</string>
   <string name="screen_resolve_send_failure_unsigned_device_primary_button_title">"Send message anyway"</string>
   <string name="screen_resolve_send_failure_unsigned_device_subtitle">"%1$s is using one or more unverified devices. You can send the message anyway, or you can cancel for now and try again later after %2$s has verified all their devices."</string>
   <string name="screen_resolve_send_failure_unsigned_device_title">"Your message was not sent because %1$s has not verified all devices"</string>
@@ -333,19 +389,22 @@ Reason: %1$s."</string>
   <string name="screen_resolve_send_failure_you_unsigned_device_title">"Your message was not sent because you have not verified one or more of your devices"</string>
   <string name="screen_room_error_failed_processing_media">"Failed processing media to upload, please try again."</string>
   <string name="screen_room_error_failed_retrieving_user_details">"Could not retrieve user details"</string>
+  <string name="screen_room_event_pill">"Message in %1$s"</string>
+  <string name="screen_room_grouped_state_events_expand">"Expand"</string>
+  <string name="screen_room_grouped_state_events_reduce">"Reduce"</string>
+  <string name="screen_room_permalink_same_room_android">"Already viewing this room!"</string>
   <string name="screen_room_pinned_banner_indicator">"%1$s of %2$s"</string>
   <string name="screen_room_pinned_banner_indicator_description">"%1$s Pinned messages"</string>
   <string name="screen_room_pinned_banner_loading_description">"Loading message…"</string>
   <string name="screen_room_pinned_banner_view_all_button_title">"View All"</string>
   <string name="screen_room_title">"Chat"</string>
-  <string name="screen_roomlist_knock_event_sent_description">"Request to join sent"</string>
   <string name="screen_share_location_title">"Share location"</string>
   <string name="screen_share_my_location_action">"Share my location"</string>
   <string name="screen_share_open_apple_maps">"Open in Apple Maps"</string>
   <string name="screen_share_open_google_maps">"Open in Google Maps"</string>
   <string name="screen_share_open_osm_maps">"Open in OpenStreetMap"</string>
   <string name="screen_share_this_location_action">"Share this location"</string>
-  <string name="screen_timeline_item_menu_send_failure_changed_identity">"Message not sent because %1$s’s verified identity has changed."</string>
+  <string name="screen_timeline_item_menu_send_failure_changed_identity">"Message not sent because %1$s’s verified identity was reset."</string>
   <string name="screen_timeline_item_menu_send_failure_unsigned_device">"Message not sent because %1$s has not verified all devices."</string>
   <string name="screen_timeline_item_menu_send_failure_you_unsigned_device">"Message not sent because you have not verified one or more of your devices."</string>
   <string name="screen_view_location_title">"Location"</string>

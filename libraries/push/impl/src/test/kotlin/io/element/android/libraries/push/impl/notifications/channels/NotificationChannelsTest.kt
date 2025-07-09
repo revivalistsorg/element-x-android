@@ -10,7 +10,6 @@ package io.element.android.libraries.push.impl.notifications.channels
 import android.os.Build
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.test.platform.app.InstrumentationRegistry
 import com.google.common.truth.Truth.assertThat
 import io.element.android.services.toolbox.test.strings.FakeStringProvider
 import io.mockk.every
@@ -24,7 +23,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 class NotificationChannelsTest {
     @Test
-    @Config(sdk = [Build.VERSION_CODES.O])
+    @Config(sdk = [Build.VERSION_CODES.TIRAMISU])
     fun `init - creates notification channels and migrates old ones`() {
         val notificationManager = mockk<NotificationManagerCompat>(relaxed = true) {
             every { notificationChannels } returns emptyList()
@@ -65,7 +64,6 @@ class NotificationChannelsTest {
     private fun createNotificationChannels(
         notificationManager: NotificationManagerCompat = mockk(relaxed = true),
     ) = DefaultNotificationChannels(
-        context = InstrumentationRegistry.getInstrumentation().targetContext,
         notificationManager = notificationManager,
         stringProvider = FakeStringProvider(),
     )

@@ -54,20 +54,6 @@ enum class FeatureFlags(
         defaultValue = { true },
         isFinished = true,
     ),
-    Mentions(
-        key = "feature.mentions",
-        title = "Mentions",
-        description = "Type `@` to get mention suggestions and insert them",
-        defaultValue = { true },
-        isFinished = false,
-    ),
-    RoomAliasSuggestions(
-        key = "feature.roomAliasSuggestions",
-        title = "Room alias suggestions",
-        description = "Type `#` to get room alias suggestions and insert them",
-        defaultValue = { false },
-        isFinished = false,
-    ),
     MarkAsUnread(
         key = "feature.markAsUnread",
         title = "Mark as unread",
@@ -126,10 +112,28 @@ enum class FeatureFlags(
         defaultValue = { false },
         isFinished = false,
     ),
+    EnableKeyShareOnInvite(
+        key = "feature.enableKeyShareOnInvite",
+        title = "Share encrypted history with new members",
+        description = "When inviting a user to an encrypted room that has history visibility set to \"shared\"," +
+            " share encrypted history with that user, and accept encrypted history when you are invited to such a room." +
+            "\nRequires an app restart to take effect." +
+            "\n\nWARNING: this feature is EXPERIMENTAL and not all security precautions are implemented." +
+            " Do not enable on production accounts.",
+        defaultValue = { false },
+        isFinished = false,
+    ),
     Knock(
         key = "feature.knock",
         title = "Ask to join",
         description = "Allow creating rooms which users can request access to.",
+        defaultValue = { false },
+        isFinished = false,
+    ),
+    Space(
+        key = "feature.space",
+        title = "Spaces",
+        description = "Spaces are under active development, only developers should enable this flog for now.",
         defaultValue = { false },
         isFinished = false,
     ),
@@ -161,11 +165,14 @@ enum class FeatureFlags(
         defaultValue = { true },
         isFinished = false,
     ),
-    EventCache(
-        key = "feature.event_cache",
-        title = "Use SDK Event cache",
-        description = "Warning: you must kill and restart the app for the change to take effect.",
-        defaultValue = { false },
+    PrintLogsToLogcat(
+        key = "feature.print_logs_to_logcat",
+        title = "Print logs to logcat",
+        description = "Print logs to logcat in addition to log files. Requires an app restart to take effect." +
+            "\n\nWARNING: this will make the logs visible in the device logs and may affect performance. " +
+            "It's not intended for daily usage in release builds.",
+        defaultValue = { buildMeta -> buildMeta.buildType != BuildType.RELEASE },
+        // False so it's displayed in the developer options screen
         isFinished = false,
     ),
 }

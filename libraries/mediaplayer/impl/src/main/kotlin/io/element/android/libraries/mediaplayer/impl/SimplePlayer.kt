@@ -33,6 +33,7 @@ interface SimplePlayer {
     fun getCurrentMediaItem(): MediaItem?
     fun prepare()
     fun play()
+    fun isPlaying(): Boolean
     fun pause()
     fun seekTo(positionMs: Long)
     fun release()
@@ -88,6 +89,8 @@ class DefaultSimplePlayer(
     override fun prepare() = p.prepare()
 
     override fun play() = p.play()
+
+    override fun isPlaying() = p.isPlaying
 
     override fun pause() = p.pause()
 

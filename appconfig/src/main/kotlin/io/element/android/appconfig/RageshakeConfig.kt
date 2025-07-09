@@ -11,17 +11,27 @@ object RageshakeConfig {
     /**
      * The URL to submit bug reports to.
      */
+<<<<<<< HEAD
     const val BUG_REPORT_URL = "https://rageshake.the-revivalists.org/api/submit"
+=======
+    const val BUG_REPORT_URL = BuildConfig.BUG_REPORT_URL
+>>>>>>> 86ec2f5ea5ba523c02eafc27a56c8b658136d34a
 
     /**
      * As per https://github.com/matrix-org/rageshake:
      * Identifier for the application (eg 'riot-web').
      * Should correspond to a mapping configured in the configuration file for github issue reporting to work.
      */
-    const val BUG_REPORT_APP_NAME = "element-x-android"
+    const val BUG_REPORT_APP_NAME = BuildConfig.BUG_REPORT_APP_NAME
 
     /**
      * The maximum size of the upload request. Default value is just below CloudFlare's max request size.
      */
     const val MAX_LOG_UPLOAD_SIZE = 50 * 1024 * 1024L
 }
+
+/**
+ * Whether the rageshake feature is enabled.
+ */
+val RageshakeConfig.isEnabled: Boolean
+    get() = BUG_REPORT_URL.isNotEmpty() && BUG_REPORT_APP_NAME.isNotEmpty()

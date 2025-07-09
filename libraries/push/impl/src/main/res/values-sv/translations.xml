@@ -13,8 +13,7 @@
     <item quantity="one">"%d avisering"</item>
     <item quantity="other">"%d aviseringar"</item>
   </plurals>
-  <string name="notification_fallback_content">"notis"</string>
-  <string name="notification_incoming_call">"Inkommande samtal"</string>
+  <string name="notification_incoming_call">"📹 Inkommande samtal"</string>
   <string name="notification_inline_reply_failed">"** Misslyckades att skicka - vänligen öppna rummet"</string>
   <string name="notification_invitation_action_join">"Gå med"</string>
   <string name="notification_invitation_action_reject">"Avvisa"</string>
@@ -64,6 +63,7 @@
     <item quantity="one">"Hittade %1$d push-leverantör: %2$s"</item>
     <item quantity="other">"Hittade %1$d push-leverantörer: %2$s"</item>
   </plurals>
+  <string name="troubleshoot_notifications_test_detect_push_provider_success_2">"Applikationen byggdes med stöd för: %1$s"</string>
   <string name="troubleshoot_notifications_test_detect_push_provider_title">"Upptäck push-leverantörer"</string>
   <string name="troubleshoot_notifications_test_display_notification_description">"Kontrollera att applikationen kan visa avisering."</string>
   <string name="troubleshoot_notifications_test_display_notification_failure">"Aviseringen har inte klickats på."</string>

@@ -12,12 +12,14 @@ import io.element.android.libraries.matrix.api.core.RoomAlias
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.room.CurrentUserMembership
-import io.element.android.libraries.matrix.api.room.MatrixRoomInfo
+import io.element.android.libraries.matrix.api.room.RoomInfo
 import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.api.room.history.RoomHistoryVisibility
 import io.element.android.libraries.matrix.api.room.join.JoinRule
 import io.element.android.libraries.matrix.api.room.message.RoomMessage
+import io.element.android.libraries.matrix.api.room.powerlevels.RoomPowerLevels
+import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
 import io.element.android.libraries.matrix.api.roomlist.RoomSummary
 import io.element.android.libraries.matrix.api.timeline.item.event.EventTimelineItem
 import io.element.android.libraries.matrix.api.user.MatrixUser
@@ -28,12 +30,11 @@ import io.element.android.libraries.matrix.test.A_ROOM_RAW_NAME
 import io.element.android.libraries.matrix.test.A_ROOM_TOPIC
 import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.matrix.test.timeline.anEventTimelineItem
-import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentList
 
 fun aRoomSummary(
-    info: MatrixRoomInfo = aRoomInfo(),
+    info: RoomInfo = aRoomInfo(),
     lastMessage: RoomMessage? = aRoomMessage(),
 ) = RoomSummary(
     info = info,
@@ -46,11 +47,12 @@ fun aRoomSummary(
     rawName: String? = A_ROOM_RAW_NAME,
     topic: String? = A_ROOM_TOPIC,
     avatarUrl: String? = null,
-    isDirect: Boolean = false,
     isPublic: Boolean = true,
+    isDirect: Boolean = false,
+    isEncrypted: Boolean = false,
     joinRule: JoinRule? = JoinRule.Public,
     isSpace: Boolean = false,
-    isTombstoned: Boolean = false,
+    successorRoom: SuccessorRoom? = null,
     isFavorite: Boolean = false,
     canonicalAlias: RoomAlias? = null,
     alternativeAliases: List<RoomAlias> = emptyList(),
@@ -63,7 +65,10 @@ fun aRoomSummary(
     notificationCount: Long = 0,
     userDefinedNotificationMode: RoomNotificationMode? = null,
     hasRoomCall: Boolean = false,
-    userPowerLevels: ImmutableMap<UserId, Long> = persistentMapOf(),
+    roomPowerLevels: RoomPowerLevels = RoomPowerLevels(
+        values = defaultRoomPowerLevelValues(),
+        users = persistentMapOf(),
+    ),
     activeRoomCallParticipants: List<UserId> = emptyList(),
     heroes: List<MatrixUser> = emptyList(),
     pinnedEventIds: List<EventId> = emptyList(),
@@ -75,17 +80,18 @@ fun aRoomSummary(
     historyVisibility: RoomHistoryVisibility = RoomHistoryVisibility.Joined,
     lastMessage: RoomMessage? = aRoomMessage(),
 ) = RoomSummary(
-    info = MatrixRoomInfo(
+    info = RoomInfo(
         id = roomId,
         name = name,
         rawName = rawName,
         topic = topic,
         avatarUrl = avatarUrl,
-        isDirect = isDirect,
         isPublic = isPublic,
+        isDirect = isDirect,
+        isEncrypted = isEncrypted,
         joinRule = joinRule,
         isSpace = isSpace,
-        isTombstoned = isTombstoned,
+        successorRoom = successorRoom,
         isFavorite = isFavorite,
         canonicalAlias = canonicalAlias,
         alternativeAliases = alternativeAliases.toPersistentList(),
@@ -94,7 +100,7 @@ fun aRoomSummary(
         activeMembersCount = activeMembersCount,
         invitedMembersCount = invitedMembersCount,
         joinedMembersCount = joinedMembersCount,
-        userPowerLevels = userPowerLevels,
+        roomPowerLevels = roomPowerLevels,
         highlightCount = highlightCount,
         notificationCount = notificationCount,
         userDefinedNotificationMode = userDefinedNotificationMode,

@@ -7,7 +7,7 @@
 
 package io.element.android.features.messages.impl.timeline
 
-import android.view.accessibility.AccessibilityManager
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -35,12 +35,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -59,6 +61,7 @@ import io.element.android.features.messages.impl.timeline.model.event.TimelineIt
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEventContentProvider
 import io.element.android.features.messages.impl.timeline.protection.TimelineProtectionState
 import io.element.android.features.messages.impl.timeline.protection.aTimelineProtectionState
+import io.element.android.libraries.androidutils.system.copyToClipboard
 import io.element.android.libraries.designsystem.components.dialogs.AlertDialog
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -66,16 +69,29 @@ import io.element.android.libraries.designsystem.theme.components.FloatingAction
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.utils.animateScrollToItemCenter
 import io.element.android.libraries.matrix.api.core.EventId
-import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.timeline.Timeline
+import io.element.android.libraries.matrix.api.user.MatrixUser
+import io.element.android.libraries.testtags.TestTags
+import io.element.android.libraries.testtags.testTag
 import io.element.android.libraries.ui.strings.CommonStrings
+import io.element.android.libraries.ui.utils.time.isTalkbackActive
+import io.element.android.wysiwyg.link.Link
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
+import timber.log.Timber
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun TimelineView(
     state: TimelineState,
     timelineProtectionState: TimelineProtectionState,
-    onUserDataClick: (UserId) -> Unit,
-    onLinkClick: (String) -> Unit,
+    onUserDataClick: (MatrixUser) -> Unit,
+    onLinkClick: (Link) -> Unit,
     onContentClick: (TimelineItem.Event) -> Unit,
     onMessageLongClick: (TimelineItem.Event) -> Unit,
     onSwipeToReply: (TimelineItem.Event) -> Unit,
@@ -106,14 +122,26 @@ fun TimelineView(
     }
 
     val context = LocalContext.current
+    val view = LocalView.current
     // Disable reverse layout when TalkBack is enabled to avoid incorrect ordering issues seen in the current Compose UI version
-    val useReverseLayout = remember {
-        val accessibilityManager = context.getSystemService(AccessibilityManager::class.java)
-        accessibilityManager.isTouchExplorationEnabled.not()
-    }
+    val useReverseLayout = !isTalkbackActive()
 
     fun inReplyToClick(eventId: EventId) {
         state.eventSink(TimelineEvents.FocusOnEvent(eventId))
+    }
+
+    fun onLinkLongClick(link: Link) {
+        view.performHapticFeedback(
+            HapticFeedbackConstants.LONG_PRESS
+        )
+        context.copyToClipboard(
+            link.url,
+            context.getString(CommonStrings.common_copied_to_clipboard)
+        )
+    }
+
+    fun prefetchMoreItems() {
+        state.eventSink(TimelineEvents.LoadMore(Timeline.PaginationDirection.BACKWARDS))
     }
 
     // Animate alpha when timeline is first displayed, to avoid flashes or glitching when viewing rooms
@@ -122,10 +150,11 @@ fun TimelineView(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .nestedScroll(nestedScrollConnection),
+                    .nestedScroll(nestedScrollConnection)
+                    .testTag(TestTags.timeline),
                 state = lazyListState,
                 reverseLayout = useReverseLayout,
-                contentPadding = PaddingValues(vertical = 8.dp),
+                contentPadding = PaddingValues(top = 64.dp, bottom = 8.dp),
             ) {
                 items(
                     items = state.timelineItems,
@@ -141,6 +170,7 @@ fun TimelineView(
                         focusedEventId = state.focusedEventId,
                         onUserDataClick = onUserDataClick,
                         onLinkClick = onLinkClick,
+                        onLinkLongClick = ::onLinkLongClick,
                         onContentClick = onContentClick,
                         onLongClick = onMessageLongClick,
                         inReplyToClick = ::inReplyToClick,
@@ -158,6 +188,11 @@ fun TimelineView(
             FocusRequestStateView(
                 focusRequestState = state.focusRequestState,
                 onClearFocusRequestState = ::clearFocusRequestState
+            )
+
+            TimelinePrefetchingHelper(
+                lazyListState = lazyListState,
+                prefetch = ::prefetchMoreItems
             )
 
             TimelineScrollHelper(
@@ -189,6 +224,45 @@ private fun MessageShieldDialog(state: TimelineState) {
 }
 
 @Composable
+private fun TimelinePrefetchingHelper(
+    lazyListState: LazyListState,
+    prefetch: () -> Unit,
+) {
+    val latestPrefetch by rememberUpdatedState(prefetch)
+
+    LaunchedEffect(Unit) {
+        // We're using snapshot flows for these because using `LaunchedEffect` with `derivedState` doesn't seem to be responsive enough
+        val firstVisibleItemIndexFlow = snapshotFlow { lazyListState.firstVisibleItemIndex }
+        val layoutInfoFlow = snapshotFlow { lazyListState.layoutInfo }
+        val isScrollingFlow = snapshotFlow { lazyListState.isScrollInProgress }
+            // This value changes too frequently, so we debounce it to avoid unnecessary prefetching. It's the equivalent of a conditional 'throttleLatest'
+            .conflate()
+            .transform { isScrolling ->
+                emit(isScrolling)
+                if (isScrolling) delay(100.milliseconds)
+            }
+
+        val isCloseToStartOfLoadedTimelineFlow = combine(layoutInfoFlow, firstVisibleItemIndexFlow) { layoutInfo, firstVisibleItemIndex ->
+            firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size >= layoutInfo.totalItemsCount - 40
+        }
+
+        combine(
+            isCloseToStartOfLoadedTimelineFlow.distinctUntilChanged(),
+            isScrollingFlow.distinctUntilChanged(),
+        ) { needsPrefetch, isScrolling ->
+            needsPrefetch && isScrolling
+        }
+            .distinctUntilChanged()
+            .collectLatest { needsPrefetch ->
+                if (needsPrefetch) {
+                    Timber.d("Prefetching pagination with ${lazyListState.layoutInfo.totalItemsCount} items")
+                    latestPrefetch()
+                }
+            }
+    }
+}
+
+@Composable
 private fun BoxScope.TimelineScrollHelper(
     hasAnyEvent: Boolean,
     lazyListState: LazyListState,
@@ -209,11 +283,16 @@ private fun BoxScope.TimelineScrollHelper(
     }
     var jumpToLiveHandled by remember { mutableStateOf(true) }
 
-    fun scrollToBottom() {
+    /**
+     * @param force If true, scroll to the bottom even if the user is already seeing the most recent item.
+     * This fixes the issue where the user is seeing typing notification and so the read receipt is not sent
+     * when a new message comes in.
+     */
+    fun scrollToBottom(force: Boolean) {
         coroutineScope.launch {
             if (lazyListState.firstVisibleItemIndex > 10) {
                 lazyListState.scrollToItem(0)
-            } else {
+            } else if (force || lazyListState.firstVisibleItemIndex != 0) {
                 lazyListState.animateScrollToItem(0)
             }
         }
@@ -221,7 +300,7 @@ private fun BoxScope.TimelineScrollHelper(
 
     fun jumpToBottom() {
         if (isLive) {
-            scrollToBottom()
+            scrollToBottom(force = false)
         } else {
             jumpToLiveHandled = false
             onJumpToLive()
@@ -244,9 +323,10 @@ private fun BoxScope.TimelineScrollHelper(
     }
 
     LaunchedEffect(canAutoScroll, newEventState) {
-        val shouldScrollToBottom = isScrollFinished && (canAutoScroll || newEventState == NewEventState.FromMe)
+        val shouldScrollToBottom = isScrollFinished &&
+            (canAutoScroll && newEventState == NewEventState.FromOther || newEventState == NewEventState.FromMe)
         if (shouldScrollToBottom) {
-            scrollToBottom()
+            scrollToBottom(force = true)
         }
     }
 

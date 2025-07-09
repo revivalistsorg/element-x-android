@@ -25,17 +25,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.Timeline
+import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import io.element.android.compound.theme.ElementTheme
+import io.element.android.libraries.audio.api.AudioFocus
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.text.toDp
@@ -52,6 +56,8 @@ import io.element.android.libraries.mediaviewer.impl.local.player.seekToEnsurePl
 import io.element.android.libraries.mediaviewer.impl.local.player.togglePlay
 import io.element.android.libraries.mediaviewer.impl.local.rememberLocalMediaViewState
 import kotlinx.coroutines.delay
+import me.saket.telephoto.zoomable.ZoomableContentLocation
+import me.saket.telephoto.zoomable.zoomable
 import kotlin.time.Duration.Companion.seconds
 
 @SuppressLint("UnsafeOptInUsageError")
@@ -61,6 +67,8 @@ fun MediaVideoView(
     localMediaViewState: LocalMediaViewState,
     bottomPaddingInPixels: Int,
     localMedia: LocalMedia?,
+    autoplay: Boolean,
+    audioFocus: AudioFocus?,
     modifier: Modifier = Modifier,
 ) {
     val exoPlayer = rememberExoPlayer()
@@ -70,6 +78,8 @@ fun MediaVideoView(
         bottomPaddingInPixels = bottomPaddingInPixels,
         exoPlayer = exoPlayer,
         localMedia = localMedia,
+        autoplay = autoplay,
+        audioFocus = audioFocus,
         modifier = modifier,
     )
 }
@@ -82,6 +92,8 @@ private fun ExoPlayerMediaVideoView(
     bottomPaddingInPixels: Int,
     exoPlayer: ExoPlayer,
     localMedia: LocalMedia?,
+    autoplay: Boolean,
+    audioFocus: AudioFocus?,
     modifier: Modifier = Modifier,
 ) {
     var mediaPlayerControllerState: MediaPlayerControllerState by remember {
@@ -89,6 +101,7 @@ private fun ExoPlayerMediaVideoView(
             MediaPlayerControllerState(
                 isVisible = true,
                 isPlaying = false,
+                isReady = false,
                 progressInMillis = 0,
                 durationInMillis = 0,
                 canMute = true,
@@ -135,6 +148,24 @@ private fun ExoPlayerMediaVideoView(
                         }
                 }
             }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                mediaPlayerControllerState = mediaPlayerControllerState.copy(
+                    isReady = playbackState == STATE_READY,
+                )
+            }
+
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                // Ensure that the user cannot zoom/move outside of the video bounds
+                localMediaViewState.zoomableState.setContentLocation(
+                    ZoomableContentLocation.scaledInsideAndCenterAligned(
+                        Size(
+                            videoSize.width.toFloat(),
+                            videoSize.height.toFloat(),
+                        )
+                    )
+                )
+            }
         }
     }
 
@@ -164,9 +195,17 @@ private fun ExoPlayerMediaVideoView(
             )
         }
     }
-    LaunchedEffect(isDisplayed) {
-        // If not displayed, make sure to pause the video
-        if (!isDisplayed) {
+
+    var needsAutoPlay by remember { mutableStateOf(autoplay) }
+
+    LaunchedEffect(needsAutoPlay, isDisplayed, mediaPlayerControllerState.isReady) {
+        val isReadyAndNotPlaying = mediaPlayerControllerState.isReady && !mediaPlayerControllerState.isPlaying
+        if (needsAutoPlay && isDisplayed && isReadyAndNotPlaying) {
+            // When displayed, start autoplaying
+            exoPlayer.play()
+            needsAutoPlay = false
+        } else if (!isDisplayed && mediaPlayerControllerState.isPlaying) {
+            // If not displayed, make sure to pause the video
             exoPlayer.pause()
         }
     }
@@ -193,24 +232,26 @@ private fun ExoPlayerMediaVideoView(
             )
         } else {
             AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = {
-                    PlayerView(context).apply {
-                        player = exoPlayer
-                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-                        setOnClickListener {
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zoomable(
+                        state = localMediaViewState.zoomableState,
+                        onClick = {
                             autoHideController++
                             mediaPlayerControllerState = mediaPlayerControllerState.copy(
                                 isVisible = !mediaPlayerControllerState.isVisible,
                             )
                         }
+                    ),
+                factory = {
+                    PlayerView(context).apply {
+                        player = exoPlayer
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                         useController = false
                     }
                 },
                 onRelease = { playerView ->
-                    playerView.setOnClickListener(null)
-                    playerView.setControllerVisibilityListener(null as PlayerView.ControllerVisibilityListener?)
                     playerView.player = null
                 },
             )
@@ -229,6 +270,7 @@ private fun ExoPlayerMediaVideoView(
                 autoHideController++
                 exoPlayer.volume = if (exoPlayer.volume == 1f) 0f else 1f
             },
+            audioFocus = audioFocus,
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
@@ -259,5 +301,7 @@ internal fun MediaVideoViewPreview() = ElementPreview {
         bottomPaddingInPixels = 0,
         localMediaViewState = rememberLocalMediaViewState(),
         localMedia = null,
+        audioFocus = null,
+        autoplay = false,
     )
 }

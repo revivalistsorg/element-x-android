@@ -23,8 +23,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.TopAppBarDefaults
@@ -39,19 +37,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
+import io.element.android.features.viewfolder.api.TextFileViewer
 import io.element.android.libraries.architecture.AsyncData
+import io.element.android.libraries.audio.api.AudioFocus
 import io.element.android.libraries.core.mimetype.MimeTypes
 import io.element.android.libraries.core.mimetype.MimeTypes.isMimeTypeVideo
 import io.element.android.libraries.designsystem.components.async.AsyncFailure
@@ -81,13 +84,18 @@ import io.element.android.libraries.mediaviewer.impl.local.rememberLocalMediaVie
 import io.element.android.libraries.mediaviewer.impl.util.bgCanvasWithTransparency
 import io.element.android.libraries.ui.strings.CommonStrings
 import kotlinx.coroutines.delay
+import me.saket.telephoto.zoomable.OverzoomEffect
 import me.saket.telephoto.zoomable.ZoomSpec
 import me.saket.telephoto.zoomable.rememberZoomableState
+
+val topAppBarHeight = 88.dp
 
 @Composable
 fun MediaViewerView(
     state: MediaViewerState,
+    textFileViewer: TextFileViewer,
     onBackClick: () -> Unit,
+    audioFocus: AudioFocus?,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = rememberSnackbarHostState(snackbarMessage = state.snackbarMessage)
@@ -139,11 +147,17 @@ fun MediaViewerView(
                     Box(
                         modifier = Modifier.fillMaxSize()
                     ) {
+                        val isDisplayed = remember(pagerState.settledPage) {
+                            // This 'item provider' lambda will be called when the data source changes with an outdated `settlePage` value
+                            // So we need to update this value only when the `settledPage` value changes. It seems like a bug that needs to be fixed in Compose.
+                            page == pagerState.settledPage
+                        }
                         MediaViewerPage(
-                            isDisplayed = page == pagerState.settledPage,
+                            isDisplayed = isDisplayed,
                             showOverlay = showOverlay,
                             bottomPaddingInPixels = bottomPaddingInPixels,
                             data = dataForPage,
+                            textFileViewer = textFileViewer,
                             onDismiss = onBackClick,
                             onRetry = {
                                 state.eventSink(MediaViewerEvents.LoadMedia(dataForPage))
@@ -153,7 +167,9 @@ fun MediaViewerView(
                             },
                             onShowOverlayChange = {
                                 showOverlay = it
-                            }
+                            },
+                            audioFocus = audioFocus,
+                            isUserSelected = (state.listData[page] as? MediaViewerPageData.MediaViewerData)?.eventId == state.initiallySelectedEventId,
                         )
                         // Bottom bar
                         AnimatedVisibility(visible = showOverlay, enter = fadeIn(), exit = fadeOut()) {
@@ -198,6 +214,9 @@ fun MediaViewerView(
                             title = {
                                 if (currentData is MediaViewerPageData.Loading) {
                                     Text(
+                                        modifier = Modifier.semantics {
+                                            heading()
+                                        },
                                         text = stringResource(id = CommonStrings.common_loading_more),
                                         style = ElementTheme.typography.fontBodyMdMedium,
                                         color = ElementTheme.colors.textPrimary,
@@ -268,10 +287,13 @@ private fun MediaViewerPage(
     showOverlay: Boolean,
     bottomPaddingInPixels: Int,
     data: MediaViewerPageData.MediaViewerData,
+    textFileViewer: TextFileViewer,
+    isUserSelected: Boolean,
     onDismiss: () -> Unit,
     onRetry: () -> Unit,
     onDismissError: () -> Unit,
     onShowOverlayChange: (Boolean) -> Unit,
+    audioFocus: AudioFocus?,
     modifier: Modifier = Modifier,
 ) {
     val currentShowOverlay by rememberUpdatedState(showOverlay)
@@ -297,7 +319,7 @@ private fun MediaViewerPage(
         ) {
             Box(contentAlignment = Alignment.Center) {
                 val zoomableState = rememberZoomableState(
-                    zoomSpec = ZoomSpec(maxZoomFactor = 4f, preventOverOrUnderZoom = false)
+                    zoomSpec = ZoomSpec(maxZoomFactor = 4f, overzoomEffect = OverzoomEffect.NoLimits)
                 )
                 val localMediaViewState = rememberLocalMediaViewState(zoomableState)
                 val showThumbnail = !localMediaViewState.isReady
@@ -317,11 +339,14 @@ private fun MediaViewerPage(
                     localMediaViewState = localMediaViewState,
                     localMedia = downloadedMedia.dataOrNull(),
                     mediaInfo = data.mediaInfo,
+                    textFileViewer = textFileViewer,
                     onClick = {
                         if (playableState is PlayableState.NotPlayable) {
                             currentOnShowOverlayChange(!currentShowOverlay)
                         }
                     },
+                    isUserSelected = isUserSelected,
+                    audioFocus = audioFocus,
                 )
                 ThumbnailView(
                     mediaInfo = data.mediaInfo,
@@ -434,6 +459,9 @@ private fun MediaViewerTopBar(
                         .fillMaxWidth()
                 ) {
                     Text(
+                        modifier = Modifier.semantics {
+                            heading()
+                        },
                         text = senderName,
                         style = ElementTheme.typography.fontBodyMdMedium,
                         color = ElementTheme.colors.textPrimary,
@@ -467,7 +495,7 @@ private fun MediaViewerTopBar(
                         contentDescription = stringResource(id = CommonStrings.common_install_apk_android)
                     )
                     else -> Icon(
-                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        imageVector = CompoundIcons.PopOut(),
                         contentDescription = stringResource(id = CommonStrings.action_open_with)
                     )
                 }
@@ -535,8 +563,11 @@ private fun ThumbnailView(
                 source = thumbnailSource,
                 kind = MediaRequestData.Kind.File(mediaInfo.filename, mediaInfo.mimeType)
             )
+            val alpha = if (LocalInspectionMode.current) 0.1f else 1f
             AsyncImage(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(alpha),
                 model = mediaRequestData,
                 contentScale = ContentScale.Fit,
                 contentDescription = null,
@@ -564,6 +595,8 @@ private fun ErrorView(
 internal fun MediaViewerViewPreview(@PreviewParameter(MediaViewerStateProvider::class) state: MediaViewerState) = ElementPreviewDark {
     MediaViewerView(
         state = state,
-        onBackClick = {}
+        audioFocus = null,
+        textFileViewer = { _, _ -> },
+        onBackClick = {},
     )
 }

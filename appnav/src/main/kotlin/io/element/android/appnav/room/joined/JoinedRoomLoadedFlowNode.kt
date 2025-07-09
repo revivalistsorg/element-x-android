@@ -9,9 +9,7 @@ package io.element.android.appnav.room.joined
 
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.bumble.appyx.core.lifecycle.subscribe
 import com.bumble.appyx.core.modality.BuildContext
@@ -32,12 +30,14 @@ import io.element.android.libraries.architecture.NodeInputs
 import io.element.android.libraries.architecture.inputs
 import io.element.android.libraries.di.DaggerComponentOwner
 import io.element.android.libraries.di.SessionScope
+import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.permalink.PermalinkData
-import io.element.android.libraries.matrix.api.room.MatrixRoom
+import io.element.android.libraries.matrix.api.room.JoinedRoom
+import io.element.android.services.appnavstate.api.ActiveRoomsHolder
 import io.element.android.services.appnavstate.api.AppNavigationStateService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -51,12 +51,14 @@ class JoinedRoomLoadedFlowNode @AssistedInject constructor(
     private val messagesEntryPoint: MessagesEntryPoint,
     private val roomDetailsEntryPoint: RoomDetailsEntryPoint,
     private val appNavigationStateService: AppNavigationStateService,
-    private val appCoroutineScope: CoroutineScope,
+    @SessionCoroutineScope
+    private val sessionCoroutineScope: CoroutineScope,
     private val matrixClient: MatrixClient,
+    private val activeRoomsHolder: ActiveRoomsHolder,
     roomComponentFactory: RoomComponentFactory,
 ) : BaseFlowNode<JoinedRoomLoadedFlowNode.NavTarget>(
     backstack = BackStack(
-        initialElement = when (val input = plugins.filterIsInstance(Inputs::class.java).first().initialElement) {
+        initialElement = when (val input = plugins.filterIsInstance<Inputs>().first().initialElement) {
             is RoomNavigationTarget.Messages -> NavTarget.Messages(input.focusedEventId)
             RoomNavigationTarget.Details -> NavTarget.RoomDetails
             RoomNavigationTarget.NotificationSettings -> NavTarget.RoomNotificationSettings
@@ -74,7 +76,7 @@ class JoinedRoomLoadedFlowNode @AssistedInject constructor(
     }
 
     data class Inputs(
-        val room: MatrixRoom,
+        val room: JoinedRoom,
         val initialElement: RoomNavigationTarget,
     ) : NodeInputs
 
@@ -87,16 +89,19 @@ class JoinedRoomLoadedFlowNode @AssistedInject constructor(
             onCreate = {
                 Timber.v("OnCreate => ${inputs.room.roomId}")
                 appNavigationStateService.onNavigateToRoom(id, inputs.room.roomId)
+                activeRoomsHolder.addRoom(inputs.room)
                 fetchRoomMembers()
                 trackVisitedRoom()
             },
             onResume = {
-                appCoroutineScope.launch {
+                sessionCoroutineScope.launch {
                     inputs.room.subscribeToSync()
                 }
             },
             onDestroy = {
                 Timber.v("OnDestroy")
+                activeRoomsHolder.removeRoom(inputs.room.sessionId, inputs.room.roomId)
+                inputs.room.destroy()
                 appNavigationStateService.onLeavingRoom(id)
             }
         )
@@ -197,16 +202,6 @@ class JoinedRoomLoadedFlowNode @AssistedInject constructor(
 
     @Composable
     override fun View(modifier: Modifier) {
-        // Rely on the View Lifecycle in addition to the Node Lifecycle,
-        // because this node enters 'onDestroy' before his children, so it can leads to
-        // using the room in a child node where it's already closed.
-        DisposableEffect(Unit) {
-            onDispose {
-                if (lifecycle.currentState == Lifecycle.State.DESTROYED) {
-                    inputs.room.destroy()
-                }
-            }
-        }
         BackstackView()
     }
 }

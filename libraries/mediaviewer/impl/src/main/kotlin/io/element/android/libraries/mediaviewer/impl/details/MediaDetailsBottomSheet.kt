@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,6 +29,7 @@ import io.element.android.libraries.designsystem.colors.AvatarColorsProvider
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.list.ListItemContent
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -140,12 +140,13 @@ private fun SenderRow(
     ) {
         val id = mediaInfo.senderId?.value ?: "@Alice:domain"
         Avatar(
-            AvatarData(
+            avatarData = AvatarData(
                 id = id,
                 name = mediaInfo.senderName,
                 url = mediaInfo.senderAvatar,
                 size = AvatarSize.MediaSender,
-            )
+            ),
+            avatarType = AvatarType.User,
         )
         Column(
             modifier = Modifier
@@ -165,7 +166,7 @@ private fun SenderRow(
             // Id
             Text(
                 text = mediaInfo.senderId?.value.orEmpty(),
-                color = MaterialTheme.colorScheme.secondary,
+                color = ElementTheme.colors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = ElementTheme.typography.fontBodyMdRegular,

@@ -9,6 +9,7 @@ package io.element.android.libraries.matrix.impl
 
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.di.CacheDirectory
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.matrix.impl.analytics.UtdTracker
@@ -33,6 +34,7 @@ import org.matrix.rustcomponents.sdk.SlidingSyncVersionBuilder
 import org.matrix.rustcomponents.sdk.use
 import timber.log.Timber
 import uniffi.matrix_sdk_crypto.CollectStrategy
+import uniffi.matrix_sdk_crypto.DecryptionSettings
 import uniffi.matrix_sdk_crypto.TrustRequirement
 import java.io.File
 import javax.inject.Inject
@@ -40,6 +42,7 @@ import javax.inject.Inject
 class RustMatrixClientFactory @Inject constructor(
     private val baseDirectory: File,
     @CacheDirectory private val cacheDirectory: File,
+    @AppCoroutineScope
     private val appCoroutineScope: CoroutineScope,
     private val coroutineDispatchers: CoroutineDispatchers,
     private val sessionStore: SessionStore,
@@ -72,8 +75,9 @@ class RustMatrixClientFactory @Inject constructor(
     suspend fun create(client: Client): RustMatrixClient {
         val (anonymizedAccessToken, anonymizedRefreshToken) = client.session().anonymizedTokens()
 
+        client.setUtdDelegate(UtdTracker(analyticsService))
+
         val syncService = client.syncService()
-            .withUtdHook(UtdTracker(analyticsService))
             .withOfflineMode()
             .finish()
 
@@ -105,12 +109,11 @@ class RustMatrixClientFactory @Inject constructor(
                 cachePath = sessionPaths.cacheDirectory.absolutePath,
             )
             .setSessionDelegate(sessionDelegate)
-            .passphrase(passphrase)
+            .sessionPassphrase(passphrase)
             .userAgent(userAgentProvider.provide())
             .addRootCertificates(userCertificatesProvider.provides())
             .autoEnableBackups(true)
             .autoEnableCrossSigning(true)
-            .useEventCachePersistentStorage(featureFlagService.isFeatureEnabled(FeatureFlags.EventCache))
             .roomKeyRecipientStrategy(
                 strategy = if (featureFlagService.isFeatureEnabled(FeatureFlags.OnlySignedDeviceIsolationMode)) {
                     CollectStrategy.IDENTITY_BASED_STRATEGY
@@ -118,21 +121,22 @@ class RustMatrixClientFactory @Inject constructor(
                     CollectStrategy.ERROR_ON_VERIFIED_USER_PROBLEM
                 }
             )
-            .roomDecryptionTrustRequirement(
-                trustRequirement = if (featureFlagService.isFeatureEnabled(FeatureFlags.OnlySignedDeviceIsolationMode)) {
-                    TrustRequirement.CROSS_SIGNED_OR_LEGACY
-                } else {
-                    TrustRequirement.UNTRUSTED
-                }
+            .decryptionSettings(
+                DecryptionSettings(
+                    senderDeviceTrustRequirement = if (featureFlagService.isFeatureEnabled(FeatureFlags.OnlySignedDeviceIsolationMode)) {
+                        TrustRequirement.CROSS_SIGNED_OR_LEGACY
+                    } else {
+                        TrustRequirement.UNTRUSTED
+                    }
+                )
             )
+            .enableShareHistoryOnInvite(featureFlagService.isFeatureEnabled(FeatureFlags.EnableKeyShareOnInvite))
             .run {
                 // Apply sliding sync version settings
                 when (slidingSyncType) {
                     ClientBuilderSlidingSync.Restored -> this
-                    is ClientBuilderSlidingSync.CustomProxy -> slidingSyncVersionBuilder(SlidingSyncVersionBuilder.Proxy(slidingSyncType.url))
-                    ClientBuilderSlidingSync.Discovered -> slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DiscoverProxy)
-                    ClientBuilderSlidingSync.Simplified -> slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DiscoverNative)
-                    ClientBuilderSlidingSync.ForcedSimplified -> slidingSyncVersionBuilder(SlidingSyncVersionBuilder.Native)
+                    ClientBuilderSlidingSync.Discovered -> slidingSyncVersionBuilder(SlidingSyncVersionBuilder.DISCOVER_NATIVE)
+                    ClientBuilderSlidingSync.Native -> slidingSyncVersionBuilder(SlidingSyncVersionBuilder.NATIVE)
                 }
             }
             .run {
@@ -143,21 +147,14 @@ class RustMatrixClientFactory @Inject constructor(
 }
 
 sealed interface ClientBuilderSlidingSync {
-    // The proxy is set by the user.
-    data class CustomProxy(val url: String) : ClientBuilderSlidingSync
-
     // The proxy will be supplied when restoring the Session.
     data object Restored : ClientBuilderSlidingSync
 
-    // A proxy must be discovered whilst building the session.
+    // A Native Sliding Sync instance must be discovered whilst building the session.
     data object Discovered : ClientBuilderSlidingSync
 
-    // Use Simplified Sliding Sync.
-    data object Simplified : ClientBuilderSlidingSync
-
-    // Force using Simplified Sliding Sync.
-    // TODO allow the user to select between proxy, simplified or force simplified in developer options.
-    data object ForcedSimplified : ClientBuilderSlidingSync
+    // Force using Native Sliding Sync.
+    data object Native : ClientBuilderSlidingSync
 }
 
 private fun SessionData.toSession() = Session(
@@ -166,6 +163,6 @@ private fun SessionData.toSession() = Session(
     userId = userId,
     deviceId = deviceId,
     homeserverUrl = homeserverUrl,
-    slidingSyncVersion = slidingSyncProxy?.let(SlidingSyncVersion::Proxy) ?: SlidingSyncVersion.Native,
+    slidingSyncVersion = SlidingSyncVersion.NATIVE,
     oidcData = oidcData,
 )

@@ -16,7 +16,7 @@ import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermiss
 import io.element.android.libraries.fullscreenintent.api.aFullScreenIntentPermissionsState
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
-import io.element.android.libraries.matrix.test.A_THROWABLE
+import io.element.android.libraries.matrix.test.AN_EXCEPTION
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.notificationsettings.FakeNotificationSettingsService
 import io.element.android.libraries.push.api.PushService
@@ -208,7 +208,7 @@ class NotificationSettingsPresenterTest {
     fun `present - clear notification settings change error`() = runTest {
         val notificationSettingsService = FakeNotificationSettingsService()
         val presenter = createNotificationSettingsPresenter(notificationSettingsService)
-        notificationSettingsService.givenSetAtRoomError(A_THROWABLE)
+        notificationSettingsService.givenSetAtRoomError(AN_EXCEPTION)
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()
         }.test {
@@ -240,8 +240,11 @@ class NotificationSettingsPresenterTest {
             presenter.present()
         }.test {
             val initialState = awaitLastSequentialItem()
-            assertThat(initialState.currentPushDistributor).isEqualTo(AsyncData.Success("aDistributorName0"))
-            assertThat(initialState.availablePushDistributors).containsExactly("aDistributorName0", "aDistributorName1")
+            assertThat(initialState.currentPushDistributor).isEqualTo(AsyncData.Success(Distributor(value = "aDistributorValue0", name = "aDistributorName0")))
+            assertThat(initialState.availablePushDistributors).containsExactly(
+                Distributor(value = "aDistributorValue0", name = "aDistributorName0"),
+                Distributor(value = "aDistributorValue1", name = "aDistributorName1"),
+            )
             initialState.eventSink.invoke(NotificationSettingsEvents.ChangePushProvider)
             val withDialog = awaitItem()
             assertThat(withDialog.showChangePushProviderDialog).isTrue()
@@ -257,8 +260,32 @@ class NotificationSettingsPresenterTest {
             assertThat(withNewProvider.currentPushDistributor).isInstanceOf(AsyncData.Loading::class.java)
             skipItems(1)
             val lastItem = awaitItem()
-            assertThat(lastItem.currentPushDistributor).isEqualTo(AsyncData.Success("aDistributorName1"))
+            assertThat(lastItem.currentPushDistributor).isEqualTo(AsyncData.Success(Distributor(value = "aDistributorValue1", name = "aDistributorName1")))
             cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - change push provider to the same value is no op`() = runTest {
+        val presenter = createNotificationSettingsPresenter(
+            pushService = createFakePushService(),
+        )
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            val initialState = awaitLastSequentialItem()
+            assertThat(initialState.currentPushDistributor).isEqualTo(AsyncData.Success(Distributor(value = "aDistributorValue0", name = "aDistributorName0")))
+            assertThat(initialState.availablePushDistributors).containsExactly(
+                Distributor(value = "aDistributorValue0", name = "aDistributorName0"),
+                Distributor(value = "aDistributorValue1", name = "aDistributorName1"),
+            )
+            initialState.eventSink.invoke(NotificationSettingsEvents.ChangePushProvider)
+            assertThat(awaitItem().showChangePushProviderDialog).isTrue()
+            // Choose the same value (index 0)
+            initialState.eventSink(NotificationSettingsEvents.SetPushProvider(0))
+            val withNewProvider = awaitItem()
+            assertThat(withNewProvider.showChangePushProviderDialog).isFalse()
+            expectNoEvents()
         }
     }
 

@@ -15,8 +15,8 @@
     <item quantity="few">"%d сповіщення"</item>
     <item quantity="many">"%d сповіщень"</item>
   </plurals>
-  <string name="notification_fallback_content">"Сповіщення"</string>
-  <string name="notification_incoming_call">"Вхідний виклик"</string>
+  <string name="notification_fallback_content">"У вас є нові повідомлення."</string>
+  <string name="notification_incoming_call">"📹 Вхідний виклик"</string>
   <string name="notification_inline_reply_failed">"** Не вдалося надіслати - відкрийте кімнату"</string>
   <string name="notification_invitation_action_join">"Доєднатися"</string>
   <string name="notification_invitation_action_reject">"Відхилити"</string>
@@ -71,6 +71,7 @@
     <item quantity="few">"Виявлено %1$d постачальники: %2$s"</item>
     <item quantity="many">"Виявлено %1$d постачальників: %2$s"</item>
   </plurals>
+  <string name="troubleshoot_notifications_test_detect_push_provider_success_2">"Застосунок створено за підтримки: %1$s"</string>
   <string name="troubleshoot_notifications_test_detect_push_provider_title">"Виявлення постачальників push-сповіщень"</string>
   <string name="troubleshoot_notifications_test_display_notification_description">"Перевірте, чи може застосунок показувати сповіщення."</string>
   <string name="troubleshoot_notifications_test_display_notification_failure">"Ви не натиснули на сповіщення."</string>

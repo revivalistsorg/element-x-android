@@ -16,7 +16,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.MessagingStyle
 import androidx.core.app.Person
 import androidx.core.content.res.ResourcesCompat
-import coil.ImageLoader
+import coil3.ImageLoader
 import com.squareup.anvil.annotations.ContributesBinding
 import io.element.android.appconfig.NotificationConfig
 import io.element.android.libraries.core.meta.BuildMeta
@@ -119,7 +119,7 @@ class DefaultNotificationCreator @Inject constructor(
             else -> pendingIntentFactory.createOpenRoomPendingIntent(roomInfo.sessionId, roomInfo.roomId)
         }
 
-        val smallIcon = CommonDrawables.ic_notification_small
+        val smallIcon = CommonDrawables.ic_notification
 
         val containsMissedCall = events.any { it.type == EventType.CALL_NOTIFY }
         val channelId = if (containsMissedCall) {
@@ -197,7 +197,8 @@ class DefaultNotificationCreator @Inject constructor(
                 addAction(markAsReadActionFactory.create(roomInfo))
                 // Quick reply
                 if (!roomInfo.hasSmartReplyError) {
-                    addAction(quickReplyActionFactory.create(roomInfo, threadId))
+                    val latestEventId = events.lastOrNull()?.eventId
+                    addAction(quickReplyActionFactory.create(roomInfo, latestEventId, threadId))
                 }
                 if (openIntent != null) {
                     setContentIntent(openIntent)
@@ -219,7 +220,7 @@ class DefaultNotificationCreator @Inject constructor(
     override fun createRoomInvitationNotification(
         inviteNotifiableEvent: InviteNotifiableEvent
     ): Notification {
-        val smallIcon = CommonDrawables.ic_notification_small
+        val smallIcon = CommonDrawables.ic_notification
         val channelId = notificationChannels.getChannelIdForMessage(inviteNotifiableEvent.noisy)
         return NotificationCompat.Builder(context, channelId)
             .setOnlyAlertOnce(true)
@@ -261,7 +262,7 @@ class DefaultNotificationCreator @Inject constructor(
     override fun createSimpleEventNotification(
         simpleNotifiableEvent: SimpleNotifiableEvent,
     ): Notification {
-        val smallIcon = CommonDrawables.ic_notification_small
+        val smallIcon = CommonDrawables.ic_notification
 
         val channelId = notificationChannels.getChannelIdForMessage(simpleNotifiableEvent.noisy)
         return NotificationCompat.Builder(context, channelId)
@@ -294,7 +295,7 @@ class DefaultNotificationCreator @Inject constructor(
     override fun createFallbackNotification(
         fallbackNotifiableEvent: FallbackNotifiableEvent,
     ): Notification {
-        val smallIcon = CommonDrawables.ic_notification_small
+        val smallIcon = CommonDrawables.ic_notification
 
         val channelId = notificationChannels.getChannelIdForMessage(false)
         return NotificationCompat.Builder(context, channelId)
@@ -330,7 +331,7 @@ class DefaultNotificationCreator @Inject constructor(
         noisy: Boolean,
         lastMessageTimestamp: Long
     ): Notification {
-        val smallIcon = CommonDrawables.ic_notification_small
+        val smallIcon = CommonDrawables.ic_notification
         val channelId = notificationChannels.getChannelIdForMessage(noisy)
         return NotificationCompat.Builder(context, channelId)
             .setOnlyAlertOnce(true)
@@ -367,8 +368,13 @@ class DefaultNotificationCreator @Inject constructor(
         return NotificationCompat.Builder(context, notificationChannels.getChannelIdForTest())
             .setContentTitle(buildMeta.applicationName)
             .setContentText(stringProvider.getString(R.string.notification_test_push_notification_content))
+<<<<<<< HEAD
             .setSmallIcon(CommonDrawables.ic_notification_small)
             .setLargeIcon(getBitmap(io.element.android.libraries.designsystem.R.drawable.revivalist_logo_shot))
+=======
+            .setSmallIcon(CommonDrawables.ic_notification)
+            .setLargeIcon(getBitmap(R.drawable.element_logo_green))
+>>>>>>> 86ec2f5ea5ba523c02eafc27a56c8b658136d34a
             .setColor(accentColor)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
