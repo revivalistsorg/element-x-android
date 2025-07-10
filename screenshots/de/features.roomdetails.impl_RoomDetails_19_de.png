@@ -1,3 +1,8 @@
 version https://git-lfs.github.com/spec/v1
+<<<<<<<< HEAD:screenshots/de/features.roomdetails.impl_RoomDetails_19_de.png
 oid sha256:f180e16ec70466bcd5b03bc067ce5a017ea2f345776aa38b8b2a54ed534f1cc5
 size 42739
+========
+oid sha256:25dfa78e2b466c3bb708c3a08dc02ec4428a9cb82fb4339b348eb1009cc46ffb
+size 29875
+>>>>>>>> 86ec2f5ea5ba523c02eafc27a56c8b658136d34a:tests/uitests/src/test/snapshots/images/features.messages.impl.timeline.components_TimelineItemEventRowWithRR_Night_2_en.png

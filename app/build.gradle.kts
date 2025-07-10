@@ -47,11 +47,15 @@ android {
 
     defaultConfig {
 <<<<<<< HEAD
+<<<<<<< HEAD
         applicationId = if (isEnterpriseBuild) {
             "org.therevivalists.app"
         } else {
             "org.therevivalists.app"
         }
+=======
+        applicationId = BuildTimeConfig.APPLICATION_ID
+>>>>>>> 86ec2f5ea5ba523c02eafc27a56c8b658136d34a
 =======
         applicationId = BuildTimeConfig.APPLICATION_ID
 >>>>>>> 86ec2f5ea5ba523c02eafc27a56c8b658136d34a
@@ -111,12 +115,17 @@ android {
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     val baseAppName = if (isEnterpriseBuild) {
         "The Revivalists"
     } else {
         "The Revivalists"
     }
     logger.warnInBox("Building $baseAppName")
+=======
+    val baseAppName = BuildTimeConfig.APPLICATION_NAME
+    logger.warnInBox("Building ${defaultConfig.applicationId} ($baseAppName)")
+>>>>>>> 86ec2f5ea5ba523c02eafc27a56c8b658136d34a
 =======
     val baseAppName = BuildTimeConfig.APPLICATION_NAME
     logger.warnInBox("Building ${defaultConfig.applicationId} ($baseAppName)")
