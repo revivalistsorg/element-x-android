@@ -27,7 +27,7 @@ object BuildTimeConfig {
     val SERVICES_MAPTILER_DARK_MAPID: String? = null
     val SERVICES_POSTHOG_HOST: String? = null
     val SERVICES_POSTHOG_APIKEY: String? = null
-    val SERVICES_SENTRY_DSN: String = null
+    val SERVICES_SENTRY_DSN: String? = null
     val BUG_REPORT_URL: String = "https://rageshake.the-revivalists.org/api/submit"
     val BUG_REPORT_APP_NAME: String = "element-x-android"
 
