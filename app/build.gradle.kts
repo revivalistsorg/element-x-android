@@ -101,7 +101,7 @@ android {
                 ?: project.property("signing.element.nightly.storePassword") as? String?
         }
     }
-    logger.warnInBox("Building $baseAppName")    
+    
     val baseAppName = BuildTimeConfig.APPLICATION_NAME
     logger.warnInBox("Building ${defaultConfig.applicationId} ($baseAppName)")
 
