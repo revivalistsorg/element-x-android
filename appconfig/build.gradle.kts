@@ -29,19 +29,11 @@ android {
         )
         buildConfigFieldStr(
             name = "BUG_REPORT_URL",
-            value = if (isEnterpriseBuild) {
-                BuildTimeConfig.BUG_REPORT_URL ?: ""
-            } else {
-                "https://riot.im/bugreports/submit"
-            },
+            value = BuildTimeConfig.BUG_REPORT_URL,
         )
         buildConfigFieldStr(
             name = "BUG_REPORT_APP_NAME",
-            value = if (isEnterpriseBuild) {
-                BuildTimeConfig.BUG_REPORT_APP_NAME ?: ""
-            } else {
-                "element-x-android"
-            },
+            value = BuildTimeConfig.BUG_REPORT_APP_NAME,            
         )
     }
 }
