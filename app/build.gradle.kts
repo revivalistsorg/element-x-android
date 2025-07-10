@@ -46,13 +46,7 @@ android {
     namespace = "io.element.android.x"
 
     defaultConfig {
-        applicationId = if (isEnterpriseBuild) {
-            "org.therevivalists.app"
-        } else {
-            "org.therevivalists.app"
-        }
-        // todo: ideally application id should come from BuildTimeConfig
-        // applicationId = BuildTimeConfig.APPLICATION_ID
+        applicationId = BuildTimeConfig.APPLICATION_ID
         targetSdk = Versions.TARGET_SDK
         versionCode = Versions.VERSION_CODE
         versionName = Versions.VERSION_NAME
@@ -107,14 +101,8 @@ android {
                 ?: project.property("signing.element.nightly.storePassword") as? String?
         }
     }
-    val baseAppName = if (isEnterpriseBuild) {
-        "The Revivalists"
-    } else {
-        "The Revivalists"
-    }
-    logger.warnInBox("Building $baseAppName")
-    // todo: move baseAppName to buildConfig
-    // val baseAppName = BuildTimeConfig.APPLICATION_NAME
+    logger.warnInBox("Building $baseAppName")    
+    val baseAppName = BuildTimeConfig.APPLICATION_NAME
     logger.warnInBox("Building ${defaultConfig.applicationId} ($baseAppName)")
 
     buildTypes {
