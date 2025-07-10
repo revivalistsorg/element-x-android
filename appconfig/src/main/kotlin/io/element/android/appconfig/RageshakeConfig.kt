@@ -11,9 +11,7 @@ object RageshakeConfig {
     /**
      * The URL to submit bug reports to.
      */
-    const val BUG_REPORT_URL = "https://rageshake.the-revivalists.org/api/submit"
-    // todo: move bug report url to BuildConfig
-    // const val BUG_REPORT_URL = BuildConfig.BUG_REPORT_URL
+    const val BUG_REPORT_URL = BuildConfig.BUG_REPORT_URL
 
     /**
      * As per https://github.com/matrix-org/rageshake:
