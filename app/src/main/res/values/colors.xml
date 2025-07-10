@@ -5,18 +5,8 @@
   ~ Please see LICENSE files in the repository root for full details.
   -->
 <resources>
-<<<<<<< HEAD
-<<<<<<< HEAD
     <!-- Must be equal to DarkDesignTokens.colorThemeBg -->
     <color name="splashscreen_bg_dark">#FF332713</color>
     <!-- Must be equal to LightDesignTokens.colorThemeBg -->
     <color name="splashscreen_bg_light">#FFEBD5B7</color>
-=======
-=======
->>>>>>> 86ec2f5ea5ba523c02eafc27a56c8b658136d34a
-    <!-- Must be equal to DarkColorTokens.colorThemeBg -->
-    <color name="splashscreen_bg_dark">#FF101317</color>
-    <!-- Must be equal to LightColorTokens.colorThemeBg -->
-    <color name="splashscreen_bg_light">#FFFFFFFF</color>
->>>>>>> 86ec2f5ea5ba523c02eafc27a56c8b658136d34a
 </resources>
