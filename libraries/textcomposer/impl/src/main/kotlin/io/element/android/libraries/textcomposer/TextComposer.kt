@@ -422,9 +422,9 @@ private fun StandardLayout(
 ) {
     Column(modifier = modifier) {
         if (isRoomEncrypted == false) {
-            Spacer(Modifier.height(16.dp))
-            NotEncryptedBadge()
-            Spacer(Modifier.height(4.dp))
+//            Spacer(Modifier.height(16.dp))
+//            NotEncryptedBadge()
+//            Spacer(Modifier.height(4.dp))
         }
         Row(verticalAlignment = Alignment.Bottom) {
             if (enableVoiceMessages && voiceMessageState !is VoiceMessageState.Idle) {
@@ -512,8 +512,8 @@ private fun TextFormattingLayout(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         if (isRoomEncrypted == false) {
-            NotEncryptedBadge()
-            Spacer(Modifier.height(8.dp))
+//            NotEncryptedBadge()
+//            Spacer(Modifier.height(8.dp))
         }
         Box(
             modifier = Modifier
