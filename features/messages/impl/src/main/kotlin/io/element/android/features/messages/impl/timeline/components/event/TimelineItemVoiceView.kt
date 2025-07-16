@@ -132,7 +132,9 @@ fun TimelineItemVoiceView(
             showCursor = state.showCursor,
             playbackProgress = state.progress,
             waveform = content.waveform,
-            modifier = Modifier.height(34.dp),
+            modifier = Modifier
+                .weight(1f)
+                .height(34.dp),
             seekEnabled = !isTalkbackActive(),
             onSeek = { state.eventSink(VoiceMessageEvents.Seek(it)) },
         )
