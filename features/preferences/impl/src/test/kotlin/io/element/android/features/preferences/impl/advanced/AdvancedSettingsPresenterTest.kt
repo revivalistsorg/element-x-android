@@ -11,11 +11,12 @@ import app.cash.molecule.RecompositionMode
 import app.cash.molecule.moleculeFlow
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import io.element.android.compound.theme.Theme
+import io.element.android.libraries.architecture.AsyncAction
+import io.element.android.libraries.matrix.api.media.MediaPreviewValue
 import io.element.android.libraries.preferences.test.InMemoryAppPreferencesStore
 import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
 import io.element.android.tests.testutils.WarmUpRule
-import io.element.android.tests.testutils.awaitLastSequentialItem
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -30,12 +31,16 @@ class AdvancedSettingsPresenterTest {
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()
         }.test {
-            val initialState = awaitLastSequentialItem()
-            assertThat(initialState.isDeveloperModeEnabled).isFalse()
-            assertThat(initialState.showChangeThemeDialog).isFalse()
-            assertThat(initialState.isSharePresenceEnabled).isTrue()
-            assertThat(initialState.doesCompressMedia).isTrue()
-            assertThat(initialState.theme).isEqualTo(Theme.System)
+            with(awaitItem()) {
+                assertThat(isDeveloperModeEnabled).isFalse()
+                assertThat(isSharePresenceEnabled).isTrue()
+                assertThat(doesCompressMedia).isTrue()
+                assertThat(theme).isEqualTo(ThemeOption.System)
+                assertThat(mediaPreviewConfigState.hideInviteAvatars).isFalse()
+                assertThat(mediaPreviewConfigState.timelineMediaPreviewValue).isEqualTo(MediaPreviewValue.On)
+                assertThat(mediaPreviewConfigState.setHideInviteAvatarsAction).isEqualTo(AsyncAction.Uninitialized)
+                assertThat(mediaPreviewConfigState.setTimelineMediaPreviewAction).isEqualTo(AsyncAction.Uninitialized)
+            }
         }
     }
 
@@ -45,12 +50,17 @@ class AdvancedSettingsPresenterTest {
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()
         }.test {
-            val initialState = awaitLastSequentialItem()
-            assertThat(initialState.isDeveloperModeEnabled).isFalse()
-            initialState.eventSink.invoke(AdvancedSettingsEvents.SetDeveloperModeEnabled(true))
-            assertThat(awaitItem().isDeveloperModeEnabled).isTrue()
-            initialState.eventSink.invoke(AdvancedSettingsEvents.SetDeveloperModeEnabled(false))
-            assertThat(awaitItem().isDeveloperModeEnabled).isFalse()
+            with(awaitItem()) {
+                assertThat(isDeveloperModeEnabled).isFalse()
+                eventSink(AdvancedSettingsEvents.SetDeveloperModeEnabled(true))
+            }
+            with(awaitItem()) {
+                assertThat(isDeveloperModeEnabled).isTrue()
+                eventSink(AdvancedSettingsEvents.SetDeveloperModeEnabled(false))
+            }
+            with(awaitItem()) {
+                assertThat(isDeveloperModeEnabled).isFalse()
+            }
         }
     }
 
@@ -60,12 +70,17 @@ class AdvancedSettingsPresenterTest {
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()
         }.test {
-            val initialState = awaitLastSequentialItem()
-            assertThat(initialState.isSharePresenceEnabled).isTrue()
-            initialState.eventSink.invoke(AdvancedSettingsEvents.SetSharePresenceEnabled(false))
-            assertThat(awaitItem().isSharePresenceEnabled).isFalse()
-            initialState.eventSink.invoke(AdvancedSettingsEvents.SetSharePresenceEnabled(true))
-            assertThat(awaitItem().isSharePresenceEnabled).isTrue()
+            with(awaitItem()) {
+                assertThat(isSharePresenceEnabled).isTrue()
+                eventSink(AdvancedSettingsEvents.SetSharePresenceEnabled(false))
+            }
+            with(awaitItem()) {
+                assertThat(isSharePresenceEnabled).isFalse()
+                eventSink(AdvancedSettingsEvents.SetSharePresenceEnabled(true))
+            }
+            with(awaitItem()) {
+                assertThat(isSharePresenceEnabled).isTrue()
+            }
         }
     }
 
@@ -75,12 +90,17 @@ class AdvancedSettingsPresenterTest {
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()
         }.test {
-            val initialState = awaitLastSequentialItem()
-            assertThat(initialState.doesCompressMedia).isTrue()
-            initialState.eventSink.invoke(AdvancedSettingsEvents.SetCompressMedia(false))
-            assertThat(awaitItem().doesCompressMedia).isFalse()
-            initialState.eventSink.invoke(AdvancedSettingsEvents.SetCompressMedia(true))
-            assertThat(awaitItem().doesCompressMedia).isTrue()
+            with(awaitItem()) {
+                assertThat(doesCompressMedia).isTrue()
+                eventSink(AdvancedSettingsEvents.SetCompressMedia(false))
+            }
+            with(awaitItem()) {
+                assertThat(doesCompressMedia).isFalse()
+                eventSink(AdvancedSettingsEvents.SetCompressMedia(true))
+            }
+            with(awaitItem()) {
+                assertThat(doesCompressMedia).isTrue()
+            }
         }
     }
 
@@ -90,28 +110,112 @@ class AdvancedSettingsPresenterTest {
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()
         }.test {
-            val initialState = awaitLastSequentialItem()
-            initialState.eventSink.invoke(AdvancedSettingsEvents.ChangeTheme)
-            val withDialog = awaitItem()
-            assertThat(withDialog.showChangeThemeDialog).isTrue()
-            // Cancel
-            withDialog.eventSink(AdvancedSettingsEvents.CancelChangeTheme)
-            val withoutDialog = awaitItem()
-            assertThat(withoutDialog.showChangeThemeDialog).isFalse()
-            withDialog.eventSink.invoke(AdvancedSettingsEvents.ChangeTheme)
-            assertThat(awaitItem().showChangeThemeDialog).isTrue()
-            withDialog.eventSink(AdvancedSettingsEvents.SetTheme(Theme.Light))
-            val withNewTheme = awaitItem()
-            assertThat(withNewTheme.showChangeThemeDialog).isFalse()
-            assertThat(withNewTheme.theme).isEqualTo(Theme.Light)
+            with(awaitItem()) {
+                assertThat(theme).isEqualTo(ThemeOption.System)
+                eventSink(AdvancedSettingsEvents.SetTheme(ThemeOption.Dark))
+            }
+            with(awaitItem()) {
+                assertThat(theme).isEqualTo(ThemeOption.Dark)
+                eventSink(AdvancedSettingsEvents.SetTheme(ThemeOption.Light))
+            }
+            with(awaitItem()) {
+                assertThat(theme).isEqualTo(ThemeOption.Light)
+                eventSink(AdvancedSettingsEvents.SetTheme(ThemeOption.System))
+            }
+            with(awaitItem()) {
+                assertThat(theme).isEqualTo(ThemeOption.System)
+            }
         }
     }
 
-    private fun createAdvancedSettingsPresenter(
+    @Test
+    fun `present - hide invite avatars`() = runTest {
+        val mediaPreviewStore = FakeMediaPreviewConfigStateStore()
+        val presenter = createAdvancedSettingsPresenter(mediaPreviewConfigStateStore = mediaPreviewStore)
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            with(awaitItem()) {
+                assertThat(mediaPreviewConfigState.hideInviteAvatars).isFalse()
+                eventSink(AdvancedSettingsEvents.SetHideInviteAvatars(true))
+            }
+            with(awaitItem()) {
+                assertThat(mediaPreviewConfigState.hideInviteAvatars).isTrue()
+                eventSink(AdvancedSettingsEvents.SetHideInviteAvatars(false))
+            }
+            with(awaitItem()) {
+                assertThat(mediaPreviewConfigState.hideInviteAvatars).isFalse()
+            }
+        }
+        assertThat(mediaPreviewStore.getSetHideInviteAvatarsEvents()).isEqualTo(listOf(true, false))
+    }
+
+    @Test
+    fun `present - timeline media preview value`() = runTest {
+        val mediaPreviewStore = FakeMediaPreviewConfigStateStore()
+        val presenter = createAdvancedSettingsPresenter(mediaPreviewConfigStateStore = mediaPreviewStore)
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            with(awaitItem()) {
+                assertThat(mediaPreviewConfigState.timelineMediaPreviewValue).isEqualTo(MediaPreviewValue.On)
+                eventSink(AdvancedSettingsEvents.SetTimelineMediaPreviewValue(MediaPreviewValue.Off))
+            }
+            with(awaitItem()) {
+                assertThat(mediaPreviewConfigState.timelineMediaPreviewValue).isEqualTo(MediaPreviewValue.Off)
+                eventSink(AdvancedSettingsEvents.SetTimelineMediaPreviewValue(MediaPreviewValue.Private))
+            }
+            with(awaitItem()) {
+                assertThat(mediaPreviewConfigState.timelineMediaPreviewValue).isEqualTo(MediaPreviewValue.Private)
+            }
+        }
+        assertThat(mediaPreviewStore.getSetTimelineMediaPreviewValueEvents()).isEqualTo(
+            listOf(MediaPreviewValue.Off, MediaPreviewValue.Private)
+        )
+    }
+
+    @Test
+    fun `present - media preview state with custom initial values`() = runTest {
+        val mediaPreviewStore = FakeMediaPreviewConfigStateStore(
+            hideInviteAvatarsValue = true,
+            timelineMediaPreviewValue = MediaPreviewValue.Private
+        )
+        val presenter = createAdvancedSettingsPresenter(mediaPreviewConfigStateStore = mediaPreviewStore)
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            with(awaitItem()) {
+                assertThat(mediaPreviewConfigState.hideInviteAvatars).isTrue()
+                assertThat(mediaPreviewConfigState.timelineMediaPreviewValue).isEqualTo(MediaPreviewValue.Private)
+            }
+        }
+    }
+
+    @Test
+    fun `present - async actions state`() = runTest {
+        val mediaPreviewStore = FakeMediaPreviewConfigStateStore(
+            setHideInviteAvatarsActionValue = AsyncAction.Loading,
+            setTimelineMediaPreviewActionValue = AsyncAction.Success(Unit)
+        )
+        val presenter = createAdvancedSettingsPresenter(mediaPreviewConfigStateStore = mediaPreviewStore)
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            with(awaitItem()) {
+                assertThat(mediaPreviewConfigState.setHideInviteAvatarsAction).isEqualTo(AsyncAction.Loading)
+                assertThat(mediaPreviewConfigState.setTimelineMediaPreviewAction).isEqualTo(AsyncAction.Success(Unit))
+            }
+        }
+    }
+
+    private fun CoroutineScope.createAdvancedSettingsPresenter(
         appPreferencesStore: InMemoryAppPreferencesStore = InMemoryAppPreferencesStore(),
         sessionPreferencesStore: InMemorySessionPreferencesStore = InMemorySessionPreferencesStore(),
+        mediaPreviewConfigStateStore: MediaPreviewConfigStateStore = FakeMediaPreviewConfigStateStore(),
     ) = AdvancedSettingsPresenter(
         appPreferencesStore = appPreferencesStore,
         sessionPreferencesStore = sessionPreferencesStore,
+        mediaPreviewConfigStateStore = mediaPreviewConfigStateStore,
+        sessionCoroutineScope = this,
     )
 }

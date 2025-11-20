@@ -8,18 +8,18 @@
 package io.element.android.libraries.matrix.api.room.alias
 
 import io.element.android.libraries.matrix.api.core.RoomIdOrAlias
-import io.element.android.libraries.matrix.api.room.MatrixRoom
+import io.element.android.libraries.matrix.api.room.BaseRoom
 
 /**
  * Return true if the given roomIdOrAlias is the same room as this room.
  */
-fun MatrixRoom.matches(roomIdOrAlias: RoomIdOrAlias): Boolean {
+fun BaseRoom.matches(roomIdOrAlias: RoomIdOrAlias): Boolean {
     return when (roomIdOrAlias) {
         is RoomIdOrAlias.Id -> {
             roomIdOrAlias.roomId == roomId
         }
         is RoomIdOrAlias.Alias -> {
-            roomIdOrAlias.roomAlias == canonicalAlias || roomIdOrAlias.roomAlias in alternativeAliases
+            roomIdOrAlias.roomAlias == info().canonicalAlias || roomIdOrAlias.roomAlias in info().alternativeAliases
         }
     }
 }

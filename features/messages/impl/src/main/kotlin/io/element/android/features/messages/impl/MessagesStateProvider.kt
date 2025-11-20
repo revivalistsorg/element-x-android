@@ -12,6 +12,8 @@ import io.element.android.features.messages.impl.actionlist.ActionListState
 import io.element.android.features.messages.impl.actionlist.anActionListState
 import io.element.android.features.messages.impl.crypto.identity.IdentityChangeState
 import io.element.android.features.messages.impl.crypto.identity.anIdentityChangeState
+import io.element.android.features.messages.impl.link.LinkState
+import io.element.android.features.messages.impl.link.aLinkState
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerState
 import io.element.android.features.messages.impl.messagecomposer.aMessageComposerState
 import io.element.android.features.messages.impl.pinned.banner.PinnedMessagesBannerState
@@ -35,10 +37,14 @@ import io.element.android.features.messages.impl.voicemessages.composer.aVoiceMe
 import io.element.android.features.roomcall.api.RoomCallState
 import io.element.android.features.roomcall.api.aStandByCallState
 import io.element.android.features.roomcall.api.anOngoingCallState
+import io.element.android.features.roommembermoderation.api.RoomMemberModerationEvents
+import io.element.android.features.roommembermoderation.api.RoomMemberModerationState
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
+import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.aTextEditorStateRich
 import kotlinx.collections.immutable.persistentListOf
@@ -52,10 +58,7 @@ open class MessagesStateProvider : PreviewParameterProvider<MessagesState> {
             aMessagesState(composerState = aMessageComposerState(showAttachmentSourcePicker = true)),
             aMessagesState(userEventPermissions = aUserEventPermissions(canSendMessage = false)),
             aMessagesState(showReinvitePrompt = true),
-            aMessagesState(
-                roomName = AsyncData.Uninitialized,
-                roomAvatar = AsyncData.Uninitialized,
-            ),
+            aMessagesState(roomName = null),
             aMessagesState(composerState = aMessageComposerState(showTextFormatting = true)),
             aMessagesState(
                 enableVoiceMessages = true,
@@ -80,12 +83,15 @@ open class MessagesStateProvider : PreviewParameterProvider<MessagesState> {
                     currentPinnedMessageIndex = 0,
                 ),
             ),
+            aMessagesState(roomName = "A DM with a very looong name", dmUserVerificationState = IdentityState.Verified),
+            aMessagesState(roomName = "A DM with a very looong name", dmUserVerificationState = IdentityState.VerificationViolation),
+            aMessagesState(successorRoom = SuccessorRoom(RoomId("!id:domain"), null)),
         )
 }
 
 fun aMessagesState(
-    roomName: AsyncData<String> = AsyncData.Success("Room name"),
-    roomAvatar: AsyncData<AvatarData> = AsyncData.Success(AvatarData("!id:domain", "Room name", size = AvatarSize.TimelineRoom)),
+    roomName: String? = "Room name",
+    roomAvatar: AvatarData = AvatarData("!id:domain", "Room name", size = AvatarSize.TimelineRoom),
     userEventPermissions: UserEventPermissions = aUserEventPermissions(),
     composerState: MessageComposerState = aMessageComposerState(
         textEditorState = aTextEditorStateRich(initialText = "Hello", initialFocus = true),
@@ -100,6 +106,7 @@ fun aMessagesState(
     ),
     timelineProtectionState: TimelineProtectionState = aTimelineProtectionState(),
     identityChangeState: IdentityChangeState = anIdentityChangeState(),
+    linkState: LinkState = aLinkState(),
     readReceiptBottomSheetState: ReadReceiptBottomSheetState = aReadReceiptBottomSheetState(),
     actionListState: ActionListState = anActionListState(),
     customReactionState: CustomReactionState = aCustomReactionState(),
@@ -109,6 +116,9 @@ fun aMessagesState(
     enableVoiceMessages: Boolean = true,
     roomCallState: RoomCallState = aStandByCallState(),
     pinnedMessagesBannerState: PinnedMessagesBannerState = aLoadedPinnedMessagesBannerState(),
+    dmUserVerificationState: IdentityState? = null,
+    roomMemberModerationState: RoomMemberModerationState = aRoomMemberModerationState(),
+    successorRoom: SuccessorRoom? = null,
     eventSink: (MessagesEvents) -> Unit = {},
 ) = MessagesState(
     roomId = RoomId("!id:domain"),
@@ -120,6 +130,7 @@ fun aMessagesState(
     voiceMessageComposerState = voiceMessageComposerState,
     timelineProtectionState = timelineProtectionState,
     identityChangeState = identityChangeState,
+    linkState = linkState,
     timelineState = timelineState,
     readReceiptBottomSheetState = readReceiptBottomSheetState,
     actionListState = actionListState,
@@ -134,8 +145,20 @@ fun aMessagesState(
     roomCallState = roomCallState,
     appName = "Element",
     pinnedMessagesBannerState = pinnedMessagesBannerState,
+    dmUserVerificationState = dmUserVerificationState,
+    roomMemberModerationState = roomMemberModerationState,
+    successorRoom = successorRoom,
     eventSink = eventSink,
 )
+
+fun aRoomMemberModerationState(
+    canKick: Boolean = false,
+    canBan: Boolean = false,
+) = object : RoomMemberModerationState {
+    override val canKick: Boolean = canKick
+    override val canBan: Boolean = canBan
+    override val eventSink: (RoomMemberModerationEvents) -> Unit = {}
+}
 
 fun aUserEventPermissions(
     canRedactOwn: Boolean = false,

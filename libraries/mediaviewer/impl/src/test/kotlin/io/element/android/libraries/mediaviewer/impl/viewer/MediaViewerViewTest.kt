@@ -26,11 +26,13 @@ import io.element.android.tests.testutils.EventsRecorder
 import io.element.android.tests.testutils.clickOn
 import io.element.android.tests.testutils.ensureCalledOnce
 import io.element.android.tests.testutils.pressBack
+import io.element.android.tests.testutils.setSafeContent
 import io.mockk.mockk
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestRule
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
 class MediaViewerViewTest {
@@ -107,6 +109,7 @@ class MediaViewerViewTest {
     }
 
     @Test
+    @Config(qualifiers = "h1024dp")
     fun `clicking on save emit expected Event`() {
         val data = aMediaViewerPageData()
         testBottomSheetAction(
@@ -117,6 +120,7 @@ class MediaViewerViewTest {
     }
 
     @Test
+    @Config(qualifiers = "h1024dp")
     fun `clicking on share emit expected Event`() {
         val data = aMediaViewerPageData()
         testBottomSheetAction(
@@ -249,9 +253,11 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setMedia
     state: MediaViewerState,
     onBackClick: () -> Unit = EnsureNeverCalled(),
 ) {
-    setContent {
+    setSafeContent {
         MediaViewerView(
             state = state,
+            audioFocus = null,
+            textFileViewer = { _, _ -> },
             onBackClick = onBackClick,
         )
     }

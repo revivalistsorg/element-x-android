@@ -227,8 +227,10 @@ Compose:
       - LocalMediaItemPresenterFactories
       - LocalTimelineItemPresenterFactories
       - LocalRoomMemberProfilesCache
-      - LocalMentionSpanTheme
+      - LocalMentionSpanUpdater
       - LocalAnalyticsService
+      - LocalBuildMeta
+      - LocalUiTestMode
   CompositionLocalNaming:
     active: true
   ContentEmitterReturningValues:

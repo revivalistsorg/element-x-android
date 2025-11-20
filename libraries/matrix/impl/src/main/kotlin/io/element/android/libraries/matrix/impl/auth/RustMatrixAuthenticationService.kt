@@ -8,9 +8,9 @@
 package io.element.android.libraries.matrix.impl.auth
 
 import com.squareup.anvil.annotations.ContributesBinding
-import io.element.android.appconfig.AuthenticationConfig
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.extensions.mapFailure
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.di.SingleIn
 import io.element.android.libraries.matrix.api.MatrixClient
@@ -32,7 +32,6 @@ import io.element.android.libraries.matrix.impl.keys.PassphraseGenerator
 import io.element.android.libraries.matrix.impl.mapper.toSessionData
 import io.element.android.libraries.matrix.impl.paths.SessionPaths
 import io.element.android.libraries.matrix.impl.paths.SessionPathsFactory
-import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.sessionstorage.api.LoggedInState
 import io.element.android.libraries.sessionstorage.api.LoginType
 import io.element.android.libraries.sessionstorage.api.SessionStore
@@ -40,10 +39,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.matrix.rustcomponents.sdk.Client
-import org.matrix.rustcomponents.sdk.ClientBuildException
 import org.matrix.rustcomponents.sdk.ClientBuilder
 import org.matrix.rustcomponents.sdk.HumanQrLoginException
 import org.matrix.rustcomponents.sdk.OidcConfiguration
@@ -52,7 +49,7 @@ import org.matrix.rustcomponents.sdk.QrCodeDecodeException
 import org.matrix.rustcomponents.sdk.QrLoginProgress
 import org.matrix.rustcomponents.sdk.QrLoginProgressListener
 import timber.log.Timber
-import uniffi.matrix_sdk.OidcAuthorizationData
+import uniffi.matrix_sdk.OAuthAuthorizationData
 import javax.inject.Inject
 
 @ContributesBinding(AppScope::class)
@@ -64,7 +61,6 @@ class RustMatrixAuthenticationService @Inject constructor(
     private val rustMatrixClientFactory: RustMatrixClientFactory,
     private val passphraseGenerator: PassphraseGenerator,
     private val oidcConfigurationProvider: OidcConfigurationProvider,
-    private val appPreferencesStore: AppPreferencesStore,
 ) : MatrixAuthenticationService {
     // Passphrase which will be used for new sessions. Existing sessions will use the passphrase
     // stored in the SessionData.
@@ -96,7 +92,7 @@ class RustMatrixAuthenticationService @Inject constructor(
     }
 
     override suspend fun restoreSession(sessionId: SessionId): Result<MatrixClient> = withContext(coroutineDispatchers.io) {
-        runCatching {
+        runCatchingExceptions {
             val sessionData = sessionStore.getSession(sessionId.value)
             if (sessionData != null) {
                 if (sessionData.isTokenValid) {
@@ -131,7 +127,7 @@ class RustMatrixAuthenticationService @Inject constructor(
     override suspend fun setHomeserver(homeserver: String): Result<Unit> =
         withContext(coroutineDispatchers.io) {
             val emptySessionPath = rotateSessionPath()
-            runCatching {
+            runCatchingExceptions {
                 val client = makeClient(sessionPaths = emptySessionPath) {
                     serverNameOrHomeserverUrl(homeserver)
                 }
@@ -142,13 +138,14 @@ class RustMatrixAuthenticationService @Inject constructor(
             }.onFailure {
                 clear()
             }.mapFailure { failure ->
+                Timber.e(failure, "Failed to set homeserver to $homeserver")
                 failure.mapAuthenticationException()
             }
         }
 
     override suspend fun login(username: String, password: String): Result<SessionId> =
         withContext(coroutineDispatchers.io) {
-            runCatching {
+            runCatchingExceptions {
                 val client = currentClient ?: error("You need to call `setHomeserver()` first")
                 val currentSessionPaths = sessionPaths ?: error("You need to call `setHomeserver()` first")
                 client.login(username, password, "Element X Android", null)
@@ -161,15 +158,20 @@ class RustMatrixAuthenticationService @Inject constructor(
                     )
                 newMatrixClientObserver?.invoke(rustMatrixClientFactory.create(client))
                 sessionStore.storeData(sessionData)
+
+                // Clean up the strong reference held here since it's no longer necessary
+                currentClient = null
+
                 SessionId(sessionData.userId)
             }.mapFailure { failure ->
+                Timber.e(failure, "Failed to login")
                 failure.mapAuthenticationException()
             }
         }
 
     override suspend fun importCreatedSession(externalSession: ExternalSession): Result<SessionId> =
         withContext(coroutineDispatchers.io) {
-            runCatching {
+            runCatchingExceptions {
                 currentClient ?: error("You need to call `setHomeserver()` first")
                 val currentSessionPaths = sessionPaths ?: error("You need to call `setHomeserver()` first")
                 val sessionData = externalSession.toSessionData(
@@ -184,20 +186,25 @@ class RustMatrixAuthenticationService @Inject constructor(
             }
         }
 
-    private var pendingOidcAuthorizationData: OidcAuthorizationData? = null
+    private var pendingOAuthAuthorizationData: OAuthAuthorizationData? = null
 
-    override suspend fun getOidcUrl(prompt: OidcPrompt): Result<OidcDetails> {
+    override suspend fun getOidcUrl(
+        prompt: OidcPrompt,
+        loginHint: String?,
+    ): Result<OidcDetails> {
         return withContext(coroutineDispatchers.io) {
-            runCatching {
+            runCatchingExceptions {
                 val client = currentClient ?: error("You need to call `setHomeserver()` first")
-                val oidcAuthenticationData = client.urlForOidc(
+                val oAuthAuthorizationData = client.urlForOidc(
                     oidcConfiguration = oidcConfigurationProvider.get(),
                     prompt = prompt.toRustPrompt(),
+                    loginHint = loginHint,
                 )
-                val url = oidcAuthenticationData.loginUrl()
-                pendingOidcAuthorizationData = oidcAuthenticationData
+                val url = oAuthAuthorizationData.loginUrl()
+                pendingOAuthAuthorizationData = oAuthAuthorizationData
                 OidcDetails(url)
             }.mapFailure { failure ->
+                Timber.e(failure, "Failed to get OIDC URL")
                 failure.mapAuthenticationException()
             }
         }
@@ -205,10 +212,13 @@ class RustMatrixAuthenticationService @Inject constructor(
 
     override suspend fun cancelOidcLogin(): Result<Unit> {
         return withContext(coroutineDispatchers.io) {
-            runCatching {
-                pendingOidcAuthorizationData?.close()
-                pendingOidcAuthorizationData = null
+            runCatchingExceptions {
+                pendingOAuthAuthorizationData?.use {
+                    currentClient?.abortOidcAuth(it)
+                }
+                pendingOAuthAuthorizationData = null
             }.mapFailure { failure ->
+                Timber.e(failure, "Failed to cancel OIDC login")
                 failure.mapAuthenticationException()
             }
         }
@@ -219,23 +229,30 @@ class RustMatrixAuthenticationService @Inject constructor(
      */
     override suspend fun loginWithOidc(callbackUrl: String): Result<SessionId> {
         return withContext(coroutineDispatchers.io) {
-            runCatching {
+            runCatchingExceptions {
                 val client = currentClient ?: error("You need to call `setHomeserver()` first")
                 val currentSessionPaths = sessionPaths ?: error("You need to call `setHomeserver()` first")
-                val urlForOidcLogin = pendingOidcAuthorizationData ?: error("You need to call `getOidcUrl()` first")
-                client.loginWithOidcCallback(urlForOidcLogin, callbackUrl)
+                client.loginWithOidcCallback(callbackUrl)
                 val sessionData = client.session().toSessionData(
                     isTokenValid = true,
                     loginType = LoginType.OIDC,
                     passphrase = pendingPassphrase,
                     sessionPaths = currentSessionPaths,
                 )
-                pendingOidcAuthorizationData?.close()
-                pendingOidcAuthorizationData = null
+
+                // Free the pending data since we won't use it to abort the flow anymore
+                pendingOAuthAuthorizationData?.close()
+                pendingOAuthAuthorizationData = null
+
                 newMatrixClientObserver?.invoke(rustMatrixClientFactory.create(client))
                 sessionStore.storeData(sessionData)
+
+                // Clean up the strong reference held here since it's no longer necessary
+                currentClient = null
+
                 SessionId(sessionData.userId)
             }.mapFailure { failure ->
+                Timber.e(failure, "Failed to login with OIDC")
                 failure.mapAuthenticationException()
             }
         }
@@ -252,7 +269,7 @@ class RustMatrixAuthenticationService @Inject constructor(
                     progress(state.toStep())
                 }
             }
-            runCatching {
+            runCatchingExceptions {
                 val client = makeQrCodeLoginClient(
                     sessionPaths = emptySessionPaths,
                     passphrase = pendingPassphrase,
@@ -269,6 +286,10 @@ class RustMatrixAuthenticationService @Inject constructor(
                     )
                 newMatrixClientObserver?.invoke(rustMatrixClientFactory.create(client))
                 sessionStore.storeData(sessionData)
+
+                // Clean up the strong reference held here since it's no longer necessary
+                currentClient = null
+
                 SessionId(sessionData.userId)
             }.mapFailure {
                 when (it) {
@@ -288,28 +309,12 @@ class RustMatrixAuthenticationService @Inject constructor(
         sessionPaths: SessionPaths,
         config: suspend ClientBuilder.() -> ClientBuilder,
     ): Client {
-        val slidingSyncType = getSlidingSyncType()
-        if (slidingSyncType is ClientBuilderSlidingSync.Simplified) {
-            Timber.d("Creating client with simplified sliding sync")
-            try {
-                return rustMatrixClientFactory
-                    .getBaseClientBuilder(
-                        sessionPaths = sessionPaths,
-                        passphrase = pendingPassphrase,
-                        slidingSyncType = slidingSyncType,
-                    )
-                    .config()
-                    .build()
-            } catch (e: ClientBuildException.SlidingSyncVersion) {
-                Timber.e(e, "Failed to create client with simplified sliding sync, trying with Proxy now")
-            }
-        }
-        Timber.d("Creating client with Proxy sliding sync")
+        Timber.d("Creating client with simplified sliding sync")
         return rustMatrixClientFactory
             .getBaseClientBuilder(
                 sessionPaths = sessionPaths,
                 passphrase = pendingPassphrase,
-                slidingSyncType = getSlidingSyncProxy(),
+                slidingSyncType = ClientBuilderSlidingSync.Discovered,
             )
             .config()
             .build()
@@ -322,41 +327,15 @@ class RustMatrixAuthenticationService @Inject constructor(
         oidcConfiguration: OidcConfiguration,
         progressListener: QrLoginProgressListener,
     ): Client {
-        val slidingSyncType = getSlidingSyncType()
-        if (slidingSyncType is ClientBuilderSlidingSync.Simplified) {
-            Timber.d("Creating client for QR Code login with simplified sliding sync")
-            try {
-                return rustMatrixClientFactory
-                    .getBaseClientBuilder(
-                        sessionPaths = sessionPaths,
-                        passphrase = pendingPassphrase,
-                        slidingSyncType = slidingSyncType,
-                    )
-                    .passphrase(passphrase)
-                    .buildWithQrCode(qrCodeData, oidcConfiguration, progressListener)
-            } catch (e: HumanQrLoginException.SlidingSyncNotAvailable) {
-                Timber.e(e, "Failed to create client with simplified sliding sync, trying with Proxy now")
-            }
-        }
-        Timber.d("Creating client for QR Code login with Proxy sliding sync")
+        Timber.d("Creating client for QR Code login with simplified sliding sync")
         return rustMatrixClientFactory
             .getBaseClientBuilder(
                 sessionPaths = sessionPaths,
                 passphrase = pendingPassphrase,
-                slidingSyncType = getSlidingSyncProxy(),
+                slidingSyncType = ClientBuilderSlidingSync.Discovered,
             )
-            .passphrase(passphrase)
+            .sessionPassphrase(passphrase)
             .buildWithQrCode(qrCodeData, oidcConfiguration, progressListener)
-    }
-
-    private suspend fun getSlidingSyncType(nativeSlidingSyncFailed: Boolean = false) = when {
-        appPreferencesStore.isSimplifiedSlidingSyncEnabledFlow().first() && !nativeSlidingSyncFailed -> ClientBuilderSlidingSync.Simplified
-        else -> getSlidingSyncProxy()
-    }
-
-    private fun getSlidingSyncProxy() = when {
-        AuthenticationConfig.SLIDING_SYNC_PROXY_URL != null -> ClientBuilderSlidingSync.CustomProxy(AuthenticationConfig.SLIDING_SYNC_PROXY_URL!!)
-        else -> ClientBuilderSlidingSync.Discovered
     }
 
     private fun clear() {

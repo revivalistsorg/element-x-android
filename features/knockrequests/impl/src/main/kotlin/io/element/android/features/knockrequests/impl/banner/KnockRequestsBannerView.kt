@@ -39,6 +39,7 @@ import io.element.android.libraries.designsystem.components.async.AsyncIndicator
 import io.element.android.libraries.designsystem.components.async.rememberAsyncIndicatorState
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
@@ -128,14 +129,14 @@ private fun KnockRequestsBannerContent(
                 Text(
                     text = state.formattedTitle(),
                     style = ElementTheme.typography.fontBodyMdMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = ElementTheme.colors.textPrimary,
                     textAlign = TextAlign.Start,
                 )
                 if (state.subtitle != null) {
                     Text(
                         text = state.subtitle,
                         style = ElementTheme.typography.fontBodySmRegular,
-                        color = MaterialTheme.colorScheme.secondary,
+                        color = ElementTheme.colors.textSecondary,
                         textAlign = TextAlign.Start,
                     )
                 }
@@ -195,7 +196,10 @@ private fun KnockRequestAvatarView(
     Box(modifier) {
         when (knockRequests.size) {
             0 -> Unit
-            1 -> Avatar(knockRequests.first().getAvatarData(AvatarSize.KnockRequestBanner))
+            1 -> Avatar(
+                avatarData = knockRequests.first().getAvatarData(AvatarSize.KnockRequestBanner),
+                avatarType = AvatarType.User,
+            )
             else -> KnockRequestAvatarListView(knockRequests)
         }
     }
@@ -214,6 +218,7 @@ private fun KnockRequestAvatarListView(
         .toImmutableList()
     AvatarRow(
         avatarDataList = avatars,
+        avatarType = AvatarType.User,
         modifier = modifier,
     )
 }

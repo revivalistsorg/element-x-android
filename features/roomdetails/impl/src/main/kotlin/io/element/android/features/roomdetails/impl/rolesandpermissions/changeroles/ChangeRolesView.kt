@@ -11,7 +11,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -29,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,12 +50,12 @@ import io.element.android.libraries.designsystem.components.async.rememberAsyncI
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.components.dialogs.ConfirmationDialog
 import io.element.android.libraries.designsystem.components.dialogs.ErrorDialog
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.Checkbox
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.SearchBar
@@ -65,6 +63,7 @@ import io.element.android.libraries.designsystem.theme.components.SearchBarResul
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TextButton
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
+import io.element.android.libraries.designsystem.utils.CommonDrawables
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.RoomMembershipState
@@ -96,16 +95,10 @@ fun ChangeRolesView(
             topBar = {
                 AnimatedVisibility(visible = !state.isSearchActive) {
                     TopAppBar(
-                        title = {
-                            val title = when (state.role) {
-                                RoomMember.Role.ADMIN -> stringResource(R.string.screen_room_change_role_administrators_title)
-                                RoomMember.Role.MODERATOR -> stringResource(R.string.screen_room_change_role_moderators_title)
-                                RoomMember.Role.USER -> error("This should never be reached")
-                            }
-                            Text(
-                                text = title,
-                                style = ElementTheme.typography.aliasScreenTitle,
-                            )
+                        titleStr = when (state.role) {
+                            RoomMember.Role.ADMIN -> stringResource(R.string.screen_room_change_role_administrators_title)
+                            RoomMember.Role.MODERATOR -> stringResource(R.string.screen_room_change_role_moderators_title)
+                            RoomMember.Role.USER -> error("This should never be reached")
                         },
                         navigationIcon = {
                             BackButton(onClick = { state.eventSink(ChangeRolesEvent.Exit) })
@@ -225,7 +218,6 @@ fun ChangeRolesView(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SearchResultsList(
     currentRole: RoomMember.Role,
@@ -343,7 +335,10 @@ private fun MemberRow(
             .padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Avatar(avatarData)
+        Avatar(
+            avatarData = avatarData,
+            avatarType = AvatarType.User,
+        )
         Column(
             modifier = Modifier
                 .padding(start = 12.dp)
@@ -356,7 +351,7 @@ private fun MemberRow(
                     text = name,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = ElementTheme.colors.textPrimary,
                     style = ElementTheme.typography.fontBodyLgRegular,
                 )
                 // Invitation pending marker
@@ -365,7 +360,7 @@ private fun MemberRow(
                         modifier = Modifier.padding(start = 8.dp),
                         text = stringResource(id = R.string.screen_room_member_list_pending_header_title),
                         style = ElementTheme.typography.fontBodySmRegular.copy(fontStyle = FontStyle.Italic),
-                        color = MaterialTheme.colorScheme.secondary
+                        color = ElementTheme.colors.textSecondary
                     )
                 }
             }
@@ -373,7 +368,7 @@ private fun MemberRow(
             userId?.let {
                 Text(
                     text = userId,
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = ElementTheme.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = ElementTheme.typography.fontBodySmRegular,
@@ -398,7 +393,9 @@ internal fun ChangeRolesViewPreview(@PreviewParameter(ChangeRolesStateProvider::
 @PreviewsDayNight
 @Composable
 internal fun PendingMemberRowWithLongNamePreview() {
-    ElementPreview {
+    ElementPreview(
+        drawableFallbackForImages = CommonDrawables.sample_avatar,
+    ) {
         MemberRow(
             avatarData = AvatarData("userId", "A very long name that should be truncated", "https://example.com/avatar.png", AvatarSize.UserListItem),
             name = "A very long name that should be truncated",

@@ -7,7 +7,6 @@
 
 package io.element.android.features.messages.impl.timeline.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -49,6 +48,7 @@ import io.element.android.libraries.designsystem.theme.messageFromMeBackground
 import io.element.android.libraries.designsystem.theme.messageFromOtherBackground
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.testtags.testTag
+import io.element.android.libraries.ui.utils.time.isTalkbackActive
 
 private val BUBBLE_RADIUS = 12.dp
 private val avatarRadius = AvatarSize.TimelineSender.dp / 2
@@ -57,7 +57,6 @@ private val avatarRadius = AvatarSize.TimelineSender.dp / 2
 private const val BUBBLE_WIDTH_RATIO = 0.78f
 private val MIN_BUBBLE_WIDTH = 80.dp
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageEventBubble(
     state: BubbleState,
@@ -93,6 +92,17 @@ fun MessageEventBubble(
                     BUBBLE_RADIUS
                 )
         }
+    }
+
+    val clickableModifier = if (isTalkbackActive()) {
+        Modifier
+    } else {
+        Modifier.combinedClickable(
+            onClick = onClick,
+            onLongClick = onLongClick,
+            indication = ripple(),
+            interactionSource = interactionSource
+        )
     }
 
     // Ignore state.isHighlighted for now, we need a design decision on it.
@@ -137,12 +147,7 @@ fun MessageEventBubble(
                         .toDp()
                 )
                 .clip(bubbleShape)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = onLongClick,
-                    indication = ripple(),
-                    interactionSource = interactionSource
-                ),
+                .then(clickableModifier),
             color = backgroundBubbleColor,
             shape = bubbleShape,
             content = content
@@ -174,7 +179,7 @@ internal fun MessageEventBubblePreview(@PreviewParameter(BubbleStateProvider::cl
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "${state.groupPosition.javaClass.simpleName} m:${state.isMine.to01()} h:${state.isHighlighted.to01()}",
+                    text = "${state.groupPosition.javaClass.simpleName} isMine:${state.isMine.to01()}",
                     style = ElementTheme.typography.fontBodyXsRegular,
                 )
             }

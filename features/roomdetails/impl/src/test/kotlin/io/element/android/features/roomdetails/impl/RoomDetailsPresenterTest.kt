@@ -8,28 +8,25 @@
 package io.element.android.features.roomdetails.impl
 
 import androidx.lifecycle.Lifecycle
-import app.cash.molecule.RecompositionMode
-import app.cash.molecule.moleculeFlow
-import app.cash.turbine.TurbineTestContext
-import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import im.vector.app.features.analytics.plan.Interaction
 import io.element.android.features.leaveroom.api.LeaveRoomEvent
 import io.element.android.features.leaveroom.api.LeaveRoomState
 import io.element.android.features.leaveroom.api.aLeaveRoomState
 import io.element.android.features.roomcall.api.aStandByCallState
-import io.element.android.features.roomdetails.aMatrixRoom
 import io.element.android.features.roomdetails.impl.members.aRoomMember
 import io.element.android.features.roomdetails.impl.members.details.RoomMemberDetailsPresenter
 import io.element.android.features.userprofile.shared.aUserProfileState
+import io.element.android.libraries.androidutils.clipboard.ClipboardHelper
+import io.element.android.libraries.androidutils.clipboard.FakeClipboardHelper
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.matrix.api.core.UserId
-import io.element.android.libraries.matrix.api.room.MatrixRoom
-import io.element.android.libraries.matrix.api.room.MatrixRoomMembersState
+import io.element.android.libraries.matrix.api.room.JoinedRoom
+import io.element.android.libraries.matrix.api.room.RoomMembersState
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.api.room.StateEventType
 import io.element.android.libraries.matrix.api.room.join.JoinRule
@@ -39,10 +36,13 @@ import io.element.android.libraries.matrix.test.A_ROOM_NAME
 import io.element.android.libraries.matrix.test.A_ROOM_TOPIC
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.A_USER_ID_2
+import io.element.android.libraries.matrix.test.A_USER_NAME
 import io.element.android.libraries.matrix.test.FakeMatrixClient
+import io.element.android.libraries.matrix.test.encryption.FakeEncryptionService
 import io.element.android.libraries.matrix.test.notificationsettings.FakeNotificationSettingsService
-import io.element.android.libraries.matrix.test.room.FakeMatrixRoom
 import io.element.android.libraries.matrix.test.room.aRoomInfo
+import io.element.android.libraries.preferences.api.store.AppPreferencesStore
+import io.element.android.libraries.preferences.test.InMemoryAppPreferencesStore
 import io.element.android.services.analytics.api.AnalyticsService
 import io.element.android.services.analytics.test.FakeAnalyticsService
 import io.element.android.tests.testutils.EventsRecorder
@@ -53,7 +53,7 @@ import io.element.android.tests.testutils.lambda.lambdaError
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
 import io.element.android.tests.testutils.testCoroutineDispatchers
-import io.element.android.tests.testutils.withFakeLifecycleOwner
+import io.element.android.tests.testutils.testWithLifecycleOwner
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
@@ -62,6 +62,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.time.Duration.Companion.milliseconds
 
+@Suppress("LargeClass")
 @ExperimentalCoroutinesApi
 class RoomDetailsPresenterTest {
     @get:Rule
@@ -72,7 +73,7 @@ class RoomDetailsPresenterTest {
     }
 
     private fun TestScope.createRoomDetailsPresenter(
-        room: MatrixRoom = aMatrixRoom(),
+        room: JoinedRoom = aJoinedRoom(),
         leaveRoomState: LeaveRoomState = aLeaveRoomState(),
         dispatchers: CoroutineDispatchers = testCoroutineDispatchers(),
         notificationSettingsService: FakeNotificationSettingsService = FakeNotificationSettingsService(),
@@ -84,6 +85,9 @@ class RoomDetailsPresenterTest {
             )
         ),
         isPinnedMessagesFeatureEnabled: Boolean = true,
+        encryptionService: FakeEncryptionService = FakeEncryptionService(),
+        clipboardHelper: ClipboardHelper = FakeClipboardHelper(),
+        appPreferencesStore: AppPreferencesStore = InMemoryAppPreferencesStore()
     ): RoomDetailsPresenter {
         val matrixClient = FakeMatrixClient(notificationSettingsService = notificationSettingsService)
         val roomMemberDetailsPresenterFactory = object : RoomMemberDetailsPresenter.Factory {
@@ -94,6 +98,8 @@ class RoomDetailsPresenterTest {
                     userProfilePresenterFactory = {
                         Presenter { aUserProfileState() }
                     },
+                    encryptionService = encryptionService,
+                    clipboardHelper = clipboardHelper,
                 )
             }
         }
@@ -108,50 +114,44 @@ class RoomDetailsPresenterTest {
             dispatchers = dispatchers,
             isPinnedMessagesFeatureEnabled = { isPinnedMessagesFeatureEnabled },
             analyticsService = analyticsService,
+            clipboardHelper = clipboardHelper,
+            appPreferencesStore = appPreferencesStore,
         )
     }
 
-    private suspend fun RoomDetailsPresenter.test(validate: suspend TurbineTestContext<RoomDetailsState>.() -> Unit) {
-        moleculeFlow(RecompositionMode.Immediate) {
-            withFakeLifecycleOwner(fakeLifecycleOwner) {
-                present()
-            }
-        }.test(validate = validate)
-    }
-
     @Test
-    fun `present - initial state is created from room if roomInfo is null`() = runTest {
-        val room = aMatrixRoom(
+    fun `present - initial state is created from initial room info`() = runTest {
+        val room = aJoinedRoom(
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
         )
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
-            skipItems(1)
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             val initialState = awaitItem()
             assertThat(initialState.roomId).isEqualTo(room.roomId)
-            assertThat(initialState.roomName).isEqualTo(room.displayName)
-            assertThat(initialState.roomAvatarUrl).isEqualTo(room.avatarUrl)
-            assertThat(initialState.roomTopic).isEqualTo(RoomTopicState.ExistingTopic(room.topic!!))
-            assertThat(initialState.memberCount).isEqualTo(room.joinedMemberCount)
-            assertThat(initialState.isEncrypted).isEqualTo(room.isEncrypted)
+            assertThat(initialState.roomName).isEqualTo(room.info().name)
+            assertThat(initialState.roomAvatarUrl).isEqualTo(room.info().avatarUrl)
+            assertThat(initialState.roomTopic).isEqualTo(RoomTopicState.ExistingTopic(room.info().topic!!))
+            assertThat(initialState.memberCount).isEqualTo(room.info().joinedMembersCount)
             assertThat(initialState.canShowPinnedMessages).isTrue()
-            assertThat(initialState.pinnedMessagesCount).isNull()
+            assertThat(initialState.pinnedMessagesCount).isEqualTo(0)
             assertThat(initialState.canShowSecurityAndPrivacy).isFalse()
+            assertThat(initialState.showDebugInfo).isFalse()
+
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `present - initial state is updated with roomInfo if it exists`() = runTest {
+    fun `present - initial state is updated with a new roomInfo`() = runTest {
         val roomInfo = aRoomInfo(
             name = A_ROOM_NAME,
-            isPublic = true,
             topic = A_ROOM_TOPIC,
             avatarUrl = AN_AVATAR_URL,
             pinnedEventIds = listOf(AN_EVENT_ID),
         )
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
@@ -159,7 +159,7 @@ class RoomDetailsPresenterTest {
             givenRoomInfo(roomInfo)
         }
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             skipItems(1)
             val updatedState = awaitItem()
             assertThat(updatedState.roomName).isEqualTo(roomInfo.name)
@@ -172,16 +172,16 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - initial state with no room name`() = runTest {
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             displayName = "",
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
         )
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             val initialState = awaitItem()
-            assertThat(initialState.roomName).isEqualTo(room.displayName)
+            assertThat(initialState.roomName).isEqualTo(room.info().name)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -191,9 +191,7 @@ class RoomDetailsPresenterTest {
     fun `present - initial state with DM member sets custom DM roomType`() = runTest {
         val myRoomMember = aRoomMember(A_SESSION_ID)
         val otherRoomMember = aRoomMember(A_USER_ID_2)
-        val room = aMatrixRoom(
-            isEncrypted = true,
-            isDirect = true,
+        val room = aJoinedRoom(
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
@@ -206,10 +204,17 @@ class RoomDetailsPresenterTest {
             },
         ).apply {
             val roomMembers = persistentListOf(myRoomMember, otherRoomMember)
-            givenRoomMembersState(MatrixRoomMembersState.Ready(roomMembers))
+            givenRoomMembersState(RoomMembersState.Ready(roomMembers))
+
+            givenRoomInfo(
+                aRoomInfo(
+                    isEncrypted = true,
+                    isDirect = true,
+                )
+            )
         }
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             val initialState = awaitItem()
             assertThat(initialState.roomType).isEqualTo(
                 RoomDetailsType.Dm(
@@ -223,13 +228,13 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - initial state when user can invite others to room`() = runTest {
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
         )
         val presenter = createRoomDetailsPresenter(room, dispatchers = testCoroutineDispatchers())
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             // Initially false
             assertThat(awaitItem().canInvite).isFalse()
             // Then the asynchronous check completes and it becomes true
@@ -241,13 +246,15 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - initial state when user can not invite others to room`() = runTest {
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             canInviteResult = { Result.success(false) },
+            canKickResult = { Result.success(false) },
+            canBanResult = { Result.success(false) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
         )
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             assertThat(awaitItem().canInvite).isFalse()
 
             cancelAndIgnoreRemainingEvents()
@@ -256,13 +263,13 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - initial state when canInvite errors`() = runTest {
-        val room = aMatrixRoom(
-            canInviteResult = { Result.failure(Throwable("Whoops")) },
+        val room = aJoinedRoom(
+            canInviteResult = { Result.failure(RuntimeException("Whoops")) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
         )
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             assertThat(awaitItem().canInvite).isFalse()
 
             cancelAndIgnoreRemainingEvents()
@@ -271,19 +278,21 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - initial state when user can edit one attribute`() = runTest {
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             canSendStateResult = { _, stateEventType ->
                 when (stateEventType) {
                     StateEventType.ROOM_TOPIC -> Result.success(true)
                     StateEventType.ROOM_NAME -> Result.success(false)
-                    else -> Result.failure(Throwable("Whelp"))
+                    else -> Result.failure(RuntimeException("Whelp"))
                 }
             },
+            canBanResult = { Result.success(false) },
+            canKickResult = { Result.success(false) },
             canInviteResult = { Result.success(false) },
             canUserJoinCallResult = { Result.success(true) },
         )
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             // Initially false
             assertThat(awaitItem().canEdit).isFalse()
             // Then the asynchronous check completes and it becomes true
@@ -297,17 +306,17 @@ class RoomDetailsPresenterTest {
     fun `present - initial state when user can edit attributes in a DM`() = runTest {
         val myRoomMember = aRoomMember(A_SESSION_ID)
         val otherRoomMember = aRoomMember(A_USER_ID_2)
-        val room = aMatrixRoom(
-            isEncrypted = true,
-            isDirect = true,
+        val room = aJoinedRoom(
             canSendStateResult = { _, stateEventType ->
                 when (stateEventType) {
                     StateEventType.ROOM_TOPIC,
                     StateEventType.ROOM_NAME,
                     StateEventType.ROOM_AVATAR -> Result.success(true)
-                    else -> Result.failure(Throwable("Whelp"))
+                    else -> Result.failure(RuntimeException("Whelp"))
                 }
             },
+            canKickResult = { Result.success(false) },
+            canBanResult = { Result.success(false) },
             canInviteResult = { Result.success(false) },
             canUserJoinCallResult = { Result.success(true) },
             getUpdatedMemberResult = { userId ->
@@ -319,17 +328,24 @@ class RoomDetailsPresenterTest {
             },
         ).apply {
             val roomMembers = persistentListOf(myRoomMember, otherRoomMember)
-            givenRoomMembersState(MatrixRoomMembersState.Ready(roomMembers))
+            givenRoomMembersState(RoomMembersState.Ready(roomMembers))
+
+            givenRoomInfo(
+                aRoomInfo(
+                    isEncrypted = true,
+                    isDirect = true,
+                )
+            )
         }
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             // Initially false
             assertThat(awaitItem().canEdit).isFalse()
             // Then the asynchronous check completes, but editing is still disallowed because it's a DM
             val settledState = awaitItem()
             assertThat(settledState.canEdit).isFalse()
             // If there is a topic, it's visible
-            assertThat(settledState.roomTopic).isEqualTo(RoomTopicState.ExistingTopic(room.topic!!))
+            assertThat(settledState.roomTopic).isEqualTo(RoomTopicState.ExistingTopic(room.info().topic!!))
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -339,8 +355,7 @@ class RoomDetailsPresenterTest {
     fun `present - initial state when in a DM with no topic`() = runTest {
         val myRoomMember = aRoomMember(A_SESSION_ID)
         val otherRoomMember = aRoomMember(A_USER_ID_2)
-        val room = aMatrixRoom(
-            isEncrypted = true,
+        val room = aJoinedRoom(
             isDirect = true,
             topic = null,
             canSendStateResult = { _, stateEventType ->
@@ -348,9 +363,11 @@ class RoomDetailsPresenterTest {
                     StateEventType.ROOM_AVATAR,
                     StateEventType.ROOM_TOPIC,
                     StateEventType.ROOM_NAME -> Result.success(true)
-                    else -> Result.failure(Throwable("Whelp"))
+                    else -> Result.failure(RuntimeException("Whelp"))
                 }
             },
+            userDisplayNameResult = { Result.success(A_USER_NAME) },
+            userAvatarUrlResult = { Result.success(AN_AVATAR_URL) },
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
             getUpdatedMemberResult = { userId ->
@@ -362,12 +379,20 @@ class RoomDetailsPresenterTest {
             },
         ).apply {
             val roomMembers = persistentListOf(myRoomMember, otherRoomMember)
-            givenRoomMembersState(MatrixRoomMembersState.Ready(roomMembers))
+            givenRoomMembersState(RoomMembersState.Ready(roomMembers))
+
+            givenRoomInfo(
+                aRoomInfo(
+                    isDirect = true,
+                    activeMembersCount = 2,
+                    topic = null,
+                )
+            )
         }
 
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
-            skipItems(1)
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
+            skipItems(2)
 
             // There's no topic, so we hide the entire UI for DMs
             assertThat(awaitItem().roomTopic).isEqualTo(RoomTopicState.Hidden)
@@ -378,14 +403,20 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - initial state when user can edit all attributes`() = runTest {
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             canSendStateResult = { _, stateEventType ->
                 when (stateEventType) {
                     StateEventType.ROOM_TOPIC,
                     StateEventType.ROOM_NAME,
                     StateEventType.ROOM_AVATAR -> Result.success(true)
-                    else -> Result.failure(Throwable("Whelp"))
+                    else -> Result.failure(RuntimeException("Whelp"))
                 }
+            },
+            canKickResult = {
+                Result.success(false)
+            },
+            canBanResult = {
+                Result.success(false)
             },
             canInviteResult = {
                 Result.success(false)
@@ -393,7 +424,7 @@ class RoomDetailsPresenterTest {
             canUserJoinCallResult = { Result.success(true) },
         )
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             // Initially false
             assertThat(awaitItem().canEdit).isFalse()
             // Then the asynchronous check completes and it becomes true
@@ -405,14 +436,20 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - initial state when user can edit no attributes`() = runTest {
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             canSendStateResult = { _, stateEventType ->
                 when (stateEventType) {
                     StateEventType.ROOM_TOPIC,
                     StateEventType.ROOM_NAME,
                     StateEventType.ROOM_AVATAR -> Result.success(false)
-                    else -> Result.failure(Throwable("Whelp"))
+                    else -> Result.failure(RuntimeException("Whelp"))
                 }
+            },
+            canBanResult = {
+                Result.success(false)
+            },
+            canKickResult = {
+                Result.success(false)
             },
             canInviteResult = {
                 Result.success(false)
@@ -420,7 +457,7 @@ class RoomDetailsPresenterTest {
             canUserJoinCallResult = { Result.success(true) },
         )
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             // Initially false, and no further events
             assertThat(awaitItem().canEdit).isFalse()
 
@@ -430,15 +467,21 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - topic state is hidden when no topic and user has no permission`() = runTest {
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             topic = null,
             canSendStateResult = { _, stateEventType ->
                 when (stateEventType) {
                     StateEventType.ROOM_AVATAR,
                     StateEventType.ROOM_NAME -> Result.success(true)
                     StateEventType.ROOM_TOPIC -> Result.success(false)
-                    else -> Result.failure(Throwable("Whelp"))
+                    else -> Result.failure(RuntimeException("Whelp"))
                 }
+            },
+            canKickResult = {
+                Result.success(false)
+            },
+            canBanResult = {
+                Result.success(false)
             },
             canInviteResult = {
                 Result.success(false)
@@ -446,7 +489,7 @@ class RoomDetailsPresenterTest {
             canUserJoinCallResult = { Result.success(true) },
         )
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             // The initial state is "hidden" and no further state changes happen
             assertThat(awaitItem().roomTopic).isEqualTo(RoomTopicState.Hidden)
 
@@ -456,15 +499,21 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - topic state is 'can add topic' when no topic and user has permission`() = runTest {
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             topic = null,
             canSendStateResult = { _, stateEventType ->
                 when (stateEventType) {
                     StateEventType.ROOM_AVATAR,
                     StateEventType.ROOM_TOPIC,
                     StateEventType.ROOM_NAME -> Result.success(true)
-                    else -> Result.failure(Throwable("Whelp"))
+                    else -> Result.failure(RuntimeException("Whelp"))
                 }
+            },
+            canKickResult = {
+                Result.success(false)
+            },
+            canBanResult = {
+                Result.success(false)
             },
             canInviteResult = {
                 Result.success(false)
@@ -474,7 +523,7 @@ class RoomDetailsPresenterTest {
             givenRoomInfo(aRoomInfo(topic = null))
         }
         val presenter = createRoomDetailsPresenter(room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             // Ignore the initial state
             skipItems(1)
 
@@ -488,7 +537,7 @@ class RoomDetailsPresenterTest {
     @Test
     fun `present - leave room event is passed on to leave room presenter`() = runTest {
         val leaveRoomEventRecorder = EventsRecorder<LeaveRoomEvent>()
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
@@ -498,7 +547,7 @@ class RoomDetailsPresenterTest {
             leaveRoomState = aLeaveRoomState(eventSink = leaveRoomEventRecorder),
             dispatchers = testCoroutineDispatchers()
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             awaitItem().eventSink(RoomDetailsEvent.LeaveRoom)
             leaveRoomEventRecorder.assertSingle(LeaveRoomEvent.ShowConfirmation(room.roomId))
             cancelAndIgnoreRemainingEvents()
@@ -508,7 +557,7 @@ class RoomDetailsPresenterTest {
     @Test
     fun `present - notification mode changes`() = runTest {
         val notificationSettingsService = FakeNotificationSettingsService()
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             notificationSettingsService = notificationSettingsService,
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
@@ -518,7 +567,7 @@ class RoomDetailsPresenterTest {
             room = room,
             notificationSettingsService = notificationSettingsService,
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             notificationSettingsService.setRoomNotificationMode(
                 room.roomId,
                 RoomNotificationMode.MENTIONS_AND_KEYWORDS_ONLY
@@ -537,7 +586,7 @@ class RoomDetailsPresenterTest {
     fun `present - mute room notifications`() = runTest {
         val notificationSettingsService =
             FakeNotificationSettingsService(initialRoomMode = RoomNotificationMode.MENTIONS_AND_KEYWORDS_ONLY)
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             notificationSettingsService = notificationSettingsService,
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
@@ -547,7 +596,7 @@ class RoomDetailsPresenterTest {
             room = room,
             notificationSettingsService = notificationSettingsService
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             awaitItem().eventSink(RoomDetailsEvent.MuteNotification)
             val updatedState = consumeItemsUntilPredicate(timeout = 250.milliseconds) {
                 it.roomNotificationSettings?.mode == RoomNotificationMode.MUTE
@@ -565,7 +614,7 @@ class RoomDetailsPresenterTest {
             initialRoomMode = RoomNotificationMode.MENTIONS_AND_KEYWORDS_ONLY,
             initialEncryptedGroupDefaultMode = RoomNotificationMode.ALL_MESSAGES
         )
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             notificationSettingsService = notificationSettingsService,
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
@@ -575,7 +624,7 @@ class RoomDetailsPresenterTest {
             room = room,
             notificationSettingsService = notificationSettingsService
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             awaitItem().eventSink(RoomDetailsEvent.UnmuteNotification)
             val updatedState = consumeItemsUntilPredicate {
                 it.roomNotificationSettings?.mode == RoomNotificationMode.ALL_MESSAGES
@@ -590,7 +639,7 @@ class RoomDetailsPresenterTest {
     @Test
     fun `present - when set is favorite event is emitted, then the action is called`() = runTest {
         val setIsFavoriteResult = lambdaRecorder<Boolean, Result<Unit>> { _ -> Result.success(Unit) }
-        val room = FakeMatrixRoom(
+        val room = aJoinedRoom(
             setIsFavoriteResult = setIsFavoriteResult,
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
@@ -599,7 +648,7 @@ class RoomDetailsPresenterTest {
         val analyticsService = FakeAnalyticsService()
         val presenter =
             createRoomDetailsPresenter(room = room, analyticsService = analyticsService)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             val initialState = awaitItem()
             initialState.eventSink(RoomDetailsEvent.SetFavorite(true))
             setIsFavoriteResult.assertions().isCalledOnce().with(value(true))
@@ -619,13 +668,13 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - changes in room info updates the is favorite flag`() = runTest {
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
         )
         val presenter = createRoomDetailsPresenter(room = room)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             room.givenRoomInfo(aRoomInfo(isFavorite = true))
             consumeItemsUntilPredicate { it.isFavorite }.last().let { state ->
                 assertThat(state.isFavorite).isTrue()
@@ -640,8 +689,7 @@ class RoomDetailsPresenterTest {
 
     @Test
     fun `present - show knock requests`() = runTest {
-        val room = aMatrixRoom(
-            emitRoomInfo = true,
+        val room = aJoinedRoom(
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
@@ -654,32 +702,27 @@ class RoomDetailsPresenterTest {
             room = room,
             featureFlagService = featureFlagService,
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             skipItems(1)
-            with(awaitItem()) {
-                assertThat(canShowKnockRequests).isFalse()
-            }
+            assertThat(awaitItem().canShowKnockRequests).isFalse()
             featureFlagService.setFeatureEnabled(FeatureFlags.Knock, true)
-            with(awaitItem()) {
-                assertThat(canShowKnockRequests).isTrue()
-            }
+            assertThat(awaitItem().canShowKnockRequests).isTrue()
             room.givenRoomInfo(aRoomInfo(joinRule = JoinRule.Private))
-            with(awaitItem()) {
-                assertThat(canShowKnockRequests).isFalse()
-            }
+            assertThat(awaitItem().canShowKnockRequests).isFalse()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
     fun `present - show security and privacy`() = runTest {
-        val room = aMatrixRoom(
+        val room = aJoinedRoom(
             canInviteResult = { Result.success(true) },
             canUserJoinCallResult = { Result.success(true) },
             canSendStateResult = { _, _ -> Result.success(true) },
         )
         val featureFlagService = FakeFeatureFlagService()
         val presenter = createRoomDetailsPresenter(room = room, featureFlagService = featureFlagService)
-        presenter.test {
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
             skipItems(1)
             with(awaitItem()) {
                 assertThat(canShowSecurityAndPrivacy).isFalse()
@@ -687,6 +730,25 @@ class RoomDetailsPresenterTest {
             featureFlagService.setFeatureEnabled(FeatureFlags.Knock, true)
             with(awaitItem()) {
                 assertThat(canShowSecurityAndPrivacy).isTrue()
+            }
+        }
+    }
+
+    @Test
+    fun `present - show debug info`() = runTest {
+        val room = aJoinedRoom(
+            canInviteResult = { Result.success(true) },
+            canUserJoinCallResult = { Result.success(true) },
+            canSendStateResult = { _, _ -> Result.success(true) },
+        )
+        val inMemoryAppPreferencesStore = InMemoryAppPreferencesStore(
+            isDeveloperModeEnabled = true,
+        )
+        val presenter = createRoomDetailsPresenter(room = room, appPreferencesStore = inMemoryAppPreferencesStore)
+        presenter.testWithLifecycleOwner(lifecycleOwner = fakeLifecycleOwner) {
+            skipItems(1)
+            with(awaitItem()) {
+                assertThat(showDebugInfo).isTrue()
             }
         }
     }

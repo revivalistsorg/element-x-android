@@ -10,6 +10,7 @@ package io.element.android.libraries.matrix.impl.encryption
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.extensions.flatMap
 import io.element.android.libraries.core.extensions.mapFailure
+import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.BackupState
@@ -18,6 +19,7 @@ import io.element.android.libraries.matrix.api.encryption.EnableRecoveryProgress
 import io.element.android.libraries.matrix.api.encryption.EncryptionService
 import io.element.android.libraries.matrix.api.encryption.IdentityResetHandle
 import io.element.android.libraries.matrix.api.encryption.RecoveryState
+import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.sync.SyncState
 import io.element.android.libraries.matrix.impl.sync.RustSyncService
 import kotlinx.coroutines.CoroutineScope
@@ -95,7 +97,7 @@ internal class RustEncryptionService(
         .stateIn(sessionCoroutineScope, SharingStarted.Eagerly, false)
 
     override suspend fun enableBackups(): Result<Unit> = withContext(dispatchers.io) {
-        runCatching {
+        runCatchingExceptions {
             service.enableBackups()
         }.mapFailure {
             it.mapRecoveryException()
@@ -105,7 +107,7 @@ internal class RustEncryptionService(
     override suspend fun enableRecovery(
         waitForBackupsToUpload: Boolean,
     ): Result<Unit> = withContext(dispatchers.io) {
-        runCatching {
+        runCatchingExceptions {
             service.enableRecovery(
                 waitForBackupsToUpload = waitForBackupsToUpload,
                 progressListener = object : EnableRecoveryProgressListener {
@@ -123,14 +125,14 @@ internal class RustEncryptionService(
     }
 
     override suspend fun doesBackupExistOnServer(): Result<Boolean> = withContext(dispatchers.io) {
-        runCatching {
+        runCatchingExceptions {
             service.backupExistsOnServer()
         }
     }
 
     override fun waitForBackupUploadSteadyState(): Flow<BackupUploadState> {
         return callbackFlow {
-            runCatching {
+            runCatchingExceptions {
                 service.waitForBackupUploadSteadyState(
                     progressListener = object : BackupSteadyStateListener {
                         override fun onUpdate(status: RustBackupUploadState) {
@@ -154,7 +156,7 @@ internal class RustEncryptionService(
     }
 
     override suspend fun disableRecovery(): Result<Unit> = withContext(dispatchers.io) {
-        runCatching {
+        runCatchingExceptions {
             service.disableRecovery()
         }.mapFailure {
             it.mapRecoveryException()
@@ -162,7 +164,7 @@ internal class RustEncryptionService(
     }
 
     private suspend fun isLastDevice(): Result<Boolean> = withContext(dispatchers.io) {
-        runCatching {
+        runCatchingExceptions {
             service.isLastDevice()
         }.mapFailure {
             it.mapRecoveryException()
@@ -170,7 +172,7 @@ internal class RustEncryptionService(
     }
 
     override suspend fun resetRecoveryKey(): Result<String> = withContext(dispatchers.io) {
-        runCatching {
+        runCatchingExceptions {
             service.resetRecoveryKey()
         }.mapFailure {
             it.mapRecoveryException()
@@ -178,7 +180,7 @@ internal class RustEncryptionService(
     }
 
     override suspend fun recover(recoveryKey: String): Result<Unit> = withContext(dispatchers.io) {
-        runCatching {
+        runCatchingExceptions {
             service.recover(recoveryKey)
         }.mapFailure {
             it.mapRecoveryException()
@@ -186,33 +188,52 @@ internal class RustEncryptionService(
     }
 
     override suspend fun deviceCurve25519(): String? {
-        return service.curve25519Key()
+        return runCatchingExceptions { service.curve25519Key() }.getOrNull()
     }
 
     override suspend fun deviceEd25519(): String? {
-        return service.ed25519Key()
+        return runCatchingExceptions { service.ed25519Key() }.getOrNull()
     }
 
     override suspend fun startIdentityReset(): Result<IdentityResetHandle?> {
-        return runCatching {
+        return runCatchingExceptions {
             service.resetIdentity()
         }.flatMap { handle ->
             RustIdentityResetHandleFactory.create(sessionId, handle)
         }
     }
 
-    override suspend fun isUserVerified(userId: UserId): Result<Boolean> = runCatching {
-        getUserIdentity(userId).isVerified()
+    override suspend fun isUserVerified(userId: UserId): Result<Boolean> = runCatchingExceptions {
+        getUserIdentityInternal(userId).isVerified()
     }
 
-    override suspend fun pinUserIdentity(userId: UserId): Result<Unit> = runCatching {
-        getUserIdentity(userId).pin()
+    override suspend fun pinUserIdentity(userId: UserId): Result<Unit> = runCatchingExceptions {
+        getUserIdentityInternal(userId).pin()
     }
 
-    private suspend fun getUserIdentity(userId: UserId): UserIdentity {
+    override suspend fun withdrawVerification(userId: UserId): Result<Unit> = runCatchingExceptions {
+        getUserIdentityInternal(userId).withdrawVerification()
+    }
+
+    override suspend fun getUserIdentity(userId: UserId): Result<IdentityState?> = runCatchingExceptions {
+        val identity = getUserIdentityInternal(userId)
+        val isVerified = identity.isVerified()
+        when {
+            identity.hasVerificationViolation() -> IdentityState.VerificationViolation
+            isVerified -> IdentityState.Verified
+            !isVerified -> IdentityState.Pinned
+            else -> null
+        }
+    }
+
+    suspend fun getUserIdentityInternal(userId: UserId): UserIdentity {
         return service.userIdentity(
             userId = userId.value,
             // requestFromHomeserverIfNeeded = true,
         ) ?: error("User identity not found")
+    }
+
+    fun close() {
+        service.close()
     }
 }

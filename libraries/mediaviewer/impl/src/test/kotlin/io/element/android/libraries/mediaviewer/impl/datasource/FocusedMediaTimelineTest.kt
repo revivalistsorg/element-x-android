@@ -9,10 +9,11 @@ package io.element.android.libraries.mediaviewer.impl.datasource
 
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.matrix.api.core.EventId
-import io.element.android.libraries.matrix.api.room.MatrixRoom
+import io.element.android.libraries.matrix.api.room.CreateTimelineParams
+import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.test.AN_EVENT_ID
-import io.element.android.libraries.matrix.test.room.FakeMatrixRoom
+import io.element.android.libraries.matrix.test.room.FakeJoinedRoom
 import io.element.android.libraries.matrix.test.timeline.FakeTimeline
 import io.element.android.libraries.mediaviewer.impl.model.GroupedMediaItems
 import io.element.android.libraries.mediaviewer.impl.model.MediaItem
@@ -75,11 +76,11 @@ class FocusedMediaTimelineTest {
 
     @Test
     fun `getTimeline returns the timeline provided by the room`() = runTest {
-        val mediaTimelineResult = lambdaRecorder<EventId?, Result<Timeline>> {
+        val createTimelineResult = lambdaRecorder<CreateTimelineParams, Result<Timeline>> {
             Result.success(FakeTimeline())
         }
-        val room = FakeMatrixRoom(
-            mediaTimelineResult = mediaTimelineResult,
+        val room = FakeJoinedRoom(
+            createTimelineResult = createTimelineResult,
         )
         val sut = createFocusedMediaTimeline(
             room = room,
@@ -87,16 +88,36 @@ class FocusedMediaTimelineTest {
         )
         val timeline = sut.getTimeline()
         assertThat(timeline.isSuccess).isTrue()
-        mediaTimelineResult.assertions().isCalledOnce().with(value(AN_EVENT_ID))
+        createTimelineResult.assertions().isCalledOnce().with(value(CreateTimelineParams.MediaOnlyFocused(AN_EVENT_ID)))
+    }
+
+    @Test
+    fun `getTimeline returns the timeline provided by the room for pinned Events`() = runTest {
+        val createTimelineResult = lambdaRecorder<CreateTimelineParams, Result<Timeline>> {
+            Result.success(FakeTimeline())
+        }
+        val room = FakeJoinedRoom(
+            createTimelineResult = createTimelineResult,
+        )
+        val sut = createFocusedMediaTimeline(
+            room = room,
+            eventId = AN_EVENT_ID,
+            onlyPinnedEvent = true,
+        )
+        val timeline = sut.getTimeline()
+        assertThat(timeline.isSuccess).isTrue()
+        createTimelineResult.assertions().isCalledOnce().with(value(CreateTimelineParams.PinnedOnly))
     }
 
     private fun createFocusedMediaTimeline(
-        room: MatrixRoom = FakeMatrixRoom(),
+        room: JoinedRoom = FakeJoinedRoom(),
         eventId: EventId = AN_EVENT_ID,
         initialMediaItem: MediaItem.Event = aMediaItemImage(),
+        onlyPinnedEvent: Boolean = false,
     ) = FocusedMediaTimeline(
         room = room,
         eventId = eventId,
         initialMediaItem = initialMediaItem,
+        onlyPinnedEvents = onlyPinnedEvent,
     )
 }

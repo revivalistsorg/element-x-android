@@ -29,8 +29,8 @@ import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.architecture.runUpdatingState
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomAlias
-import io.element.android.libraries.matrix.api.room.MatrixRoom
-import io.element.android.libraries.matrix.api.room.MatrixRoomInfo
+import io.element.android.libraries.matrix.api.room.JoinedRoom
+import io.element.android.libraries.matrix.api.room.RoomInfo
 import io.element.android.libraries.matrix.api.room.history.RoomHistoryVisibility
 import io.element.android.libraries.matrix.api.room.join.JoinRule
 import io.element.android.libraries.matrix.api.roomdirectory.RoomVisibility
@@ -43,7 +43,7 @@ import kotlinx.coroutines.launch
 class SecurityAndPrivacyPresenter @AssistedInject constructor(
     @Assisted private val navigator: SecurityAndPrivacyNavigator,
     private val matrixClient: MatrixClient,
-    private val room: MatrixRoom,
+    private val room: JoinedRoom,
 ) : Presenter<SecurityAndPrivacyState> {
     @AssistedFactory
     interface Factory {
@@ -57,7 +57,7 @@ class SecurityAndPrivacyPresenter @AssistedInject constructor(
         val saveAction = remember { mutableStateOf<AsyncAction<Unit>>(AsyncAction.Uninitialized) }
         val homeserverName = remember { matrixClient.userIdServerName() }
         val syncUpdateFlow = room.syncUpdateFlow.collectAsState()
-        val roomInfo = room.roomInfoFlow.collectAsState(null)
+        val roomInfo by room.roomInfoFlow.collectAsState()
 
         val savedIsVisibleInRoomDirectory = remember { mutableStateOf<AsyncData<Boolean>>(AsyncData.Uninitialized) }
         LaunchedEffect(Unit) {
@@ -66,12 +66,13 @@ class SecurityAndPrivacyPresenter @AssistedInject constructor(
 
         val savedSettings by remember {
             derivedStateOf {
+                val historyVisibility = roomInfo.historyVisibility.map()
                 SecurityAndPrivacySettings(
-                    roomAccess = roomInfo.value?.joinRule.map(),
-                    isEncrypted = room.isEncrypted,
+                    roomAccess = roomInfo.joinRule.map(),
+                    isEncrypted = roomInfo.isEncrypted == true,
                     isVisibleInRoomDirectory = savedIsVisibleInRoomDirectory.value,
-                    historyVisibility = roomInfo.value?.historyVisibility.map(),
-                    address = roomInfo.value?.firstDisplayableAlias(homeserverName)?.value,
+                    historyVisibility = historyVisibility,
+                    address = roomInfo.firstDisplayableAlias(homeserverName)?.value,
                 )
             }
         }
@@ -278,6 +279,6 @@ private fun SecurityAndPrivacyHistoryVisibility.map(): RoomHistoryVisibility {
     }
 }
 
-private fun MatrixRoomInfo.firstDisplayableAlias(serverName: String): RoomAlias? {
+private fun RoomInfo.firstDisplayableAlias(serverName: String): RoomAlias? {
     return aliases.firstOrNull { it.matchesServer(serverName) } ?: aliases.firstOrNull()
 }

@@ -14,6 +14,12 @@ plugins {
 
 android {
     namespace = "io.element.android.features.ftue.impl"
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 setupAnvil()
@@ -30,6 +36,7 @@ dependencies {
     implementation(projects.libraries.uiStrings)
     implementation(projects.libraries.testtags)
     implementation(projects.features.analytics.api)
+    implementation(projects.features.logout.api)
     implementation(projects.features.securebackup.api)
     implementation(projects.features.verifysession.api)
     implementation(projects.services.analytics.api)
@@ -37,16 +44,19 @@ dependencies {
     implementation(projects.libraries.permissions.api)
     implementation(projects.libraries.permissions.noop)
     implementation(projects.services.toolbox.api)
+    implementation(projects.appconfig)
 
     testImplementation(libs.test.junit)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.molecule.runtime)
     testImplementation(libs.test.truth)
     testImplementation(libs.test.turbine)
+    testImplementation(libs.test.robolectric)
+    testImplementation(libs.androidx.compose.ui.test.junit)
+    testReleaseImplementation(libs.androidx.compose.ui.test.manifest)
     testImplementation(projects.libraries.matrix.test)
     testImplementation(projects.services.analytics.test)
     testImplementation(projects.services.analytics.noop)
-    testImplementation(projects.libraries.permissions.impl)
     testImplementation(projects.libraries.permissions.test)
     testImplementation(projects.libraries.preferences.test)
     testImplementation(projects.features.lockscreen.test)

@@ -26,7 +26,7 @@
   </plurals>
   <string name="a11y_read_receipts_single">"Citit de%1$s"</string>
   <string name="a11y_read_receipts_tap_to_show_all">"Atingeți pentru a le afișa pe toate"</string>
-  <string name="a11y_remove_reaction_with">"Îndepărtați reacția cu %1$s"</string>
+  <string name="a11y_remove_reaction">"Îndepărtați reacția cu %1$s"</string>
   <string name="a11y_send_files">"Trimiteți fișiere"</string>
   <string name="a11y_show_password">"Afișați parola"</string>
   <string name="a11y_start_call">"Începeți un apel"</string>
@@ -123,6 +123,8 @@
   <string name="action_view_in_timeline">"Vedeți în cameră"</string>
   <string name="action_view_source">"Vedeți sursă"</string>
   <string name="action_yes">"Da"</string>
+  <string name="banner_migrate_to_native_sliding_sync_description">"Serverul dvs. acceptă acum un protocol nou, mai rapid. Deconectați-vă și conectați-vă din nou pentru a face upgrade acum. Dacă faceți acest lucru acum, vă va ajuta să evitați o deconectare forțată atunci când vechiul protocol este eliminat ulterior."</string>
+  <string name="banner_migrate_to_native_sliding_sync_title">"Upgrade disponibil"</string>
   <string name="common_about">"Despre"</string>
   <string name="common_acceptable_use_policy">"Politică de utilizare rezonabilă"</string>
   <string name="common_advanced_settings">"Setări avansate"</string>
@@ -169,6 +171,11 @@ Motiv:%1$s."</string>
   <string name="common_light">"Deschis"</string>
   <string name="common_link_copied_to_clipboard">"Linkul a fost copiat în clipboard"</string>
   <string name="common_loading">"Se încarcă…"</string>
+  <plurals name="common_many_members">
+    <item quantity="one">"%d altul"</item>
+    <item quantity="few">"%d alții"</item>
+    <item quantity="other">"%d alții"</item>
+  </plurals>
   <plurals name="common_member_count">
     <item quantity="one">"%1$d membru"</item>
     <item quantity="few">"%1$d membri"</item>
@@ -320,7 +327,6 @@ Motiv:%1$s."</string>
   <string name="screen_room_pinned_banner_loading_description">"Se încarcă mesajul…"</string>
   <string name="screen_room_pinned_banner_view_all_button_title">"Vedeți toate"</string>
   <string name="screen_room_title">"Chat"</string>
-  <string name="screen_roomlist_knock_event_sent_description">"Cererea de alăturare a fost trimisă"</string>
   <string name="screen_share_location_title">"Partajați locația"</string>
   <string name="screen_share_my_location_action">"Distribuiți locația mea"</string>
   <string name="screen_share_open_apple_maps">"Deschideți în Apple Maps"</string>

@@ -13,7 +13,7 @@
     <item quantity="one">"%d teavitus"</item>
     <item quantity="other">"%d teavitust"</item>
   </plurals>
-  <string name="notification_fallback_content">"Teavitus"</string>
+  <string name="notification_fallback_content">"Sulle on uusi sõnumeid."</string>
   <string name="notification_incoming_call">"📹 Sissetulev kõne"</string>
   <string name="notification_inline_reply_failed">"** Saatmine ei õnnestunud - palun ava jututoa täisvaade"</string>
   <string name="notification_invitation_action_join">"Liitu"</string>
@@ -64,6 +64,7 @@
     <item quantity="one">"Leidsime %1$d tõuketeenuse pakkuja: %2$s"</item>
     <item quantity="other">"Leidsime %1$d tõuketeenuse pakkujat: %2$s"</item>
   </plurals>
+  <string name="troubleshoot_notifications_test_detect_push_provider_success_2">"Rakendus on kompileeritud kaasneva toega teenusele: %1$s"</string>
   <string name="troubleshoot_notifications_test_detect_push_provider_title">"Tuvasta tõuketeenuste pakkujad"</string>
   <string name="troubleshoot_notifications_test_display_notification_description">"Palun kontrolli, et rakendus saaks kuvada teavitusi."</string>
   <string name="troubleshoot_notifications_test_display_notification_failure">"Sa pole teavitust klõpsinud."</string>

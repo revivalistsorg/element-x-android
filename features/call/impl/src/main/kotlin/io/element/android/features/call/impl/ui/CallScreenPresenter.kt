@@ -32,6 +32,7 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.MatrixClientProvider
 import io.element.android.libraries.matrix.api.core.RoomId
@@ -39,15 +40,17 @@ import io.element.android.libraries.matrix.api.sync.SyncState
 import io.element.android.libraries.matrix.api.widget.MatrixWidgetDriver
 import io.element.android.libraries.network.useragent.UserAgentProvider
 import io.element.android.services.analytics.api.ScreenTracker
+import io.element.android.services.appnavstate.api.ActiveRoomsHolder
+import io.element.android.services.appnavstate.api.AppForegroundStateService
 import io.element.android.services.toolbox.api.systemclock.SystemClock
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import timber.log.Timber
 import java.util.UUID
+import kotlin.time.Duration.Companion.seconds
 
 class CallScreenPresenter @AssistedInject constructor(
     @Assisted private val callType: CallType,
@@ -58,9 +61,12 @@ class CallScreenPresenter @AssistedInject constructor(
     private val dispatchers: CoroutineDispatchers,
     private val matrixClientsProvider: MatrixClientProvider,
     private val screenTracker: ScreenTracker,
-    private val appCoroutineScope: CoroutineScope,
     private val activeCallManager: ActiveCallManager,
     private val languageTagProvider: LanguageTagProvider,
+    private val appForegroundStateService: AppForegroundStateService,
+    private val activeRoomsHolder: ActiveRoomsHolder,
+    @AppCoroutineScope
+    private val appCoroutineScope: CoroutineScope,
 ) : Presenter<CallScreenState> {
     @AssistedFactory
     interface Factory {
@@ -82,11 +88,12 @@ class CallScreenPresenter @AssistedInject constructor(
         var webViewError by remember { mutableStateOf<String?>(null) }
         val languageTag = languageTagProvider.provideLanguageTag()
         val theme = if (ElementTheme.isLightTheme) "light" else "dark"
+
         DisposableEffect(Unit) {
             coroutineScope.launch {
                 // Sets the call as joined
                 activeCallManager.joinedCall(callType)
-                loadUrl(
+                fetchRoomCallUrl(
                     inputs = callType,
                     urlState = urlState,
                     callWidgetDriver = callWidgetDriver,
@@ -95,7 +102,7 @@ class CallScreenPresenter @AssistedInject constructor(
                 )
             }
             onDispose {
-                activeCallManager.hungUpCall(callType)
+                appCoroutineScope.launch { activeCallManager.hungUpCall(callType) }
             }
         }
 
@@ -134,18 +141,26 @@ class CallScreenPresenter @AssistedInject constructor(
 
                         val parsedMessage = parseMessage(it)
                         if (parsedMessage?.direction == WidgetMessage.Direction.FromWidget) {
-                            if (parsedMessage.action == WidgetMessage.Action.HangUp) {
+                            if (parsedMessage.action == WidgetMessage.Action.Close) {
                                 close(callWidgetDriver.value, navigator)
-                            } else if (parsedMessage.action == WidgetMessage.Action.SendEvent) {
-                                // This event is received when a member joins the call, the first one will be the current one
-                                val type = parsedMessage.data?.jsonObject?.get("type")?.jsonPrimitive?.contentOrNull
-                                if (type == "org.matrix.msc3401.call.member") {
-                                    isJoinedCall = true
-                                }
+                            } else if (parsedMessage.action == WidgetMessage.Action.Join) {
+                                isJoinedCall = true
                             }
                         }
                     }
                     .launchIn(this)
+            }
+
+            LaunchedEffect(Unit) {
+                // Wait for the call to be joined, if it takes too long, we display an error
+                delay(10.seconds)
+
+                if (!isJoinedCall) {
+                    Timber.w("The call took too long to be joined. Displaying an error before exiting.")
+
+                    // This will display a simple 'Sorry, an error occurred' dialog and force the user to exit the call
+                    webViewError = ""
+                }
             }
         }
 
@@ -158,6 +173,13 @@ class CallScreenPresenter @AssistedInject constructor(
                         // If the call was joined, we need to hang up first. Then the UI will be dismissed automatically.
                         sendHangupMessage(widgetId, interceptor)
                         isJoinedCall = false
+
+                        coroutineScope.launch {
+                            // Wait for a couple of seconds to receive the hangup message
+                            // If we don't get it in time, we close the screen anyway
+                            delay(2.seconds)
+                            close(callWidgetDriver.value, navigator)
+                        }
                     } else {
                         coroutineScope.launch {
                             close(callWidgetDriver.value, navigator)
@@ -186,7 +208,7 @@ class CallScreenPresenter @AssistedInject constructor(
         )
     }
 
-    private suspend fun loadUrl(
+    private suspend fun fetchRoomCallUrl(
         inputs: CallType,
         urlState: MutableState<AsyncData<String>>,
         callWidgetDriver: MutableState<MatrixWidgetDriver?>,
@@ -207,6 +229,7 @@ class CallScreenPresenter @AssistedInject constructor(
                         theme = theme,
                     ).getOrThrow()
                     callWidgetDriver.value = result.driver
+                    Timber.d("Call widget driver initialized for sessionId: ${inputs.sessionId}, roomId: ${inputs.roomId}")
                     result.url
                 }
             }
@@ -217,37 +240,53 @@ class CallScreenPresenter @AssistedInject constructor(
     private fun HandleMatrixClientSyncState() {
         val coroutineScope = rememberCoroutineScope()
         DisposableEffect(Unit) {
-            val client = (callType as? CallType.RoomCall)?.sessionId?.let {
-                matrixClientsProvider.getOrNull(it)
-            } ?: return@DisposableEffect onDispose { }
+            val roomCallType = callType as? CallType.RoomCall ?: return@DisposableEffect onDispose {}
+            val client = matrixClientsProvider.getOrNull(roomCallType.sessionId) ?: return@DisposableEffect onDispose {
+                Timber.w("No MatrixClient found for sessionId, can't send call notification: ${roomCallType.sessionId}")
+            }
             coroutineScope.launch {
+                Timber.d("Observing sync state in-call for sessionId: ${roomCallType.sessionId}")
                 client.syncService().syncState
                     .collect { state ->
                         if (state == SyncState.Running) {
                             client.notifyCallStartIfNeeded(callType.roomId)
                         } else {
-                            client.syncService().startSync()
+                            appForegroundStateService.updateIsInCallState(true)
                         }
                     }
             }
             onDispose {
-                // We can't use the local coroutine scope here because it will be disposed before this effect
-                appCoroutineScope.launch {
-                    client.syncService().run {
-                        if (syncState.value == SyncState.Running) {
-                            stopSync()
-                        }
-                    }
-                }
+                Timber.d("Stopped observing sync state in-call for sessionId: ${roomCallType.sessionId}")
+                // Make sure we mark the call as ended in the app state
+                appForegroundStateService.updateIsInCallState(false)
             }
         }
     }
 
     private suspend fun MatrixClient.notifyCallStartIfNeeded(roomId: RoomId) {
-        if (!notifiedCallStart) {
-            getRoom(roomId)?.sendCallNotificationIfNeeded()
-                ?.onSuccess { notifiedCallStart = true }
+        if (notifiedCallStart) return
+
+        val activeRoomForSession = activeRoomsHolder.getActiveRoomMatching(sessionId, roomId)
+        val sendCallNotificationResult = if (activeRoomForSession != null) {
+            Timber.d("Notifying call start for room $roomId. Has room call: ${activeRoomForSession.info().hasRoomCall}")
+            activeRoomForSession.sendCallNotificationIfNeeded()
+        } else {
+            // Instantiate the room from the session and roomId and send the notification
+            getJoinedRoom(roomId)?.use { room ->
+                Timber.d("Notifying call start for room $roomId. Has room call: ${room.info().hasRoomCall}")
+                room.sendCallNotificationIfNeeded()
+            } ?: run {
+                Timber.w("No room found for session $sessionId and room $roomId, skipping call notification.")
+                return
+            }
         }
+
+        sendCallNotificationResult.fold(
+            onSuccess = { notifiedCallStart = true },
+            onFailure = { error ->
+                Timber.e(error, "Failed to send call notification for room $roomId.")
+            }
+        )
     }
 
     private fun parseMessage(message: String): WidgetMessage? {

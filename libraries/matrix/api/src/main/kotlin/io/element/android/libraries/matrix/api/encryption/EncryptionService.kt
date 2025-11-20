@@ -8,6 +8,7 @@
 package io.element.android.libraries.matrix.api.encryption
 
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -66,6 +67,20 @@ interface EncryptionService {
      * Remember this identity, ensuring it does not result in a pin violation.
      */
     suspend fun pinUserIdentity(userId: UserId): Result<Unit>
+
+    /**
+     * Withdraw the verification for that user (also pin the identity).
+     *
+     * Useful when a user that was verified is not anymore, but it is not
+     * possible to re-verify immediately. This allows to restore communication by reverting the
+     * user trust from verified to TOFU verified.
+     */
+    suspend fun withdrawVerification(userId: UserId): Result<Unit>
+
+    /**
+     * Get the identity state of a user, if known.
+     */
+    suspend fun getUserIdentity(userId: UserId): Result<IdentityState?>
 }
 
 /**

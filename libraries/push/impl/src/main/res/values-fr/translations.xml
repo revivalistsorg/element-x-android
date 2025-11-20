@@ -13,8 +13,8 @@
     <item quantity="one">"%d notification"</item>
     <item quantity="other">"%d notifications"</item>
   </plurals>
-  <string name="notification_fallback_content">"Notification"</string>
-  <string name="notification_incoming_call">"Appel entrant"</string>
+  <string name="notification_fallback_content">"Vous avez de nouveau(x) message(s)."</string>
+  <string name="notification_incoming_call">"📹 Appel entrant"</string>
   <string name="notification_inline_reply_failed">"** Échec de l’envoi - veuillez ouvrir le salon"</string>
   <string name="notification_invitation_action_join">"Rejoindre"</string>
   <string name="notification_invitation_action_reject">"Rejeter"</string>
@@ -64,6 +64,7 @@
     <item quantity="one">"%1$d fournisseur de Push détecté : %2$s"</item>
     <item quantity="other">"%1$d fournisseurs de Push détectés : %2$s"</item>
   </plurals>
+  <string name="troubleshoot_notifications_test_detect_push_provider_success_2">"L’application a été compilée avec la prise en charge de : %1$s"</string>
   <string name="troubleshoot_notifications_test_detect_push_provider_title">"Détecter les fournisseurs de Push"</string>
   <string name="troubleshoot_notifications_test_display_notification_description">"Vérifier que l’application peut afficher des notifications."</string>
   <string name="troubleshoot_notifications_test_display_notification_failure">"Vous n’avez pas cliqué sur la notification."</string>

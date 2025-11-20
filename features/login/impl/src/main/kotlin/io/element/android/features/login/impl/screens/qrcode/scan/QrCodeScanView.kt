@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.progressSemantics
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.login.impl.R
+import io.element.android.features.login.impl.changeserver.UnauthorizedAccountProviderException
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.designsystem.atomic.pages.FlowStepPage
 import io.element.android.libraries.designsystem.components.BigIcon
@@ -137,26 +137,38 @@ private fun ColumnScope.Buttons(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
-                            imageVector = CompoundIcons.Error(),
-                            tint = MaterialTheme.colorScheme.error,
+                            imageVector = CompoundIcons.ErrorSolid(),
+                            tint = ElementTheme.colors.iconCriticalPrimary,
                             contentDescription = null,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = when (error) {
+                                is UnauthorizedAccountProviderException -> {
+                                    stringResource(
+                                        id = R.string.screen_change_server_error_unauthorized_homeserver_title,
+                                        error.unauthorisedAccountProviderTitle,
+                                    )
+                                }
                                 is QrLoginException.OtherDeviceNotSignedIn -> {
                                     stringResource(R.string.screen_qr_code_login_device_not_signed_in_scan_state_subtitle)
                                 }
                                 else -> stringResource(R.string.screen_qr_code_login_invalid_scan_state_subtitle)
                             },
                             textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.error,
+                            color = ElementTheme.colors.textCriticalPrimary,
                             style = ElementTheme.typography.fontBodySmMedium,
                         )
                     }
                     Text(
                         text = when (error) {
+                            is UnauthorizedAccountProviderException -> {
+                                stringResource(
+                                    id = R.string.screen_change_server_error_unauthorized_homeserver_content,
+                                    error.authorisedAccountProviderTitles.joinToString(),
+                                )
+                            }
                             is QrLoginException.OtherDeviceNotSignedIn -> {
                                 stringResource(R.string.screen_qr_code_login_device_not_signed_in_scan_state_description)
                             }

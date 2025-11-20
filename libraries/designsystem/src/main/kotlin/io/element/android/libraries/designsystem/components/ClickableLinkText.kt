@@ -135,7 +135,7 @@ fun ClickableLinkText(
 
 fun AnnotatedString.linkify(linkStyle: SpanStyle): AnnotatedString {
     val original = this
-    val spannable = SpannableString(this.text)
+    val spannable = SpannableString.valueOf(this.text)
     LinkifyCompat.addLinks(spannable, Linkify.WEB_URLS or Linkify.PHONE_NUMBERS or Linkify.EMAIL_ADDRESSES)
 
     val spans = spannable.getSpans(0, spannable.length, URLSpan::class.java)
@@ -147,6 +147,7 @@ fun AnnotatedString.linkify(linkStyle: SpanStyle): AnnotatedString {
             if (original.getLinkAnnotations(start, end).isEmpty() && original.getStringAnnotations("URL", start, end).isEmpty()) {
                 // Prevent linkifying domains in user or room handles (@user:domain.com, #room:domain.com)
                 if (start > 0 && !spannable[start - 1].isWhitespace()) continue
+
                 addStyle(
                     start = start,
                     end = end,

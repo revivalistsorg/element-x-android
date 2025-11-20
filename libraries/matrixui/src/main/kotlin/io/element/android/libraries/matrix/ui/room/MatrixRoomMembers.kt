@@ -14,19 +14,19 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import io.element.android.libraries.matrix.api.core.UserId
-import io.element.android.libraries.matrix.api.room.MatrixRoom
-import io.element.android.libraries.matrix.api.room.MatrixRoomMembersState
+import io.element.android.libraries.matrix.api.room.BaseRoom
 import io.element.android.libraries.matrix.api.room.RoomMember
+import io.element.android.libraries.matrix.api.room.RoomMembersState
 import io.element.android.libraries.matrix.api.room.roomMembers
 
 @Composable
-fun MatrixRoom.getRoomMemberAsState(userId: UserId): State<RoomMember?> {
+fun BaseRoom.getRoomMemberAsState(userId: UserId): State<RoomMember?> {
     val roomMembersState by membersStateFlow.collectAsState()
     return getRoomMemberAsState(roomMembersState = roomMembersState, userId = userId)
 }
 
 @Composable
-fun getRoomMemberAsState(roomMembersState: MatrixRoomMembersState, userId: UserId): State<RoomMember?> {
+fun getRoomMemberAsState(roomMembersState: RoomMembersState, userId: UserId): State<RoomMember?> {
     val roomMembers = roomMembersState.roomMembers()
     return remember(roomMembers) {
         derivedStateOf {
@@ -38,19 +38,20 @@ fun getRoomMemberAsState(roomMembersState: MatrixRoomMembersState, userId: UserI
 }
 
 @Composable
-fun MatrixRoom.getDirectRoomMember(roomMembersState: MatrixRoomMembersState): State<RoomMember?> {
+fun BaseRoom.getDirectRoomMember(roomMembersState: RoomMembersState): State<RoomMember?> {
     val roomMembers = roomMembersState.roomMembers()
-    return remember(roomMembersState) {
+    val roomInfo by roomInfoFlow.collectAsState()
+    return remember(roomMembersState, roomInfo.isDirect) {
         derivedStateOf {
             roomMembers
                 ?.filter { it.membership.isActive() }
-                ?.takeIf { it.size == 2 && isDirect }
+                ?.takeIf { it.size == 2 && roomInfo.isDirect == true }
                 ?.find { it.userId != sessionId }
         }
     }
 }
 
 @Composable
-fun MatrixRoom.getCurrentRoomMember(roomMembersState: MatrixRoomMembersState): State<RoomMember?> {
+fun BaseRoom.getCurrentRoomMember(roomMembersState: RoomMembersState): State<RoomMember?> {
     return getRoomMemberAsState(roomMembersState = roomMembersState, userId = sessionId)
 }

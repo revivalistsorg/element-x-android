@@ -31,6 +31,7 @@ import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.createroom.CreateRoomParameters
 import io.element.android.libraries.matrix.api.createroom.RoomPreset
 import io.element.android.libraries.matrix.api.room.alias.RoomAliasHelper
+import io.element.android.libraries.matrix.api.room.history.RoomHistoryVisibility
 import io.element.android.libraries.matrix.api.roomdirectory.RoomVisibility
 import io.element.android.libraries.matrix.ui.media.AvatarAction
 import io.element.android.libraries.matrix.ui.room.address.RoomAddressValidity
@@ -65,7 +66,9 @@ class ConfigureRoomPresenter @Inject constructor(
         val cameraPermissionState = cameraPermissionPresenter.present()
         val createRoomConfig by dataStore.createRoomConfigWithInvites.collectAsState(CreateRoomConfig())
         val homeserverName = remember { matrixClient.userIdServerName() }
-        val isKnockFeatureEnabled by featureFlagService.isFeatureEnabledFlow(FeatureFlags.Knock).collectAsState(initial = false)
+        val isKnockFeatureEnabled by remember {
+            featureFlagService.isFeatureEnabledFlow(FeatureFlags.Knock)
+        }.collectAsState(initial = false)
         val roomAddressValidity = remember {
             mutableStateOf<RoomAddressValidity>(RoomAddressValidity.Unknown)
         }
@@ -175,6 +178,7 @@ class ConfigureRoomPresenter @Inject constructor(
                     isEncrypted = config.roomVisibility is RoomVisibilityState.Private,
                     isDirect = false,
                     visibility = RoomVisibility.Private,
+                    historyVisibilityOverride = RoomHistoryVisibility.Invited,
                     preset = RoomPreset.PRIVATE_CHAT,
                     invite = config.invites.map { it.userId },
                     avatar = avatarUrl,

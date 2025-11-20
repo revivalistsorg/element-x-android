@@ -9,8 +9,8 @@ package io.element.android.features.messages.impl.messagecomposer.suggestions
 
 import io.element.android.libraries.core.data.filterUpTo
 import io.element.android.libraries.matrix.api.core.UserId
-import io.element.android.libraries.matrix.api.room.MatrixRoomMembersState
 import io.element.android.libraries.matrix.api.room.RoomMember
+import io.element.android.libraries.matrix.api.room.RoomMembersState
 import io.element.android.libraries.matrix.api.room.RoomMembershipState
 import io.element.android.libraries.matrix.api.room.roomMembers
 import io.element.android.libraries.textcomposer.mentions.ResolvedSuggestion
@@ -33,7 +33,7 @@ class SuggestionsProcessor @Inject constructor() {
      */
     suspend fun process(
         suggestion: Suggestion?,
-        roomMembersState: MatrixRoomMembersState,
+        roomMembersState: RoomMembersState,
         roomAliasSuggestions: List<RoomAliasSuggestion>,
         currentUserId: UserId,
         canSendRoomMention: suspend () -> Boolean,
@@ -53,7 +53,11 @@ class SuggestionsProcessor @Inject constructor() {
             }
             SuggestionType.Room -> {
                 roomAliasSuggestions
-                    .filter { it.roomAlias.value.contains(suggestion.text, ignoreCase = true) }
+                    .filter { roomAliasSuggestion ->
+                        // Filter by either room alias or room name (if available)
+                        roomAliasSuggestion.roomAlias.value.contains(suggestion.text, ignoreCase = true) ||
+                            roomAliasSuggestion.roomName?.contains(suggestion.text, ignoreCase = true) == true
+                    }
                     .map {
                         ResolvedSuggestion.Alias(
                             roomAlias = it.roomAlias,

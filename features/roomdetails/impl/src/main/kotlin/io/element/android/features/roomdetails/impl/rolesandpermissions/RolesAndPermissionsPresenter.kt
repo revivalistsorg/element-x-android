@@ -21,8 +21,8 @@ import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runUpdatingState
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.matrix.api.core.UserId
-import io.element.android.libraries.matrix.api.room.MatrixRoom
-import io.element.android.libraries.matrix.api.room.MatrixRoomInfo
+import io.element.android.libraries.matrix.api.room.JoinedRoom
+import io.element.android.libraries.matrix.api.room.RoomInfo
 import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.activeRoomMembers
 import io.element.android.libraries.matrix.api.room.powerlevels.UserRoleChange
@@ -32,14 +32,14 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class RolesAndPermissionsPresenter @Inject constructor(
-    private val room: MatrixRoom,
+    private val room: JoinedRoom,
     private val dispatchers: CoroutineDispatchers,
     private val analyticsService: AnalyticsService,
 ) : Presenter<RolesAndPermissionsState> {
     @Composable
     override fun present(): RolesAndPermissionsState {
         val coroutineScope = rememberCoroutineScope()
-        val roomInfo by room.roomInfoFlow.collectAsState(initial = null)
+        val roomInfo by room.roomInfoFlow.collectAsState()
         val roomMembers by room.membersStateFlow.collectAsState()
         // Get the list of active room members (joined or invited), in order to filter members present in the power
         // level state Event.
@@ -105,13 +105,13 @@ class RolesAndPermissionsPresenter @Inject constructor(
     ) = launch(dispatchers.io) {
         runUpdatingState(resetPermissionsAction) {
             analyticsService.capture(RoomModeration(RoomModeration.Action.ResetPermissions))
-            room.resetPowerLevels().map {}
+            room.resetPowerLevels()
         }
     }
 
-    private fun MatrixRoomInfo?.userCountWithRole(userIds: List<UserId>, role: RoomMember.Role): Int {
-        return this?.userPowerLevels.orEmpty().count { (userId, level) ->
+    private fun RoomInfo.userCountWithRole(userIds: List<UserId>, role: RoomMember.Role): Int {
+        return this.roomPowerLevels?.users?.count { (userId, level) ->
             RoomMember.Role.forPowerLevel(level) == role && userId in userIds
-        }
+        } ?: 0
     }
 }

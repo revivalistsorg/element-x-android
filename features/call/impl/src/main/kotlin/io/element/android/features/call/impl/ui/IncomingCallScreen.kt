@@ -39,6 +39,7 @@ import io.element.android.libraries.designsystem.background.OnboardingBackground
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Icon
@@ -74,7 +75,8 @@ internal fun IncomingCallScreen(
                     name = notificationData.senderName,
                     url = notificationData.avatarUrl,
                     size = AvatarSize.IncomingCall,
-                )
+                ),
+                avatarType = AvatarType.User,
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
@@ -100,7 +102,7 @@ internal fun IncomingCallScreen(
             ActionButton(
                 size = 64.dp,
                 onClick = { onAnswer(notificationData) },
-                icon = CompoundIcons.VoiceCall(),
+                icon = CompoundIcons.VoiceCallSolid(),
                 title = stringResource(CommonStrings.action_accept),
                 backgroundColor = ElementTheme.colors.iconSuccessPrimary,
                 borderColor = ElementTheme.colors.borderSuccessSubtle
@@ -173,6 +175,7 @@ internal fun IncomingCallScreenPreview() = ElementPreview {
             avatarUrl = null,
             notificationChannelId = "incoming_call",
             timestamp = 0L,
+            textContent = null,
         ),
         onAnswer = {},
         onCancel = {},

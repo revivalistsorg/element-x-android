@@ -15,8 +15,7 @@
     <item quantity="few">"%d powiadomienia"</item>
     <item quantity="many">"%d powiadomień"</item>
   </plurals>
-  <string name="notification_fallback_content">"Powiadomienie"</string>
-  <string name="notification_incoming_call">"Przychodzące połączenie"</string>
+  <string name="notification_incoming_call">"📹 Połączenie przychodzące"</string>
   <string name="notification_inline_reply_failed">"** Nie udało się wysłać - proszę otworzyć pokój"</string>
   <string name="notification_invitation_action_join">"Dołącz"</string>
   <string name="notification_invitation_action_reject">"Odrzuć"</string>
@@ -71,6 +70,7 @@
     <item quantity="few">"Znaleziono %1$d dostawców push: %2$s"</item>
     <item quantity="many">"Znaleziono %1$d dostawców push: %2$s"</item>
   </plurals>
+  <string name="troubleshoot_notifications_test_detect_push_provider_success_2">"Aplikacja została zbudowana ze wsparciem dla: %1$s"</string>
   <string name="troubleshoot_notifications_test_detect_push_provider_title">"Wykryj dostawców powiadomień push"</string>
   <string name="troubleshoot_notifications_test_display_notification_description">"Sprawdź, czy aplikacja może wyświetlać powiadomienie."</string>
   <string name="troubleshoot_notifications_test_display_notification_failure">"Powiadomienie nie zostało kliknięte."</string>
