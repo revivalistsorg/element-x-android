@@ -16,11 +16,10 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +28,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
+import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.lockscreen.impl.R
 import io.element.android.features.lockscreen.impl.components.PinEntryTextField
 import io.element.android.features.lockscreen.impl.setup.pin.validation.SetupPinFailure
@@ -89,7 +89,7 @@ private fun SetupPinHeader(
                 stringResource(id = R.string.screen_app_lock_setup_choose_pin)
             },
             subTitle = stringResource(id = R.string.screen_app_lock_setup_pin_context, appName),
-            iconStyle = BigIcon.Style.Default(Icons.Filled.Lock),
+            iconStyle = BigIcon.Style.Default(CompoundIcons.LockSolid()),
         )
     }
 }
@@ -125,6 +125,7 @@ private fun SetupPinContent(
 }
 
 @Composable
+@ReadOnlyComposable
 private fun SetupPinFailure.content(): String {
     return when (this) {
         SetupPinFailure.ForbiddenPin -> stringResource(id = R.string.screen_app_lock_setup_pin_forbidden_dialog_content)
@@ -133,6 +134,7 @@ private fun SetupPinFailure.content(): String {
 }
 
 @Composable
+@ReadOnlyComposable
 private fun SetupPinFailure.title(): String {
     return when (this) {
         SetupPinFailure.ForbiddenPin -> stringResource(id = R.string.screen_app_lock_setup_pin_forbidden_dialog_title)

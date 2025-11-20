@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.BiasAlignment
@@ -96,25 +95,27 @@ private fun AnalyticsOptInHeader(
             subtitle = stringResource(id = R.string.screen_analytics_prompt_help_us_improve),
             iconStyle = BigIcon.Style.Default(CompoundIcons.Chart())
         )
-        val text = buildAnnotatedStringWithStyledPart(
-            R.string.screen_analytics_prompt_read_terms,
-            R.string.screen_analytics_prompt_read_terms_content_link,
-            color = Color.Unspecified,
-            underline = false,
-            bold = true,
-            tagAndLink = LINK_TAG to AnalyticsConfig.POLICY_LINK,
-        )
-        ClickableLinkText(
-            annotatedString = text,
-            onClick = { onClickTerms() },
-            modifier = Modifier
-                .padding(8.dp),
-            style = ElementTheme.typography.fontBodyMdRegular
-                .copy(
-                    color = MaterialTheme.colorScheme.secondary,
-                    textAlign = TextAlign.Center,
-                )
-        )
+        if (state.hasPolicyLink) {
+            val text = buildAnnotatedStringWithStyledPart(
+                R.string.screen_analytics_prompt_read_terms,
+                R.string.screen_analytics_prompt_read_terms_content_link,
+                color = Color.Unspecified,
+                underline = false,
+                bold = true,
+                tagAndLink = LINK_TAG to AnalyticsConfig.POLICY_LINK,
+            )
+            ClickableLinkText(
+                annotatedString = text,
+                onClick = { onClickTerms() },
+                modifier = Modifier
+                    .padding(8.dp),
+                style = ElementTheme.typography.fontBodyMdRegular
+                    .copy(
+                        color = ElementTheme.colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                    )
+            )
+        }
     }
 }
 

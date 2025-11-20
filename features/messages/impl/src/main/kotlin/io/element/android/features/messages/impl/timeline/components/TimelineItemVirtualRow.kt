@@ -28,6 +28,7 @@ import io.element.android.features.messages.impl.timeline.model.virtual.Timeline
 import io.element.android.features.messages.impl.timeline.model.virtual.TimelineItemRoomBeginningModel
 import io.element.android.features.messages.impl.timeline.model.virtual.TimelineItemTypingNotificationModel
 import io.element.android.features.messages.impl.typing.TypingNotificationView
+import timber.log.Timber
 
 @Composable
 fun TimelineItemVirtualRow(
@@ -40,11 +41,21 @@ fun TimelineItemVirtualRow(
         when (virtual.model) {
             is TimelineItemDaySeparatorModel -> TimelineItemDaySeparatorView(virtual.model)
             TimelineItemReadMarkerModel -> TimelineItemReadMarkerView()
-            TimelineItemRoomBeginningModel -> TimelineItemRoomBeginningView(roomName = timelineRoomInfo.name)
+            TimelineItemRoomBeginningModel -> {
+                TimelineItemRoomBeginningView(
+                    predecessorRoom = timelineRoomInfo.predecessorRoom,
+                    roomName = timelineRoomInfo.name,
+                    isDm = timelineRoomInfo.isDm,
+                    onPredecessorRoomClick = { roomId ->
+                        eventSink(TimelineEvents.NavigateToRoom(roomId))
+                    },
+                )
+            }
             is TimelineItemLoadingIndicatorModel -> {
                 TimelineLoadingMoreIndicator(virtual.model.direction)
                 val latestEventSink by rememberUpdatedState(eventSink)
                 LaunchedEffect(virtual.model.timestamp) {
+                    Timber.d("Pagination triggered by load more indicator")
                     latestEventSink(TimelineEvents.LoadMore(virtual.model.direction))
                 }
             }

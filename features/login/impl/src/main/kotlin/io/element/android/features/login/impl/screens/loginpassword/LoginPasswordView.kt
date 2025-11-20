@@ -7,6 +7,7 @@
 
 package io.element.android.features.login.impl.screens.loginpassword
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,8 +22,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -30,12 +29,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.autofill.AutofillType
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalAutofillManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -53,7 +54,6 @@ import io.element.android.libraries.designsystem.components.BigIcon
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.components.dialogs.ErrorDialog
 import io.element.android.libraries.designsystem.components.form.textFieldState
-import io.element.android.libraries.designsystem.modifiers.autofill
 import io.element.android.libraries.designsystem.modifiers.onTabOrEnterKeyFocusNext
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -73,6 +73,13 @@ fun LoginPasswordView(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val autofillManager = LocalAutofillManager.current
+
+    BackHandler {
+        autofillManager?.cancel()
+        onBackClick()
+    }
+
     val isLoading by remember(state.loginAction) {
         derivedStateOf {
             state.loginAction is AsyncData.Loading
@@ -84,6 +91,8 @@ fun LoginPasswordView(
         // Clear focus to prevent keyboard issues with textfields
         focusManager.clearFocus(force = true)
 
+        autofillManager?.commit()
+
         state.eventSink(LoginPasswordEvents.Submit)
     }
 
@@ -92,7 +101,12 @@ fun LoginPasswordView(
         topBar = {
             TopAppBar(
                 title = {},
-                navigationIcon = { BackButton(onClick = onBackClick) },
+                navigationIcon = {
+                    BackButton(onClick = {
+                        autofillManager?.cancel()
+                        onBackClick()
+                    })
+                },
             )
         }
     ) { padding ->
@@ -100,17 +114,17 @@ fun LoginPasswordView(
 
         Column(
             modifier = Modifier
-                    .fillMaxSize()
-                    .imePadding()
-                    .padding(padding)
-                    .consumeWindowInsets(padding)
-                    .verticalScroll(state = scrollState)
-                    .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+                .fillMaxSize()
+                .imePadding()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+                .verticalScroll(state = scrollState)
+                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
         ) {
             // Title
             IconTitleSubtitleMolecule(
                 modifier = Modifier.padding(top = 20.dp, start = 16.dp, end = 16.dp),
-                iconStyle = BigIcon.Style.Default(Icons.Filled.AccountCircle),
+                iconStyle = BigIcon.Style.Default(CompoundIcons.UserProfileSolid()),
                 title = stringResource(
                     id = R.string.screen_account_provider_signin_title,
                     state.accountProvider.title
@@ -139,8 +153,8 @@ fun LoginPasswordView(
                         onClick = ::submit,
                         enabled = state.submitEnabled || isLoading,
                         modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag(TestTags.loginContinue)
+                            .fillMaxWidth()
+                            .testTag(TestTags.loginContinue)
                     )
                     Spacer(modifier = Modifier.height(48.dp))
                 }
@@ -155,7 +169,6 @@ fun LoginPasswordView(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun LoginForm(
     state: LoginPasswordState,
@@ -177,14 +190,9 @@ private fun LoginForm(
                 .fillMaxWidth()
                 .onTabOrEnterKeyFocusNext(focusManager)
                 .testTag(TestTags.loginEmailUsername)
-                .autofill(
-                    autofillTypes = listOf(AutofillType.Username),
-                    onFill = {
-                        val sanitized = it.sanitize()
-                        loginFieldState = sanitized
-                        eventSink(LoginPasswordEvents.SetLogin(sanitized))
-                    }
-                ),
+                .semantics {
+                    contentType = ContentType.Username
+                },
             placeholder = stringResource(CommonStrings.common_username),
             onValueChange = {
                 val sanitized = it.sanitize()
@@ -203,6 +211,7 @@ private fun LoginForm(
                 {
                     Box(Modifier.clickable {
                         loginFieldState = ""
+                        eventSink(LoginPasswordEvents.SetLogin(""))
                     }) {
                         Icon(
                             imageVector = CompoundIcons.Close(),
@@ -228,14 +237,9 @@ private fun LoginForm(
                 .fillMaxWidth()
                 .onTabOrEnterKeyFocusNext(focusManager)
                 .testTag(TestTags.loginPassword)
-                .autofill(
-                    autofillTypes = listOf(AutofillType.Password),
-                    onFill = {
-                        val sanitized = it.sanitize()
-                        passwordFieldState = sanitized
-                        eventSink(LoginPasswordEvents.SetPassword(sanitized))
-                    }
-                ),
+                .semantics {
+                    contentType = ContentType.Password
+                },
             onValueChange = {
                 val sanitized = it.sanitize()
                 passwordFieldState = sanitized

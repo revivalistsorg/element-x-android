@@ -31,7 +31,7 @@ class RustMatrixClientFactoryTest {
         val sut = createRustMatrixClientFactory()
         val result = sut.create(aSessionData())
         assertThat(result.sessionId).isEqualTo(SessionId("@alice:server.org"))
-        result.close()
+        result.destroy()
     }
 }
 
@@ -42,7 +42,7 @@ fun TestScope.createRustMatrixClientFactory(
 ) = RustMatrixClientFactory(
     baseDirectory = baseDirectory,
     cacheDirectory = cacheDirectory,
-    appCoroutineScope = this,
+    appCoroutineScope = backgroundScope,
     coroutineDispatchers = testCoroutineDispatchers(),
     sessionStore = sessionStore,
     userAgentProvider = SimpleUserAgentProvider(),

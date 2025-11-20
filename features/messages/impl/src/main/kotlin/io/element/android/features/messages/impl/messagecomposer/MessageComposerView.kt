@@ -33,7 +33,6 @@ import kotlinx.coroutines.launch
 internal fun MessageComposerView(
     state: MessageComposerState,
     voiceMessageState: VoiceMessageComposerState,
-    subcomposing: Boolean,
     enableVoiceMessages: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -98,7 +97,6 @@ internal fun MessageComposerView(
         modifier = modifier,
         state = state.textEditorState,
         voiceMessageState = voiceMessageState.voiceMessageState,
-        subcomposing = subcomposing,
         onRequestFocus = ::onRequestFocus,
         onSendMessage = ::sendMessage,
         composerMode = state.mode,
@@ -113,6 +111,7 @@ internal fun MessageComposerView(
         onDeleteVoiceMessage = onDeleteVoiceMessage,
         onReceiveSuggestion = ::onSuggestionReceived,
         resolveMentionDisplay = state.resolveMentionDisplay,
+        resolveAtRoomMentionDisplay = state.resolveAtRoomMentionDisplay,
         onError = ::onError,
         onTyping = ::onTyping,
         onSelectRichContent = ::sendUri,
@@ -130,15 +129,14 @@ internal fun MessageComposerViewPreview(
             state = state,
             voiceMessageState = aVoiceMessageComposerState(),
             enableVoiceMessages = true,
-            subcomposing = false,
         )
         MessageComposerView(
             modifier = Modifier.height(200.dp),
             state = state,
             voiceMessageState = aVoiceMessageComposerState(),
             enableVoiceMessages = true,
-            subcomposing = false,
         )
+        DisabledComposerView()
     }
 }
 
@@ -153,7 +151,6 @@ internal fun MessageComposerViewVoicePreview(
             state = aMessageComposerState(),
             voiceMessageState = state,
             enableVoiceMessages = true,
-            subcomposing = false,
         )
     }
 }

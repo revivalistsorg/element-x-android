@@ -12,6 +12,8 @@ import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
+import io.element.android.libraries.matrix.ui.room.IdentityRoomMember
+import io.element.android.libraries.matrix.ui.room.RoomMemberIdentityStateChange
 import kotlinx.collections.immutable.toImmutableList
 
 class IdentityChangeStateProvider : PreviewParameterProvider<IdentityChangeState> {
@@ -30,7 +32,7 @@ class IdentityChangeStateProvider : PreviewParameterProvider<IdentityChangeState
                 roomMemberIdentityStateChanges = listOf(
                     aRoomMemberIdentityStateChange(
                         identityRoomMember = anIdentityRoomMember(displayNameOrDefault = "Alice"),
-                        identityState = IdentityState.PinViolation,
+                        identityState = IdentityState.VerificationViolation,
                     ),
                 ),
             ),
@@ -47,9 +49,10 @@ internal fun aRoomMemberIdentityStateChange(
 
 internal fun anIdentityChangeState(
     roomMemberIdentityStateChanges: List<RoomMemberIdentityStateChange> = emptyList(),
+    eventSink: (IdentityChangeEvent) -> Unit = {},
 ) = IdentityChangeState(
     roomMemberIdentityStateChanges = roomMemberIdentityStateChanges.toImmutableList(),
-    eventSink = {},
+    eventSink = eventSink,
 )
 
 internal fun anIdentityRoomMember(

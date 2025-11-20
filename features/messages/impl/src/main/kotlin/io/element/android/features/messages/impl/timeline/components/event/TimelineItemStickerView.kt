@@ -7,7 +7,6 @@
 
 package io.element.android.features.messages.impl.timeline.components.event
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
@@ -25,8 +24,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import coil.compose.AsyncImage
-import coil.compose.AsyncImagePainter
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStickerContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStickerContentProvider
 import io.element.android.features.messages.impl.timeline.protection.ProtectedView
@@ -39,7 +38,6 @@ import io.element.android.libraries.ui.strings.CommonStrings
 
 private const val STICKER_SIZE_IN_DP = 128
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TimelineItemStickerView(
     content: TimelineItemStickerContent,
@@ -68,7 +66,18 @@ fun TimelineItemStickerView(
                     modifier = Modifier
                         .fillMaxSize()
                         .then(if (isLoaded) Modifier.background(Color.White) else Modifier)
-                        .then(if (onContentClick != null) Modifier.combinedClickable(onClick = onContentClick, onLongClick = onLongClick) else Modifier),
+                        .then(
+                            if (onContentClick != null) {
+                                Modifier
+                                    .combinedClickable(
+                                        onClick = onContentClick,
+                                        onLongClick = onLongClick,
+                                        onLongClickLabel = stringResource(CommonStrings.action_open_context_menu),
+                                    )
+                            } else {
+                                Modifier
+                            }
+                        ),
                     model = MediaRequestData(
                         source = content.preferredMediaSource,
                         kind = MediaRequestData.Kind.File(
@@ -76,7 +85,7 @@ fun TimelineItemStickerView(
                             mimeType = content.mimeType,
                         ),
                     ),
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     alignment = Alignment.Center,
                     contentDescription = description,
                     onState = { isLoaded = it is AsyncImagePainter.State.Success },

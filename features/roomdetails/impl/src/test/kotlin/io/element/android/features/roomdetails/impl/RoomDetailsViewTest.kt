@@ -15,7 +15,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.element.android.features.roomdetails.impl.members.aRoomMember
+import io.element.android.features.userprofile.shared.aUserProfileState
+import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
+import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.tests.testutils.EnsureCalledOnceWithTwoParams
@@ -280,6 +283,20 @@ class RoomDetailsViewTest {
         eventsRecorder.assertSingle(RoomDetailsEvent.LeaveRoom)
     }
 
+    @Config(qualifiers = "h1500dp")
+    @Test
+    fun `click on report room  invokes expected callback`() {
+        ensureCalledOnce { callback ->
+            rule.setRoomDetailView(
+                state = aRoomDetailsState(
+                    eventSink = EventsRecorder(expectEvents = false),
+                ),
+                onReportRoomClick = callback,
+            )
+            rule.clickOn(CommonStrings.action_report_room)
+        }
+    }
+
     @Config(qualifiers = "h1024dp")
     @Test
     fun `click on knock requests invokes expected callback`() {
@@ -292,6 +309,21 @@ class RoomDetailsViewTest {
                 onKnockRequestsClick = callback,
             )
             rule.clickOn(R.string.screen_room_details_requests_to_join_title)
+        }
+    }
+
+    @Config(qualifiers = "h1024dp")
+    @Test
+    fun `click on profile invokes the expected callback`() {
+        ensureCalledOnceWithParam(A_USER_ID) { callback ->
+            rule.setRoomDetailView(
+                state = aRoomDetailsState(
+                    eventSink = EventsRecorder(expectEvents = false),
+                    roomMemberDetailsState = aUserProfileState(userId = A_USER_ID),
+                ),
+                onProfileClick = callback,
+            )
+            rule.clickOn(R.string.screen_room_details_profile_row_title)
         }
     }
 }
@@ -314,6 +346,8 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setRoomD
     onPinnedMessagesClick: () -> Unit = EnsureNeverCalled(),
     onKnockRequestsClick: () -> Unit = EnsureNeverCalled(),
     onSecurityAndPrivacyClick: () -> Unit = EnsureNeverCalled(),
+    onProfileClick: (UserId) -> Unit = EnsureNeverCalledWithParam(),
+    onReportRoomClick: () -> Unit = EnsureNeverCalled(),
 ) {
     setContent {
         RoomDetailsView(
@@ -332,6 +366,8 @@ private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setRoomD
             onPinnedMessagesClick = onPinnedMessagesClick,
             onKnockRequestsClick = onKnockRequestsClick,
             onSecurityAndPrivacyClick = onSecurityAndPrivacyClick,
+            onProfileClick = onProfileClick,
+            onReportRoomClick = onReportRoomClick,
         )
     }
 }

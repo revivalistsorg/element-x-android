@@ -28,6 +28,7 @@ import org.matrix.rustcomponents.sdk.EventOrTransactionId
 import org.matrix.rustcomponents.sdk.QueueWedgeError
 import org.matrix.rustcomponents.sdk.Reaction
 import org.matrix.rustcomponents.sdk.ShieldState
+import org.matrix.rustcomponents.sdk.TimelineItemContent
 import uniffi.matrix_sdk_common.ShieldStateCode
 import org.matrix.rustcomponents.sdk.EventSendState as RustEventSendState
 import org.matrix.rustcomponents.sdk.EventTimelineItem as RustEventTimelineItem
@@ -48,7 +49,7 @@ class EventTimelineItemMapper(
             isOwn = isOwn,
             isRemote = isRemote,
             localSendState = localSendState?.map(),
-            reactions = reactions.map(),
+            reactions = (content as? TimelineItemContent.MsgLike)?.content?.reactions.map(),
             receipts = readReceipts.map(),
             sender = UserId(sender),
             senderProfile = senderProfile.map(),
@@ -152,6 +153,7 @@ private fun RustEventItemOrigin.map(): TimelineItemEventOrigin {
         RustEventItemOrigin.LOCAL -> TimelineItemEventOrigin.LOCAL
         RustEventItemOrigin.SYNC -> TimelineItemEventOrigin.SYNC
         RustEventItemOrigin.PAGINATION -> TimelineItemEventOrigin.PAGINATION
+        RustEventItemOrigin.CACHE -> TimelineItemEventOrigin.CACHE
     }
 }
 
@@ -174,6 +176,7 @@ private fun ShieldState?.map(): MessageShield? {
         ShieldStateCode.UNVERIFIED_IDENTITY -> MessageShield.UnverifiedIdentity(isCritical)
         ShieldStateCode.SENT_IN_CLEAR -> MessageShield.SentInClear(isCritical)
         ShieldStateCode.VERIFICATION_VIOLATION -> MessageShield.VerificationViolation(isCritical)
+        ShieldStateCode.MISMATCHED_SENDER -> MessageShield.MismatchedSender(isCritical)
     }
 }
 

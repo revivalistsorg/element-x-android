@@ -12,10 +12,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.components.media.aWaveForm
+import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.media.MediaSource
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.mediaviewer.api.MediaInfo
 import io.element.android.libraries.mediaviewer.api.aPdfMediaInfo
+import io.element.android.libraries.mediaviewer.api.aTxtMediaInfo
 import io.element.android.libraries.mediaviewer.api.aVideoMediaInfo
 import io.element.android.libraries.mediaviewer.api.anApkMediaInfo
 import io.element.android.libraries.mediaviewer.api.anAudioMediaInfo
@@ -159,6 +161,14 @@ open class MediaViewerStateProvider : PreviewParameterProvider<MediaViewerState>
                     MediaViewerPageData.Failure(Exception("error"))
                 ),
             ),
+            aMediaViewerState(
+                listOf(
+                    aMediaViewerPageData(
+                        downloadedMedia = AsyncData.Loading(),
+                        mediaInfo = aTxtMediaInfo(),
+                    )
+                )
+            ),
         )
 }
 
@@ -193,6 +203,7 @@ fun aMediaViewerState(
     mediaBottomSheetState: MediaBottomSheetState = MediaBottomSheetState.Hidden,
     eventSink: (MediaViewerEvents) -> Unit = {},
 ) = MediaViewerState(
+    initiallySelectedEventId = EventId("\$a:b"),
     listData = listData.toPersistentList(),
     currentIndex = currentIndex,
     snackbarMessage = null,

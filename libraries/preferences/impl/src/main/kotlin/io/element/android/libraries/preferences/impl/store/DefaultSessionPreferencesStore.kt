@@ -80,7 +80,7 @@ class DefaultSessionPreferencesStore(
     override fun isRenderTypingNotificationsEnabled(): Flow<Boolean> = get(renderTypingNotificationsKey) { true }
 
     override suspend fun setSkipSessionVerification(skip: Boolean) = update(skipSessionVerification, skip)
-    override fun isSessionVerificationSkipped(): Flow<Boolean> = get(skipSessionVerification) { false }
+    override fun isSessionVerificationSkipped(): Flow<Boolean> = get(skipSessionVerification) { true }
 
     override suspend fun setCompressMedia(compress: Boolean) = update(compressMedia, compress)
     override fun doesCompressMedia(): Flow<Boolean> = get(compressMedia) { true }

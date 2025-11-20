@@ -21,13 +21,14 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import io.element.android.features.createroom.api.StartDMAction
+import io.element.android.features.enterprise.api.SessionEnterpriseService
 import io.element.android.features.userprofile.api.UserProfileEvents
 import io.element.android.features.userprofile.api.UserProfileState
 import io.element.android.features.userprofile.api.UserProfileState.ConfirmationDialog
+import io.element.android.features.userprofile.api.UserProfileVerificationState
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
-import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.core.bool.orFalse
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
@@ -44,6 +45,7 @@ class UserProfilePresenter @AssistedInject constructor(
     @Assisted private val userId: UserId,
     private val client: MatrixClient,
     private val startDMAction: StartDMAction,
+    private val sessionEnterpriseService: SessionEnterpriseService,
 ) : Presenter<UserProfileState> {
     @AssistedFactory
     interface Factory {
@@ -53,17 +55,27 @@ class UserProfilePresenter @AssistedInject constructor(
     @Composable
     private fun getDmRoomId(): State<RoomId?> {
         return produceState<RoomId?>(initialValue = null) {
-            value = client.findDM(userId)
+            value = client.findDM(userId).getOrNull()
         }
     }
 
     @Composable
     private fun getCanCall(roomId: RoomId?): State<Boolean> {
-        return produceState(initialValue = false, roomId) {
-            value = if (client.isMe(userId)) {
-                false
-            } else {
-                roomId?.let { client.getRoom(it)?.canUserJoinCall(client.sessionId)?.getOrNull() == true }.orFalse()
+        val isElementCallAvailable by produceState(initialValue = false, roomId) {
+            value = sessionEnterpriseService.isElementCallAvailable()
+        }
+
+        return produceState(initialValue = false, isElementCallAvailable, roomId) {
+            value = when {
+                isElementCallAvailable.not() -> false
+                client.isMe(userId) -> false
+                else ->
+                    roomId
+                        ?.let { client.getRoom(it) }
+                        ?.use { room ->
+                            room.canUserJoinCall(client.sessionId).getOrNull()
+                        }
+                        .orFalse()
             }
         }
     }
@@ -73,10 +85,8 @@ class UserProfilePresenter @AssistedInject constructor(
         val coroutineScope = rememberCoroutineScope()
         val isCurrentUser = remember { client.isMe(userId) }
         var confirmationDialog by remember { mutableStateOf<ConfirmationDialog?>(null) }
-        var userProfile by remember { mutableStateOf<MatrixUser?>(null) }
         val startDmActionState: MutableState<AsyncAction<RoomId>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
         val isBlocked: MutableState<AsyncData<Boolean>> = remember { mutableStateOf(AsyncData.Uninitialized) }
-        val isVerified: MutableState<AsyncData<Boolean>> = remember { mutableStateOf(AsyncData.Uninitialized) }
         val dmRoomId by getDmRoomId()
         val canCall by getCanCall(dmRoomId)
         LaunchedEffect(Unit) {
@@ -86,14 +96,7 @@ class UserProfilePresenter @AssistedInject constructor(
                 .onEach { isBlocked.value = AsyncData.Success(it) }
                 .launchIn(this)
         }
-        LaunchedEffect(Unit) {
-            userProfile = client.getProfile(userId).getOrNull()
-        }
-        LaunchedEffect(Unit) {
-            suspend {
-                client.encryptionService().isUserVerified(userId).getOrThrow()
-            }.runCatchingUpdatingState(isVerified)
-        }
+        val userProfile by produceState<MatrixUser?>(null) { value = client.getProfile(userId).getOrNull() }
 
         fun handleEvents(event: UserProfileEvents) {
             when (event) {
@@ -119,12 +122,19 @@ class UserProfilePresenter @AssistedInject constructor(
                 }
                 UserProfileEvents.StartDM -> {
                     coroutineScope.launch {
-                        startDMAction.execute(userId, startDmActionState)
+                        startDMAction.execute(
+                            matrixUser = userProfile ?: MatrixUser(userId),
+                            createIfDmDoesNotExist = startDmActionState.value is AsyncAction.Confirming,
+                            actionState = startDmActionState,
+                        )
                     }
                 }
                 UserProfileEvents.ClearStartDMState -> {
                     startDmActionState.value = AsyncAction.Uninitialized
                 }
+                // Do nothing for other event as they are handled by the RoomMemberDetailsPresenter if needed
+                UserProfileEvents.WithdrawVerification,
+                is UserProfileEvents.CopyToClipboard -> Unit
             }
         }
 
@@ -133,12 +143,13 @@ class UserProfilePresenter @AssistedInject constructor(
             userName = userProfile?.displayName,
             avatarUrl = userProfile?.avatarUrl,
             isBlocked = isBlocked.value,
-            isVerified = isVerified.value,
+            verificationState = UserProfileVerificationState.UNKNOWN,
             startDmActionState = startDmActionState.value,
             displayConfirmationDialog = confirmationDialog,
             isCurrentUser = isCurrentUser,
             dmRoomId = dmRoomId,
             canCall = canCall,
+            snackbarMessage = null,
             eventSink = ::handleEvents
         )
     }

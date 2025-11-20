@@ -7,12 +7,6 @@
 
 package io.element.android.libraries.matrix.ui.messages.reply
 
-import android.content.res.Configuration
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import app.cash.molecule.RecompositionMode
 import app.cash.molecule.moleculeFlow
@@ -36,7 +30,6 @@ import io.element.android.libraries.matrix.api.timeline.item.event.OtherState
 import io.element.android.libraries.matrix.api.timeline.item.event.ProfileChangeContent
 import io.element.android.libraries.matrix.api.timeline.item.event.ProfileTimelineDetails
 import io.element.android.libraries.matrix.api.timeline.item.event.RedactedContent
-import io.element.android.libraries.matrix.api.timeline.item.event.RoomMembershipContent
 import io.element.android.libraries.matrix.api.timeline.item.event.StateContent
 import io.element.android.libraries.matrix.api.timeline.item.event.StickerContent
 import io.element.android.libraries.matrix.api.timeline.item.event.UnableToDecryptContent
@@ -49,9 +42,11 @@ import io.element.android.libraries.matrix.test.media.aMediaSource
 import io.element.android.libraries.matrix.test.timeline.aMessageContent
 import io.element.android.libraries.matrix.test.timeline.aPollContent
 import io.element.android.libraries.matrix.test.timeline.aProfileTimelineDetails
+import io.element.android.libraries.matrix.test.timeline.item.event.aRoomMembershipContent
 import io.element.android.libraries.matrix.ui.components.A_BLUR_HASH
 import io.element.android.libraries.matrix.ui.components.AttachmentThumbnailInfo
 import io.element.android.libraries.matrix.ui.components.AttachmentThumbnailType
+import io.element.android.tests.testutils.withConfigurationAndContext
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -350,7 +345,7 @@ class InReplyToMetadataKtTest {
     @Test
     fun `a location message content`() = runTest {
         moleculeFlow(RecompositionMode.Immediate) {
-            testEnv {
+            withConfigurationAndContext {
                 anInReplyToDetailsReady(
                     eventContent = aMessageContent(
                         messageType = LocationMessageType(
@@ -380,7 +375,7 @@ class InReplyToMetadataKtTest {
     @Test
     fun `a voice message content`() = runTest {
         moleculeFlow(RecompositionMode.Immediate) {
-            testEnv {
+            withConfigurationAndContext {
                 anInReplyToDetailsReady(
                     eventContent = aMessageContent(
                         messageType = VoiceMessageType(
@@ -501,7 +496,7 @@ class InReplyToMetadataKtTest {
     fun `room membership content`() = runTest {
         moleculeFlow(RecompositionMode.Immediate) {
             anInReplyToDetailsReady(
-                eventContent = RoomMembershipContent(A_USER_ID, null, null)
+                eventContent = aRoomMembershipContent(userId = A_USER_ID)
             ).metadata(hideImage = false)
         }.test {
             awaitItem().let {
@@ -587,18 +582,4 @@ fun anImageInfo(): ImageInfo {
         thumbnailSource = aMediaSource(),
         blurhash = A_BLUR_HASH,
     )
-}
-
-@Composable
-private fun testEnv(content: @Composable () -> Any?): Any? {
-    var result: Any? = null
-    CompositionLocalProvider(
-        LocalConfiguration provides Configuration(),
-        LocalContext provides ApplicationProvider.getApplicationContext(),
-    ) {
-        content().apply {
-            result = this
-        }
-    }
-    return result
 }

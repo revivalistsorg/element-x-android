@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationSearching
-import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,7 +21,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
-import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.compound.tokens.generated.TypographyTokens
 import io.element.android.features.location.api.internal.rememberTileStyleUrl
@@ -34,7 +30,6 @@ import io.element.android.features.location.impl.common.PermissionRationaleDialo
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
-import io.element.android.libraries.designsystem.theme.aliasScreenTitle
 import io.element.android.libraries.designsystem.theme.components.FloatingActionButton
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.IconButton
@@ -104,12 +99,7 @@ fun ShowLocationView(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(CommonStrings.screen_view_location_title),
-                        style = ElementTheme.typography.aliasScreenTitle,
-                    )
-                },
+                titleStr = stringResource(CommonStrings.screen_view_location_title),
                 navigationIcon = {
                     BackButton(
                         onClick = onBackClick,
@@ -132,8 +122,8 @@ fun ShowLocationView(
                 onClick = { state.eventSink(ShowLocationEvents.TrackMyLocation(true)) },
             ) {
                 when (state.isTrackMyLocation) {
-                    false -> Icon(imageVector = Icons.Default.LocationSearching, contentDescription = null)
-                    true -> Icon(imageVector = Icons.Default.MyLocation, contentDescription = null)
+                    false -> Icon(imageVector = CompoundIcons.LocationNavigator(), contentDescription = null)
+                    true -> Icon(imageVector = CompoundIcons.LocationNavigatorCentred(), contentDescription = null)
                 }
             }
         },

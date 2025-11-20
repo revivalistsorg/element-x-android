@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,6 +27,7 @@ import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
 import io.element.android.libraries.designsystem.preview.ElementThemedPreview
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Text
@@ -47,7 +47,10 @@ fun UnresolvedUserRow(
             .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Avatar(avatarData)
+        Avatar(
+            avatarData = avatarData,
+            avatarType = AvatarType.User,
+        )
         Column(
             modifier = Modifier
                 .padding(start = 12.dp),
@@ -58,7 +61,7 @@ fun UnresolvedUserRow(
                 text = id,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.primary,
+                color = ElementTheme.colors.textPrimary,
                 style = ElementTheme.typography.fontBodyLgMedium,
             )
 
@@ -69,18 +72,17 @@ fun UnresolvedUserRow(
                     .padding(top = 3.dp)
             ) {
                 Icon(
-                    imageVector = CompoundIcons.Error(),
+                    imageVector = CompoundIcons.ErrorSolid(),
                     contentDescription = null,
                     modifier = Modifier
                         .size(18.dp)
                         .align(Alignment.Top)
                         .padding(2.dp),
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = ElementTheme.colors.iconCriticalPrimary,
                 )
-
                 Text(
                     text = stringResource(CommonStrings.common_invite_unknown_profile),
-                    color = MaterialTheme.colorScheme.secondary,
+                    color = ElementTheme.colors.textSecondary,
                     style = ElementTheme.typography.fontBodySmRegular.copy(lineHeight = 16.sp),
                 )
             }

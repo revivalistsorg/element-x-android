@@ -13,24 +13,31 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
-import io.element.android.libraries.architecture.AsyncData
+import io.element.android.features.userprofile.api.UserProfileVerificationState
 import io.element.android.libraries.designsystem.atomic.atoms.MatrixBadgeAtom
 import io.element.android.libraries.designsystem.atomic.molecules.MatrixBadgeRowMolecule
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
+import io.element.android.libraries.designsystem.components.avatar.AvatarType
+import io.element.android.libraries.designsystem.modifiers.niceClickable
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
+import io.element.android.libraries.designsystem.theme.components.ButtonSize
+import io.element.android.libraries.designsystem.theme.components.OutlinedButton
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.testtags.TestTags
@@ -43,8 +50,10 @@ fun UserProfileHeaderSection(
     avatarUrl: String?,
     userId: UserId,
     userName: String?,
-    isUserVerified: AsyncData<Boolean>,
+    verificationState: UserProfileVerificationState,
     openAvatarPreview: (url: String) -> Unit,
+    onUserIdClick: () -> Unit,
+    withdrawVerificationClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -55,14 +64,26 @@ fun UserProfileHeaderSection(
     ) {
         Avatar(
             avatarData = AvatarData(userId.value, userName, avatarUrl, AvatarSize.UserHeader),
+            avatarType = AvatarType.User,
+            contentDescription = avatarUrl?.let { stringResource(CommonStrings.a11y_user_avatar) },
             modifier = Modifier
-                .clickable(enabled = avatarUrl != null) { openAvatarPreview(avatarUrl!!) }
+                .clip(CircleShape)
+                .clickable(
+                    enabled = avatarUrl != null,
+                    onClickLabel = stringResource(CommonStrings.action_view),
+                ) {
+                    openAvatarPreview(avatarUrl!!)
+                }
                 .testTag(TestTags.memberDetailAvatar)
         )
         Spacer(modifier = Modifier.height(24.dp))
         if (userName != null) {
             Text(
-                modifier = Modifier.clipToBounds(),
+                modifier = Modifier
+                    .clipToBounds()
+                    .semantics {
+                        heading()
+                    },
                 text = userName,
                 style = ElementTheme.typography.fontHeadingLgBold,
                 textAlign = TextAlign.Center,
@@ -70,21 +91,43 @@ fun UserProfileHeaderSection(
             Spacer(modifier = Modifier.height(6.dp))
         }
         Text(
+            modifier = Modifier.niceClickable { onUserIdClick() },
             text = userId.value,
             style = ElementTheme.typography.fontBodyLgRegular,
-            color = MaterialTheme.colorScheme.secondary,
+            color = ElementTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
         )
-        if (isUserVerified.dataOrNull() == true) {
-            MatrixBadgeRowMolecule(
-                data = listOf(
-                    MatrixBadgeAtom.MatrixBadgeData(
-                        text = stringResource(CommonStrings.common_verified),
-                        icon = CompoundIcons.Verified(),
-                        type = MatrixBadgeAtom.Type.Positive,
-                    )
-                ).toImmutableList(),
-            )
+        when (verificationState) {
+            UserProfileVerificationState.UNKNOWN, UserProfileVerificationState.UNVERIFIED -> Unit
+            UserProfileVerificationState.VERIFIED -> {
+                MatrixBadgeRowMolecule(
+                    data = listOf(
+                        MatrixBadgeAtom.MatrixBadgeData(
+                            text = stringResource(CommonStrings.common_verified),
+                            icon = CompoundIcons.Verified(),
+                            type = MatrixBadgeAtom.Type.Positive,
+                        )
+                    ).toImmutableList(),
+                )
+            }
+            UserProfileVerificationState.VERIFICATION_VIOLATION -> {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(CommonStrings.crypto_identity_change_profile_pin_violation, userName ?: userId.value),
+                    color = ElementTheme.colors.textCriticalPrimary,
+                    style = ElementTheme.typography.fontBodyMdMedium,
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    size = ButtonSize.MediumLowPadding,
+                    text = stringResource(CommonStrings.crypto_identity_change_withdraw_verification_action),
+                    onClick = withdrawVerificationClick,
+                )
+            }
         }
         Spacer(Modifier.height(40.dp))
     }
@@ -97,7 +140,23 @@ internal fun UserProfileHeaderSectionPreview() = ElementPreview {
         avatarUrl = null,
         userId = UserId("@alice:example.com"),
         userName = "Alice",
-        isUserVerified = AsyncData.Success(true),
+        verificationState = UserProfileVerificationState.VERIFIED,
         openAvatarPreview = {},
+        onUserIdClick = {},
+        withdrawVerificationClick = {},
+    )
+}
+
+@PreviewsDayNight
+@Composable
+internal fun UserProfileHeaderSectionWithVerificationViolationPreview() = ElementPreview {
+    UserProfileHeaderSection(
+        avatarUrl = null,
+        userId = UserId("@alice:example.com"),
+        userName = "Alice",
+        verificationState = UserProfileVerificationState.VERIFICATION_VIOLATION,
+        openAvatarPreview = {},
+        onUserIdClick = {},
+        withdrawVerificationClick = {},
     )
 }

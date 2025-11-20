@@ -8,11 +8,12 @@
 package io.element.android.features.roomdetails.impl.members
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
-import io.element.android.features.roomdetails.impl.members.moderation.RoomMembersModerationState
-import io.element.android.features.roomdetails.impl.members.moderation.aRoomMembersModerationState
+import io.element.android.features.roommembermoderation.api.RoomMemberModerationEvents
+import io.element.android.features.roommembermoderation.api.RoomMemberModerationState
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.designsystem.theme.components.SearchBarResultState
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.RoomMembershipState
 import kotlinx.collections.immutable.persistentListOf
@@ -23,8 +24,21 @@ internal class RoomMemberListStateProvider : PreviewParameterProvider<RoomMember
             aRoomMemberListState(
                 roomMembers = AsyncData.Success(
                     RoomMembers(
-                        invited = persistentListOf(aVictor(), aWalter()),
-                        joined = persistentListOf(anAlice(), aBob(), aWalter()),
+                        invited = persistentListOf(aVictor().withIdentity(), aWalter().withIdentity()),
+                        joined = persistentListOf(anAlice().withIdentity(), aBob().withIdentity(), aWalter().withIdentity()),
+                        banned = persistentListOf(),
+                    )
+                )
+            ),
+            aRoomMemberListState(
+                roomMembers = AsyncData.Success(
+                    RoomMembers(
+                        invited = persistentListOf(aVictor().withIdentity(), aWalter().withIdentity()),
+                        joined = persistentListOf(
+                            anAlice().withIdentity(identityState = IdentityState.Verified),
+                            aBob().withIdentity(identityState = IdentityState.PinViolation),
+                            aWalter().withIdentity(identityState = IdentityState.VerificationViolation)
+                        ),
                         banned = persistentListOf(),
                     )
                 )
@@ -40,8 +54,8 @@ internal class RoomMemberListStateProvider : PreviewParameterProvider<RoomMember
                 searchResults = SearchBarResultState.Results(
                     AsyncData.Success(
                         RoomMembers(
-                            invited = persistentListOf(aVictor()),
-                            joined = persistentListOf(anAlice()),
+                            invited = persistentListOf(aVictor().withIdentity()),
+                            joined = persistentListOf(anAlice().withIdentity()),
                             banned = persistentListOf(),
                         )
                     )
@@ -67,13 +81,13 @@ internal class RoomMemberListStateBannedProvider : PreviewParameterProvider<Room
                         invited = persistentListOf(),
                         joined = persistentListOf(),
                         banned = persistentListOf(
-                            aRoomMember(userId = UserId("@alice:example.com"), displayName = "Alice"),
-                            aRoomMember(userId = UserId("@bob:example.com"), displayName = "Bob"),
-                            aRoomMember(userId = UserId("@charlie:example.com"), displayName = "Charlie"),
+                            aRoomMember(userId = UserId("@alice:example.com"), displayName = "Alice").withIdentity(),
+                            aRoomMember(userId = UserId("@bob:example.com"), displayName = "Bob").withIdentity(),
+                            aRoomMember(userId = UserId("@charlie:example.com"), displayName = "Charlie").withIdentity(),
                         ),
                     )
                 ),
-                moderationState = aRoomMembersModerationState(canDisplayBannedUsers = true),
+                moderationState = aRoomMemberModerationState(),
             ),
             aRoomMemberListState(
                 roomMembers = AsyncData.Loading(
@@ -81,13 +95,13 @@ internal class RoomMemberListStateBannedProvider : PreviewParameterProvider<Room
                         invited = persistentListOf(),
                         joined = persistentListOf(),
                         banned = persistentListOf(
-                            aRoomMember(userId = UserId("@alice:example.com"), displayName = "Alice"),
-                            aRoomMember(userId = UserId("@bob:example.com"), displayName = "Bob"),
-                            aRoomMember(userId = UserId("@charlie:example.com"), displayName = "Charlie"),
+                            aRoomMember(userId = UserId("@alice:example.com"), displayName = "Alice").withIdentity(),
+                            aRoomMember(userId = UserId("@bob:example.com"), displayName = "Bob").withIdentity(),
+                            aRoomMember(userId = UserId("@charlie:example.com"), displayName = "Charlie").withIdentity(),
                         ),
                     )
                 ),
-                moderationState = aRoomMembersModerationState(canDisplayBannedUsers = true),
+                moderationState = aRoomMemberModerationState(),
             ),
             aRoomMemberListState(
                 roomMembers = AsyncData.Success(
@@ -97,7 +111,7 @@ internal class RoomMemberListStateBannedProvider : PreviewParameterProvider<Room
                         banned = persistentListOf(),
                     )
                 ),
-                moderationState = aRoomMembersModerationState(canDisplayBannedUsers = true),
+                moderationState = aRoomMemberModerationState(),
             )
         )
 }
@@ -105,7 +119,7 @@ internal class RoomMemberListStateBannedProvider : PreviewParameterProvider<Room
 internal fun aRoomMemberListState(
     roomMembers: AsyncData<RoomMembers> = AsyncData.Loading(),
     searchResults: SearchBarResultState<AsyncData<RoomMembers>> = SearchBarResultState.Initial(),
-    moderationState: RoomMembersModerationState = aRoomMembersModerationState(),
+    moderationState: RoomMemberModerationState = aRoomMemberModerationState(),
 ) = RoomMemberListState(
     roomMembers = roomMembers,
     searchQuery = "",
@@ -115,6 +129,17 @@ internal fun aRoomMemberListState(
     moderationState = moderationState,
     eventSink = {}
 )
+
+fun aRoomMemberModerationState(
+    canBan: Boolean = false,
+    canKick: Boolean = false,
+): RoomMemberModerationState {
+    return object : RoomMemberModerationState {
+        override val canKick: Boolean = canKick
+        override val canBan: Boolean = canBan
+        override val eventSink: (RoomMemberModerationEvents) -> Unit = {}
+    }
+}
 
 fun aRoomMember(
     userId: UserId = UserId("@alice:server.org"),
@@ -126,6 +151,7 @@ fun aRoomMember(
     normalizedPowerLevel: Long = 0L,
     isIgnored: Boolean = false,
     role: RoomMember.Role = RoomMember.Role.USER,
+    membershipChangeReason: String? = null,
 ) = RoomMember(
     userId = userId,
     displayName = displayName,
@@ -136,6 +162,7 @@ fun aRoomMember(
     normalizedPowerLevel = normalizedPowerLevel,
     isIgnored = isIgnored,
     role = role,
+    membershipChangeReason = membershipChangeReason,
 )
 
 fun aRoomMemberList() = persistentListOf(
@@ -157,3 +184,5 @@ fun aBob() = aRoomMember(UserId("@bob:server.org"), "Bob", role = RoomMember.Rol
 fun aVictor() = aRoomMember(UserId("@victor:server.org"), "Victor", membership = RoomMembershipState.INVITE)
 
 fun aWalter() = aRoomMember(UserId("@walter:server.org"), "Walter", membership = RoomMembershipState.INVITE)
+
+private fun RoomMember.withIdentity(identityState: IdentityState? = null) = RoomMemberWithIdentityState(this, identityState)

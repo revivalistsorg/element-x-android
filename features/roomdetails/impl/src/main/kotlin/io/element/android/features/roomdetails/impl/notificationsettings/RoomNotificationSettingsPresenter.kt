@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -25,7 +26,7 @@ import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.core.coroutine.suspendWithMinimumDuration
 import io.element.android.libraries.matrix.api.notificationsettings.NotificationSettingsService
-import io.element.android.libraries.matrix.api.room.MatrixRoom
+import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.api.room.RoomNotificationSettings
 import kotlinx.coroutines.CoroutineScope
@@ -37,7 +38,7 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
 
 class RoomNotificationSettingsPresenter @AssistedInject constructor(
-    private val room: MatrixRoom,
+    private val room: JoinedRoom,
     private val notificationSettingsService: NotificationSettingsService,
     @Assisted private val showUserDefinedSettingStyle: Boolean,
 ) : Presenter<RoomNotificationSettingsState> {
@@ -78,11 +79,23 @@ class RoomNotificationSettingsPresenter @AssistedInject constructor(
             mutableStateOf(null)
         }
 
+        val displayName by produceState(room.info().name) {
+            room.roomInfoFlow.collect { value = it.name }
+        }
+
+        val isRoomEncrypted by produceState(room.info().isEncrypted) {
+            room.roomInfoFlow.collect { value = it.isEncrypted }
+        }
+
         LaunchedEffect(Unit) {
             getDefaultRoomNotificationMode(defaultRoomNotificationMode)
             fetchNotificationSettings(pendingRoomNotificationMode, roomNotificationSettings)
             observeNotificationSettings(pendingRoomNotificationMode, roomNotificationSettings)
-            shouldDisplayMentionsOnlyDisclaimer = room.isEncrypted && !notificationSettingsService.canHomeServerPushEncryptedEventsToDevice().getOrDefault(true)
+        }
+
+        LaunchedEffect(isRoomEncrypted) {
+            shouldDisplayMentionsOnlyDisclaimer = isRoomEncrypted == true &&
+                !notificationSettingsService.canHomeServerPushEncryptedEventsToDevice().getOrDefault(true)
         }
 
         fun handleEvents(event: RoomNotificationSettingsEvents) {
@@ -113,7 +126,7 @@ class RoomNotificationSettingsPresenter @AssistedInject constructor(
 
         return RoomNotificationSettingsState(
             showUserDefinedSettingStyle = showUserDefinedSettingStyle,
-            roomName = room.displayName,
+            roomName = displayName.orEmpty(),
             roomNotificationSettings = roomNotificationSettings.value,
             pendingRoomNotificationMode = pendingRoomNotificationMode.value,
             pendingSetDefault = pendingSetDefault.value,
@@ -143,16 +156,18 @@ class RoomNotificationSettingsPresenter @AssistedInject constructor(
         roomNotificationSettings: MutableState<AsyncData<RoomNotificationSettings>>
     ) = launch {
         suspend {
+            val isEncrypted = room.info().isEncrypted ?: room.getUpdatedIsEncrypted().getOrThrow()
             pendingModeState.value = null
-            notificationSettingsService.getRoomNotificationSettings(room.roomId, room.isEncrypted, room.isOneToOne).getOrThrow()
+            notificationSettingsService.getRoomNotificationSettings(room.roomId, isEncrypted, room.isOneToOne).getOrThrow()
         }.runCatchingUpdatingState(roomNotificationSettings)
     }
 
     private fun CoroutineScope.getDefaultRoomNotificationMode(
         defaultRoomNotificationMode: MutableState<RoomNotificationMode?>
     ) = launch {
+        val isEncrypted = room.info().isEncrypted ?: room.getUpdatedIsEncrypted().getOrThrow()
         defaultRoomNotificationMode.value = notificationSettingsService.getDefaultRoomNotificationMode(
-            room.isEncrypted,
+            isEncrypted,
             room.isOneToOne
         ).getOrThrow()
     }

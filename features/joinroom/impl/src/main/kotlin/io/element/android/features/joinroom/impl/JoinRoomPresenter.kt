@@ -9,6 +9,7 @@ package io.element.android.features.joinroom.impl
 
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -22,26 +23,31 @@ import androidx.compose.runtime.setValue
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import im.vector.app.features.analytics.plan.JoinedRoom
-import io.element.android.features.invite.api.response.AcceptDeclineInviteEvents
-import io.element.android.features.invite.api.response.AcceptDeclineInviteState
-import io.element.android.features.invite.api.response.InviteData
+import io.element.android.features.invite.api.SeenInvitesStore
+import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteEvents
+import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteState
+import io.element.android.features.invite.api.toInviteData
 import io.element.android.features.joinroom.impl.di.CancelKnockRoom
+import io.element.android.features.joinroom.impl.di.ForgetRoom
 import io.element.android.features.joinroom.impl.di.KnockRoom
 import io.element.android.features.roomdirectory.api.RoomDescription
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runUpdatingState
+import io.element.android.libraries.core.coroutine.mapState
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.RoomIdOrAlias
-import io.element.android.libraries.matrix.api.core.toRoomIdOrAlias
-import io.element.android.libraries.matrix.api.getRoomInfoFlow
+import io.element.android.libraries.matrix.api.exception.ClientException
+import io.element.android.libraries.matrix.api.exception.ErrorKind
 import io.element.android.libraries.matrix.api.room.CurrentUserMembership
-import io.element.android.libraries.matrix.api.room.MatrixRoomInfo
+import io.element.android.libraries.matrix.api.room.RoomInfo
+import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.RoomType
 import io.element.android.libraries.matrix.api.room.isDm
 import io.element.android.libraries.matrix.api.room.join.JoinRoom
+import io.element.android.libraries.matrix.api.room.join.JoinRule
 import io.element.android.libraries.matrix.api.room.preview.RoomPreviewInfo
 import io.element.android.libraries.matrix.ui.model.toInviteSender
 import kotlinx.coroutines.CoroutineScope
@@ -58,8 +64,10 @@ class JoinRoomPresenter @AssistedInject constructor(
     private val joinRoom: JoinRoom,
     private val knockRoom: KnockRoom,
     private val cancelKnockRoom: CancelKnockRoom,
+    private val forgetRoom: ForgetRoom,
     private val acceptDeclineInvitePresenter: Presenter<AcceptDeclineInviteState>,
     private val buildMeta: BuildMeta,
+    private val seenInvitesStore: SeenInvitesStore,
 ) : Presenter<JoinRoomState> {
     interface Factory {
         fun create(
@@ -75,35 +83,78 @@ class JoinRoomPresenter @AssistedInject constructor(
     override fun present(): JoinRoomState {
         val coroutineScope = rememberCoroutineScope()
         var retryCount by remember { mutableIntStateOf(0) }
-        val roomInfo by matrixClient.getRoomInfoFlow(roomId.toRoomIdOrAlias()).collectAsState(initial = Optional.empty())
+        val roomInfo by remember {
+            matrixClient.getRoomInfoFlow(roomId)
+        }.collectAsState(initial = Optional.empty())
         val joinAction: MutableState<AsyncAction<Unit>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
         val knockAction: MutableState<AsyncAction<Unit>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
         val cancelKnockAction: MutableState<AsyncAction<Unit>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
+        val forgetRoomAction: MutableState<AsyncAction<Unit>> = remember { mutableStateOf(AsyncAction.Uninitialized) }
         var knockMessage by rememberSaveable { mutableStateOf("") }
+        var isDismissingContent by remember { mutableStateOf(false) }
+        val hideInviteAvatars by remember {
+            matrixClient
+                .mediaPreviewService()
+                .mediaPreviewConfigFlow
+                .mapState { config -> config.hideInviteAvatar }
+        }.collectAsState()
+        val canReportRoom by produceState(false) { value = matrixClient.canReportRoom() }
+
         val contentState by produceState<ContentState>(
-            initialValue = ContentState.Loading(roomIdOrAlias),
+            initialValue = ContentState.Loading,
             key1 = roomInfo,
             key2 = retryCount,
+            key3 = isDismissingContent,
         ) {
             when {
+                isDismissingContent -> value = ContentState.Dismissing
                 roomInfo.isPresent -> {
-                    value = roomInfo.get().toContentState()
+                    val notJoinedRoom = matrixClient.getRoomPreview(roomIdOrAlias, serverNames).getOrNull()
+                    val (sender, reason) = when (roomInfo.get().currentUserMembership) {
+                        CurrentUserMembership.BANNED -> {
+                            // Workaround to get info about the sender for banned rooms
+                            // TODO re-do this once we have a better API in the SDK
+                            val membershipDetails = notJoinedRoom?.membershipDetails()?.getOrNull()
+                            membershipDetails?.senderMember to membershipDetails?.currentUserMember?.membershipChangeReason
+                        }
+                        CurrentUserMembership.INVITED -> {
+                            roomInfo.get().inviter to null
+                        }
+                        else -> null to null
+                    }
+                    val joinedMembersCountOverride = notJoinedRoom?.previewInfo?.numberOfJoinedMembers
+                    value = roomInfo.get().toContentState(
+                        membershipSender = sender,
+                        joinedMembersCountOverride = joinedMembersCountOverride,
+                        reason = reason,
+                    )
                 }
                 roomDescription.isPresent -> {
                     value = roomDescription.get().toContentState()
                 }
                 else -> {
-                    value = ContentState.Loading(roomIdOrAlias)
-                    val result = matrixClient.getRoomPreviewInfo(roomIdOrAlias, serverNames)
+                    value = ContentState.Loading
+                    val result = matrixClient.getRoomPreview(roomIdOrAlias, serverNames)
                     value = result.fold(
-                        onSuccess = { previewInfo ->
-                            previewInfo.toContentState()
+                        onSuccess = { preview ->
+                            val membershipInfo = when (preview.previewInfo.membership) {
+                                CurrentUserMembership.INVITED,
+                                CurrentUserMembership.BANNED,
+                                CurrentUserMembership.KNOCKED -> {
+                                    preview.membershipDetails().getOrNull()
+                                }
+                                else -> null
+                            }
+                            preview.previewInfo.toContentState(
+                                senderMember = membershipInfo?.senderMember,
+                                reason = membershipInfo?.currentUserMember?.membershipChangeReason,
+                            )
                         },
                         onFailure = { throwable ->
-                            if (throwable.message?.contains("403") == true) {
-                                ContentState.UnknownRoom(roomIdOrAlias)
+                            if (throwable is ClientException.MatrixApi && (throwable.kind == ErrorKind.NotFound || throwable.kind == ErrorKind.Forbidden)) {
+                                ContentState.UnknownRoom
                             } else {
-                                ContentState.Failure(roomIdOrAlias, throwable)
+                                ContentState.Failure(throwable)
                             }
                         }
                     )
@@ -112,20 +163,22 @@ class JoinRoomPresenter @AssistedInject constructor(
         }
         val acceptDeclineInviteState = acceptDeclineInvitePresenter.present()
 
+        LaunchedEffect(contentState) {
+            contentState.markRoomInviteAsSeen()
+        }
+
         fun handleEvents(event: JoinRoomEvents) {
             when (event) {
                 JoinRoomEvents.JoinRoom -> coroutineScope.joinRoom(joinAction)
                 is JoinRoomEvents.KnockRoom -> coroutineScope.knockRoom(knockAction, knockMessage)
-                JoinRoomEvents.AcceptInvite -> {
-                    val inviteData = contentState.toInviteData() ?: return
+                is JoinRoomEvents.AcceptInvite -> {
                     acceptDeclineInviteState.eventSink(
-                        AcceptDeclineInviteEvents.AcceptInvite(inviteData)
+                        AcceptDeclineInviteEvents.AcceptInvite(event.inviteData)
                     )
                 }
-                JoinRoomEvents.DeclineInvite -> {
-                    val inviteData = contentState.toInviteData() ?: return
+                is JoinRoomEvents.DeclineInvite -> {
                     acceptDeclineInviteState.eventSink(
-                        AcceptDeclineInviteEvents.DeclineInvite(inviteData)
+                        AcceptDeclineInviteEvents.DeclineInvite(invite = event.inviteData, blockUser = event.blockUser, shouldConfirm = true)
                     )
                 }
                 is JoinRoomEvents.CancelKnock -> coroutineScope.cancelKnockRoom(event.requiresConfirmation, cancelKnockAction)
@@ -136,21 +189,30 @@ class JoinRoomPresenter @AssistedInject constructor(
                     knockAction.value = AsyncAction.Uninitialized
                     joinAction.value = AsyncAction.Uninitialized
                     cancelKnockAction.value = AsyncAction.Uninitialized
+                    forgetRoomAction.value = AsyncAction.Uninitialized
                 }
                 is JoinRoomEvents.UpdateKnockMessage -> {
                     knockMessage = event.message.take(MAX_KNOCK_MESSAGE_LENGTH)
                 }
+                JoinRoomEvents.DismissErrorAndHideContent -> {
+                    isDismissingContent = true
+                }
+                JoinRoomEvents.ForgetRoom -> coroutineScope.forgetRoom(forgetRoomAction)
             }
         }
 
         return JoinRoomState(
+            roomIdOrAlias = roomIdOrAlias,
             contentState = contentState,
             acceptDeclineInviteState = acceptDeclineInviteState,
             joinAction = joinAction.value,
             knockAction = knockAction.value,
+            forgetAction = forgetRoomAction.value,
             cancelKnockAction = cancelKnockAction.value,
             applicationName = buildMeta.applicationName,
             knockMessage = knockMessage,
+            hideInviteAvatars = hideInviteAvatars,
+            canReportRoom = canReportRoom,
             eventSink = ::handleEvents
         )
     }
@@ -180,9 +242,21 @@ class JoinRoomPresenter @AssistedInject constructor(
             }
         }
     }
+
+    private fun CoroutineScope.forgetRoom(forgetAction: MutableState<AsyncAction<Unit>>) = launch {
+        forgetAction.runUpdatingState {
+            forgetRoom.invoke(roomId)
+        }
+    }
+
+    private suspend fun ContentState.markRoomInviteAsSeen() {
+        if ((this as? ContentState.Loaded)?.joinAuthorisationStatus as? JoinAuthorisationStatus.IsInvited != null) {
+            seenInvitesStore.markAsSeen(roomId)
+        }
+    }
 }
 
-private fun RoomPreviewInfo.toContentState(): ContentState {
+private fun RoomPreviewInfo.toContentState(senderMember: RoomMember?, reason: String?): ContentState {
     return ContentState.Loaded(
         roomId = roomId,
         name = name,
@@ -192,12 +266,16 @@ private fun RoomPreviewInfo.toContentState(): ContentState {
         isDm = false,
         roomType = roomType,
         roomAvatarUrl = avatarUrl,
-        joinAuthorisationStatus = when {
-            // Note when isInvited, roomInfo will be used, so if this happen, it will be temporary.
-            isInvited -> JoinAuthorisationStatus.IsInvited(null)
-            canKnock -> JoinAuthorisationStatus.CanKnock
-            isPublic -> JoinAuthorisationStatus.CanJoin
-            else -> JoinAuthorisationStatus.Unknown
+        joinAuthorisationStatus = when (membership) {
+            CurrentUserMembership.INVITED -> {
+                JoinAuthorisationStatus.IsInvited(
+                    inviteData = toInviteData(),
+                    inviteSender = senderMember?.toInviteSender()
+                )
+            }
+            CurrentUserMembership.BANNED -> JoinAuthorisationStatus.IsBanned(senderMember?.toInviteSender(), reason)
+            CurrentUserMembership.KNOCKED -> JoinAuthorisationStatus.IsKnocked
+            else -> joinRule.toJoinAuthorisationStatus()
         }
     )
 }
@@ -222,36 +300,43 @@ internal fun RoomDescription.toContentState(): ContentState {
 }
 
 @VisibleForTesting
-internal fun MatrixRoomInfo.toContentState(): ContentState {
+internal fun RoomInfo.toContentState(
+    membershipSender: RoomMember?,
+    joinedMembersCountOverride: Long?,
+    reason: String?,
+): ContentState {
     return ContentState.Loaded(
         roomId = id,
         name = name,
         topic = topic,
         alias = canonicalAlias,
-        numberOfMembers = activeMembersCount,
+        numberOfMembers = joinedMembersCountOverride ?: joinedMembersCount,
         isDm = isDm,
         roomType = if (isSpace) RoomType.Space else RoomType.Room,
         roomAvatarUrl = avatarUrl,
-        joinAuthorisationStatus = when {
-            currentUserMembership == CurrentUserMembership.INVITED -> JoinAuthorisationStatus.IsInvited(
-                inviteSender = inviter?.toInviteSender()
+        joinAuthorisationStatus = when (currentUserMembership) {
+            CurrentUserMembership.INVITED -> JoinAuthorisationStatus.IsInvited(
+                inviteData = toInviteData(),
+                inviteSender = membershipSender?.toInviteSender(),
             )
-            currentUserMembership == CurrentUserMembership.KNOCKED -> JoinAuthorisationStatus.IsKnocked
-            isPublic -> JoinAuthorisationStatus.CanJoin
-            else -> JoinAuthorisationStatus.Unknown
+            CurrentUserMembership.BANNED -> JoinAuthorisationStatus.IsBanned(
+                banSender = membershipSender?.toInviteSender(),
+                reason = reason,
+            )
+            CurrentUserMembership.KNOCKED -> JoinAuthorisationStatus.IsKnocked
+            else -> joinRule.toJoinAuthorisationStatus()
         }
     )
 }
 
-@VisibleForTesting
-internal fun ContentState.toInviteData(): InviteData? {
+private fun JoinRule?.toJoinAuthorisationStatus(): JoinAuthorisationStatus {
     return when (this) {
-        is ContentState.Loaded -> InviteData(
-            roomId = roomId,
-            // Note: name should not be null at this point, but use Id just in case...
-            roomName = name ?: roomId.value,
-            isDm = isDm
-        )
-        else -> null
+        JoinRule.Knock,
+        is JoinRule.KnockRestricted -> JoinAuthorisationStatus.CanKnock
+        JoinRule.Invite,
+        JoinRule.Private -> JoinAuthorisationStatus.NeedInvite
+        is JoinRule.Restricted -> JoinAuthorisationStatus.Restricted
+        JoinRule.Public -> JoinAuthorisationStatus.CanJoin
+        else -> JoinAuthorisationStatus.Unknown
     }
 }

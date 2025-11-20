@@ -30,7 +30,7 @@ import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatch
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.designsystem.utils.snackbar.collectSnackbarMessageAsState
 import io.element.android.libraries.matrix.api.core.EventId
-import io.element.android.libraries.matrix.api.room.MatrixRoom
+import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.room.powerlevels.canRedactOther
 import io.element.android.libraries.matrix.api.room.powerlevels.canRedactOwn
 import io.element.android.libraries.matrix.api.timeline.item.event.toEventOrTransactionId
@@ -53,7 +53,7 @@ class MediaViewerPresenter @AssistedInject constructor(
     @Assisted private val inputs: MediaViewerEntryPoint.Params,
     @Assisted private val navigator: MediaViewerNavigator,
     @Assisted private val dataSource: MediaViewerDataSource,
-    private val room: MatrixRoom,
+    private val room: JoinedRoom,
     private val localMediaActions: LocalMediaActions,
 ) : Presenter<MediaViewerState> {
     @AssistedFactory
@@ -148,6 +148,7 @@ class MediaViewerPresenter @AssistedInject constructor(
         }
 
         return MediaViewerState(
+            initiallySelectedEventId = inputs.eventId,
             listData = data.value,
             currentIndex = currentIndex.intValue,
             snackbarMessage = snackbarMessage,
@@ -164,7 +165,9 @@ class MediaViewerPresenter @AssistedInject constructor(
     ) {
         val isRenderingLoadingBackward by remember {
             derivedStateOf {
-                currentIndex.intValue == data.value.lastIndex && data.value.lastOrNull() is MediaViewerPageData.Loading
+                currentIndex.intValue == data.value.lastIndex &&
+                    data.value.size > 1 &&
+                    data.value.lastOrNull() is MediaViewerPageData.Loading
             }
         }
         if (isRenderingLoadingBackward) {
@@ -186,7 +189,9 @@ class MediaViewerPresenter @AssistedInject constructor(
     ) {
         val isRenderingLoadingForward by remember {
             derivedStateOf {
-                currentIndex.intValue == 0 && data.value.firstOrNull() is MediaViewerPageData.Loading
+                currentIndex.intValue == 0 &&
+                    data.value.size > 1 &&
+                    data.value.firstOrNull() is MediaViewerPageData.Loading
             }
         }
         if (isRenderingLoadingForward) {
@@ -204,8 +209,8 @@ class MediaViewerPresenter @AssistedInject constructor(
     private fun showNoMoreItemsSnackbar() {
         val messageResId = when (inputs.mode) {
             MediaViewerEntryPoint.MediaViewerMode.SingleMedia,
-            MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos -> R.string.screen_media_details_no_more_media_to_show
-            MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios -> R.string.screen_media_details_no_more_files_to_show
+            is MediaViewerEntryPoint.MediaViewerMode.TimelineImagesAndVideos -> R.string.screen_media_details_no_more_media_to_show
+            is MediaViewerEntryPoint.MediaViewerMode.TimelineFilesAndAudios -> R.string.screen_media_details_no_more_files_to_show
         }
         val message = SnackbarMessage(messageResId)
         snackbarDispatcher.post(message)

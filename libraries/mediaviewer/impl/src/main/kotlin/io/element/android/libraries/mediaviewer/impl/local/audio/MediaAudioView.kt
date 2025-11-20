@@ -23,9 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.GraphicEq
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -54,6 +51,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import io.element.android.compound.theme.ElementTheme
+import io.element.android.compound.tokens.generated.CompoundIcons
+import io.element.android.libraries.audio.api.AudioFocus
 import io.element.android.libraries.designsystem.components.media.WaveformPlaybackView
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -82,6 +81,7 @@ fun MediaAudioView(
     bottomPaddingInPixels: Int,
     localMedia: LocalMedia?,
     info: MediaInfo?,
+    audioFocus: AudioFocus?,
     modifier: Modifier = Modifier,
     isDisplayed: Boolean = true,
 ) {
@@ -93,6 +93,7 @@ fun MediaAudioView(
         exoPlayer = exoPlayer,
         localMedia = localMedia,
         info = info,
+        audioFocus = audioFocus,
         modifier = modifier,
     )
 }
@@ -106,6 +107,7 @@ private fun ExoPlayerMediaAudioView(
     exoPlayer: ExoPlayer,
     localMedia: LocalMedia?,
     info: MediaInfo?,
+    audioFocus: AudioFocus?,
     modifier: Modifier = Modifier,
 ) {
     var mediaPlayerControllerState: MediaPlayerControllerState by remember {
@@ -113,6 +115,7 @@ private fun ExoPlayerMediaAudioView(
             MediaPlayerControllerState(
                 isVisible = true,
                 isPlaying = false,
+                isReady = false,
                 progressInMillis = 0,
                 durationInMillis = 0,
                 canMute = false,
@@ -261,13 +264,13 @@ private fun ExoPlayerMediaAudioView(
                             modifier = Modifier
                                 .size(72.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.onBackground),
+                                .background(ElementTheme.colors.iconPrimary),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
-                                imageVector = Icons.Outlined.GraphicEq,
+                                imageVector = CompoundIcons.Audio(),
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.background,
+                                tint = ElementTheme.colors.iconOnSolidPrimary,
                                 modifier = Modifier
                                     .size(32.dp),
                             )
@@ -295,6 +298,7 @@ private fun ExoPlayerMediaAudioView(
             onToggleMute = {
                 // Cannot happen for audio files
             },
+            audioFocus = audioFocus,
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
@@ -335,7 +339,7 @@ private fun AudioInfoView(
                 style = ElementTheme.typography.fontBodyMdRegular,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.primary
+                color = ElementTheme.colors.textPrimary
             )
         }
         if (info != null) {
@@ -346,7 +350,7 @@ private fun AudioInfoView(
                 style = ElementTheme.typography.fontBodyLgRegular,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.primary
+                color = ElementTheme.colors.textPrimary
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -354,7 +358,7 @@ private fun AudioInfoView(
                 style = ElementTheme.typography.fontBodyMdRegular,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.primary
+                color = ElementTheme.colors.textPrimary
             )
         }
     }
@@ -370,6 +374,7 @@ internal fun MediaAudioViewPreview(
         bottomPaddingInPixels = 0,
         localMediaViewState = rememberLocalMediaViewState(),
         info = info,
+        audioFocus = null,
         localMedia = null,
     )
 }

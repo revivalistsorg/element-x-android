@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import timber.log.Timber
 import javax.inject.Inject
 
 @VisibleForTesting
@@ -32,7 +33,7 @@ class SendQueues @Inject constructor(
 ) {
     /**
      * Launches the send queues retry mechanism in the given [coroutineScope].
-     * Makes sure to re-enable all send queues when the network status is [NetworkStatus.Online].
+     * Makes sure to re-enable all send queues when the network status is [NetworkStatus.Connected].
      */
     @OptIn(FlowPreview::class)
     fun launchIn(coroutineScope: CoroutineScope) {
@@ -42,7 +43,9 @@ class SendQueues @Inject constructor(
         ) { syncState, _ -> syncState }
             .debounce(SEND_QUEUES_RETRY_DELAY_MILLIS)
             .onEach { syncState ->
+                Timber.tag("SendQueues").d("Sync state changed: $syncState")
                 if (syncState == SyncState.Running) {
+                    Timber.tag("SendQueues").d("Enabling send queues again")
                     matrixClient.setAllSendQueuesEnabled(enabled = true)
                 }
             }

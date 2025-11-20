@@ -26,6 +26,7 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.core.bool.orFalse
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -34,6 +35,7 @@ class PinUnlockPresenter @Inject constructor(
     private val pinCodeManager: PinCodeManager,
     private val biometricAuthenticatorManager: BiometricAuthenticatorManager,
     private val logoutUseCase: LogoutUseCase,
+    @AppCoroutineScope
     private val coroutineScope: CoroutineScope,
     private val pinUnlockHelper: PinUnlockHelper,
 ) : Presenter<PinUnlockState> {
@@ -53,7 +55,7 @@ class PinUnlockPresenter @Inject constructor(
             mutableStateOf(false)
         }
         val signOutAction = remember {
-            mutableStateOf<AsyncAction<String?>>(AsyncAction.Uninitialized)
+            mutableStateOf<AsyncAction<Unit>>(AsyncAction.Uninitialized)
         }
         var biometricUnlockResult by remember {
             mutableStateOf<BiometricAuthenticator.AuthenticationResult?>(null)
@@ -169,7 +171,7 @@ class PinUnlockPresenter @Inject constructor(
         }
     }
 
-    private fun CoroutineScope.signOut(signOutAction: MutableState<AsyncAction<String?>>) = launch {
+    private fun CoroutineScope.signOut(signOutAction: MutableState<AsyncAction<Unit>>) = launch {
         suspend {
             logoutUseCase.logout(ignoreSdkError = true)
         }.runCatchingUpdatingState(signOutAction)

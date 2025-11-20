@@ -78,7 +78,7 @@ fun PinnedMessagesBannerView(
 
 @Composable
 private fun PinnedMessagesBannerRow(
-    state: PinnedMessagesBannerState,
+    state: PinnedMessagesBannerState.Visible,
     onClick: (EventId) -> Unit,
     onViewAllClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -108,7 +108,7 @@ private fun PinnedMessagesBannerRow(
         Icon(
             imageVector = CompoundIcons.PinSolid(),
             contentDescription = null,
-            tint = ElementTheme.materialColors.secondary,
+            tint = ElementTheme.colors.iconSecondary,
             modifier = Modifier
                 .padding(horizontal = 10.dp)
                 .size(20.dp)
@@ -265,7 +265,7 @@ internal interface PinnedMessagesBannerViewScrollBehavior {
 
 internal object PinnedMessagesBannerViewDefaults {
     @Composable
-    fun rememberExitOnScrollBehavior(): PinnedMessagesBannerViewScrollBehavior = remember {
+    fun rememberScrollBehavior(pinnedMessagesCount: Int): PinnedMessagesBannerViewScrollBehavior = remember(pinnedMessagesCount) {
         ExitOnScrollBehavior()
     }
 }
