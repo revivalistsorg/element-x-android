@@ -1,13 +1,14 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.eventformatter.impl
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.eventformatter.api.RoomLastMessageFormatter
 import io.element.android.libraries.eventformatter.impl.mode.RenderingMode
@@ -42,10 +43,9 @@ import io.element.android.libraries.matrix.api.timeline.item.event.getDisambigua
 import io.element.android.libraries.matrix.ui.messages.toPlainText
 import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.services.toolbox.api.strings.StringProvider
-import javax.inject.Inject
 
 @ContributesBinding(SessionScope::class)
-class DefaultRoomLastMessageFormatter @Inject constructor(
+class DefaultRoomLastMessageFormatter(
     private val sp: StringProvider,
     private val roomMembershipContentFormatter: RoomMembershipContentFormatter,
     private val profileChangeContentFormatter: ProfileChangeContentFormatter,

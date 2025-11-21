@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -31,7 +32,7 @@ import io.element.android.libraries.matrix.test.A_ROOM_TOPIC
 import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.matrix.test.timeline.anEventTimelineItem
 import kotlinx.collections.immutable.persistentMapOf
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 
 fun aRoomSummary(
     info: RoomInfo = aRoomInfo(),
@@ -72,13 +73,15 @@ fun aRoomSummary(
     activeRoomCallParticipants: List<UserId> = emptyList(),
     heroes: List<MatrixUser> = emptyList(),
     pinnedEventIds: List<EventId> = emptyList(),
-    roomCreator: UserId? = null,
+    roomCreators: List<UserId> = emptyList(),
     isMarkedUnread: Boolean = false,
     numUnreadMessages: Long = 0,
     numUnreadNotifications: Long = 0,
     numUnreadMentions: Long = 0,
     historyVisibility: RoomHistoryVisibility = RoomHistoryVisibility.Joined,
     lastMessage: RoomMessage? = aRoomMessage(),
+    roomVersion: String? = "11",
+    privilegedCreatorRole: Boolean = false,
 ) = RoomSummary(
     info = RoomInfo(
         id = roomId,
@@ -94,7 +97,7 @@ fun aRoomSummary(
         successorRoom = successorRoom,
         isFavorite = isFavorite,
         canonicalAlias = canonicalAlias,
-        alternativeAliases = alternativeAliases.toPersistentList(),
+        alternativeAliases = alternativeAliases.toImmutableList(),
         currentUserMembership = currentUserMembership,
         inviter = inviter,
         activeMembersCount = activeMembersCount,
@@ -105,15 +108,17 @@ fun aRoomSummary(
         notificationCount = notificationCount,
         userDefinedNotificationMode = userDefinedNotificationMode,
         hasRoomCall = hasRoomCall,
-        activeRoomCallParticipants = activeRoomCallParticipants.toPersistentList(),
-        heroes = heroes.toPersistentList(),
-        pinnedEventIds = pinnedEventIds.toPersistentList(),
-        creator = roomCreator,
+        activeRoomCallParticipants = activeRoomCallParticipants.toImmutableList(),
+        heroes = heroes.toImmutableList(),
+        pinnedEventIds = pinnedEventIds.toImmutableList(),
+        creators = roomCreators.toImmutableList(),
         isMarkedUnread = isMarkedUnread,
         numUnreadMessages = numUnreadMessages,
         numUnreadNotifications = numUnreadNotifications,
         numUnreadMentions = numUnreadMentions,
         historyVisibility = historyVisibility,
+        roomVersion = roomVersion,
+        privilegedCreatorRole = privilegedCreatorRole,
     ),
     lastMessage = lastMessage,
 )

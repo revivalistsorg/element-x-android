@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -21,6 +22,7 @@ import io.element.android.features.poll.impl.anOngoingPollContent
 import io.element.android.features.poll.impl.data.PollRepository
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.poll.PollKind
+import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
 import io.element.android.libraries.matrix.api.timeline.item.event.PollContent
 import io.element.android.libraries.matrix.api.timeline.item.event.toEventOrTransactionId
@@ -551,12 +553,18 @@ class CreatePollPresenterTest {
     private fun createCreatePollPresenter(
         mode: CreatePollMode = CreatePollMode.NewPoll,
         room: FakeJoinedRoom = fakeJoinedRoom,
+        timelineMode: Timeline.Mode = Timeline.Mode.Live,
     ): CreatePollPresenter = CreatePollPresenter(
-        repository = PollRepository(room, LiveTimelineProvider(room)),
+        repositoryFactory = object : PollRepository.Factory {
+            override fun create(timelineMode: Timeline.Mode): PollRepository {
+                return PollRepository(room, LiveTimelineProvider(room), timelineMode)
+            }
+        },
         analyticsService = fakeAnalyticsService,
         messageComposerContext = fakeMessageComposerContext,
         navigateUp = { navUpInvocationsCount++ },
         mode = mode,
+        timelineMode = timelineMode,
     )
 }
 

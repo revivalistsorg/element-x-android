@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,8 +15,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.features.userprofile.api.UserProfileEvents
 import io.element.android.features.userprofile.api.UserProfilePresenterFactory
 import io.element.android.features.userprofile.api.UserProfileState
@@ -41,7 +42,8 @@ import kotlinx.coroutines.launch
  * Presenter for room member details screen.
  * Rely on UserProfilePresenter, but override some fields with room member info when available.
  */
-class RoomMemberDetailsPresenter @AssistedInject constructor(
+@AssistedInject
+class RoomMemberDetailsPresenter(
     @Assisted private val roomMemberId: UserId,
     private val room: JoinedRoom,
     private val encryptionService: EncryptionService,
@@ -110,7 +112,7 @@ class RoomMemberDetailsPresenter @AssistedInject constructor(
             }
         }
 
-        fun eventSink(event: UserProfileEvents) {
+        fun handleEvent(event: UserProfileEvents) {
             when (event) {
                 UserProfileEvents.WithdrawVerification -> coroutineScope.launch {
                     encryptionService.withdrawVerification(roomMemberId)
@@ -128,7 +130,7 @@ class RoomMemberDetailsPresenter @AssistedInject constructor(
             avatarUrl = roomUserAvatar ?: userProfileState.avatarUrl,
             verificationState = verificationState,
             snackbarMessage = snackbarMessage,
-            eventSink = ::eventSink
+            eventSink = ::handleEvent,
         )
     }
 }

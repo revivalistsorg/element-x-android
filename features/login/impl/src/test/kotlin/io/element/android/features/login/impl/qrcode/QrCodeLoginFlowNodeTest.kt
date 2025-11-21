@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,8 +13,7 @@ import com.bumble.appyx.core.modality.AncestryInfo
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.utils.customisations.NodeCustomisationDirectoryImpl
 import com.google.common.truth.Truth.assertThat
-import io.element.android.features.login.impl.DefaultLoginUserStory
-import io.element.android.features.login.impl.di.FakeMergedQrCodeLoginComponent
+import io.element.android.features.login.impl.di.FakeQrCodeLoginGraph
 import io.element.android.features.login.impl.screens.qrcode.confirmation.QrCodeConfirmationStep
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.matrix.api.auth.qrlogin.QrCodeLoginStep
@@ -98,7 +98,7 @@ class QrCodeLoginFlowNodeTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `startAuthentication - success marks the login flow as done`() = runTest {
+    fun `startAuthentication - success`() = runTest {
         val fakeAuthenticationService = FakeMatrixAuthenticationService(
             loginWithQrCodeResult = { _, progress ->
                 progress(QrCodeLoginStep.Finished)
@@ -107,12 +107,8 @@ class QrCodeLoginFlowNodeTest {
         )
         // Test with a real manager to ensure the flow is correctly done
         val qrCodeLoginManager = DefaultQrCodeLoginManager(fakeAuthenticationService)
-        val defaultLoginUserStory = DefaultLoginUserStory().apply {
-            loginFlowIsDone.value = false
-        }
         val flowNode = createLoginFlowNode(
             qrCodeLoginManager = qrCodeLoginManager,
-            defaultLoginUserStory = defaultLoginUserStory,
             coroutineDispatchers = testCoroutineDispatchers(useUnconfinedTestDispatcher = true)
         )
 
@@ -122,7 +118,6 @@ class QrCodeLoginFlowNodeTest {
         advanceUntilIdle()
 
         assertThat(qrCodeLoginManager.currentLoginStep.value).isEqualTo(QrCodeLoginStep.Finished)
-        assertThat(defaultLoginUserStory.loginFlowIsDone.value).isTrue()
         assertThat(flowNode.isLoginInProgress()).isFalse()
     }
 
@@ -137,12 +132,8 @@ class QrCodeLoginFlowNodeTest {
         )
         // Test with a real manager to ensure the flow is correctly done
         val qrCodeLoginManager = DefaultQrCodeLoginManager(fakeAuthenticationService)
-        val defaultLoginUserStory = DefaultLoginUserStory().apply {
-            loginFlowIsDone.value = false
-        }
         val flowNode = createLoginFlowNode(
             qrCodeLoginManager = qrCodeLoginManager,
-            defaultLoginUserStory = defaultLoginUserStory,
             coroutineDispatchers = testCoroutineDispatchers(useUnconfinedTestDispatcher = true)
         )
 
@@ -152,7 +143,6 @@ class QrCodeLoginFlowNodeTest {
         advanceUntilIdle()
 
         assertThat(qrCodeLoginManager.currentLoginStep.value).isEqualTo(QrCodeLoginStep.Failed(QrLoginException.Unknown))
-        assertThat(defaultLoginUserStory.loginFlowIsDone.value).isFalse()
         assertThat(flowNode.isLoginInProgress()).isFalse()
     }
 
@@ -167,12 +157,8 @@ class QrCodeLoginFlowNodeTest {
         )
         // Test with a real manager to ensure the flow is correctly done
         val qrCodeLoginManager = DefaultQrCodeLoginManager(fakeAuthenticationService)
-        val defaultLoginUserStory = DefaultLoginUserStory().apply {
-            loginFlowIsDone.value = false
-        }
         val flowNode = createLoginFlowNode(
             qrCodeLoginManager = qrCodeLoginManager,
-            defaultLoginUserStory = defaultLoginUserStory,
             coroutineDispatchers = testCoroutineDispatchers(useUnconfinedTestDispatcher = true)
         )
 
@@ -183,13 +169,11 @@ class QrCodeLoginFlowNodeTest {
         advanceUntilIdle()
 
         assertThat(qrCodeLoginManager.currentLoginStep.value).isEqualTo(QrCodeLoginStep.Uninitialized)
-        assertThat(defaultLoginUserStory.loginFlowIsDone.value).isFalse()
         assertThat(flowNode.isLoginInProgress()).isFalse()
     }
 
     private fun TestScope.createLoginFlowNode(
         qrCodeLoginManager: QrCodeLoginManager = FakeQrCodeLoginManager(),
-        defaultLoginUserStory: DefaultLoginUserStory = DefaultLoginUserStory(),
         coroutineDispatchers: CoroutineDispatchers = testCoroutineDispatchers()
     ): QrCodeLoginFlowNode {
         val buildContext = BuildContext(
@@ -200,8 +184,7 @@ class QrCodeLoginFlowNodeTest {
         return QrCodeLoginFlowNode(
             buildContext = buildContext,
             plugins = emptyList(),
-            qrCodeLoginComponentBuilder = FakeMergedQrCodeLoginComponent.Builder(qrCodeLoginManager),
-            defaultLoginUserStory = defaultLoginUserStory,
+            qrCodeLoginGraphFactory = FakeQrCodeLoginGraph.Builder(qrCodeLoginManager),
             coroutineDispatchers = coroutineDispatchers,
         )
     }

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -41,6 +42,14 @@ class RoomListFilterTest {
         currentUserMembership = CurrentUserMembership.INVITED
     )
 
+    private val space = aRoomSummary(
+        isSpace = true
+    )
+    private val invitedSpace = aRoomSummary(
+        isSpace = true,
+        currentUserMembership = CurrentUserMembership.INVITED
+    )
+
     private val roomSummaries = listOf(
         regularRoom,
         dmRoom,
@@ -49,13 +58,15 @@ class RoomListFilterTest {
         unreadNotificationRoom,
         roomToSearch,
         roomWithAccent,
-        invitedRoom
+        invitedRoom,
+        space,
+        invitedSpace,
     )
 
     @Test
     fun `Room list filter all empty`() = runTest {
         val filter = RoomListFilter.all()
-        assertThat(roomSummaries.filter(filter)).isEqualTo(roomSummaries)
+        assertThat(roomSummaries.filter(filter)).isEqualTo(roomSummaries - space)
     }
 
     @Test
@@ -84,6 +95,12 @@ class RoomListFilterTest {
     }
 
     @Test
+    fun `Room list filter space`() = runTest {
+        val filter = RoomListFilter.Category.Space
+        assertThat(roomSummaries.filter(filter)).containsExactly(space, invitedSpace)
+    }
+
+    @Test
     fun `Room list filter favorite`() = runTest {
         val filter = RoomListFilter.Favorite
         assertThat(roomSummaries.filter(filter)).containsExactly(favoriteRoom)
@@ -98,7 +115,7 @@ class RoomListFilterTest {
     @Test
     fun `Room list filter invites`() = runTest {
         val filter = RoomListFilter.Invite
-        assertThat(roomSummaries.filter(filter)).containsExactly(invitedRoom)
+        assertThat(roomSummaries.filter(filter)).containsExactly(invitedRoom, invitedSpace)
     }
 
     @Test
@@ -135,11 +152,5 @@ class RoomListFilterTest {
             RoomListFilter.Favorite
         )
         assertThat(roomSummaries.filter(filter)).isEmpty()
-    }
-
-    @Test
-    fun `Room list filter all with empty list`() = runTest {
-        val filter = RoomListFilter.all()
-        assertThat(roomSummaries.filter(filter)).isEqualTo(roomSummaries)
     }
 }

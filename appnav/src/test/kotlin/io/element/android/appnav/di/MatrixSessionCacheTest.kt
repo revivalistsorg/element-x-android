@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,12 +11,14 @@ package io.element.android.appnav.di
 import com.bumble.appyx.core.state.MutableSavedStateMapImpl
 import com.google.common.truth.Truth.assertThat
 import io.element.android.features.networkmonitor.test.FakeNetworkMonitor
-import io.element.android.libraries.matrix.api.MatrixClient
+import io.element.android.libraries.matrix.api.sync.SyncService
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.auth.FakeMatrixAuthenticationService
+import io.element.android.services.analytics.test.FakeAnalyticsService
 import io.element.android.services.appnavstate.test.FakeAppForegroundStateService
 import io.element.android.tests.testutils.testCoroutineDispatchers
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -117,12 +120,17 @@ class MatrixSessionCacheTest {
     }
 
     private fun TestScope.createSyncOrchestratorFactory() = object : SyncOrchestrator.Factory {
-        override fun create(matrixClient: MatrixClient): SyncOrchestrator {
+        override fun create(
+            syncService: SyncService,
+            sessionCoroutineScope: CoroutineScope,
+        ): SyncOrchestrator {
             return SyncOrchestrator(
-                matrixClient,
+                syncService = syncService,
+                sessionCoroutineScope = sessionCoroutineScope,
                 appForegroundStateService = FakeAppForegroundStateService(),
                 networkMonitor = FakeNetworkMonitor(),
                 dispatchers = testCoroutineDispatchers(),
+                analyticsService = FakeAnalyticsService(),
             )
         }
     }

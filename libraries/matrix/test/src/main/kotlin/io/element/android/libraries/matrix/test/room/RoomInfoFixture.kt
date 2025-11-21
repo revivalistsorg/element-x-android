@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -59,12 +60,14 @@ fun aRoomInfo(
     activeRoomCallParticipants: List<UserId> = emptyList(),
     heroes: List<MatrixUser> = emptyList(),
     pinnedEventIds: List<EventId> = emptyList(),
-    roomCreator: UserId? = null,
+    roomCreators: List<UserId> = emptyList(),
     isMarkedUnread: Boolean = false,
     numUnreadMessages: Long = 0,
     numUnreadNotifications: Long = 0,
     numUnreadMentions: Long = 0,
     historyVisibility: RoomHistoryVisibility = RoomHistoryVisibility.Joined,
+    roomVersion: String? = "11",
+    privilegedCreatorRole: Boolean = false,
 ) = RoomInfo(
     id = id,
     name = name,
@@ -93,10 +96,12 @@ fun aRoomInfo(
     activeRoomCallParticipants = activeRoomCallParticipants.toImmutableList(),
     heroes = heroes.toImmutableList(),
     pinnedEventIds = pinnedEventIds.toImmutableList(),
-    creator = roomCreator,
+    creators = roomCreators.toImmutableList(),
     isMarkedUnread = isMarkedUnread,
     numUnreadMessages = numUnreadMessages,
     numUnreadNotifications = numUnreadNotifications,
     numUnreadMentions = numUnreadMentions,
     historyVisibility = historyVisibility,
+    roomVersion = roomVersion,
+    privilegedCreatorRole = privilegedCreatorRole,
 )

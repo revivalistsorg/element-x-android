@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,19 +12,20 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.exifinterface.media.ExifInterface
+import dev.zacsweers.metro.Inject
 import io.element.android.libraries.androidutils.bitmap.calculateInSampleSize
 import io.element.android.libraries.androidutils.bitmap.resizeToMax
-import io.element.android.libraries.androidutils.bitmap.rotateToMetadataOrientation
+import io.element.android.libraries.androidutils.bitmap.rotateToExifMetadataOrientation
 import io.element.android.libraries.androidutils.file.createTmpFile
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.extensions.runCatchingExceptions
-import io.element.android.libraries.di.ApplicationContext
+import io.element.android.libraries.di.annotations.ApplicationContext
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
-import javax.inject.Inject
 
-class ImageCompressor @Inject constructor(
+@Inject
+class ImageCompressor(
     @ApplicationContext private val context: Context,
     private val dispatchers: CoroutineDispatchers,
 ) {
@@ -78,7 +80,7 @@ class ImageCompressor @Inject constructor(
             options.inJustDecodeBounds = false
             val decodedBitmap = BitmapFactory.decodeStream(input, null, options)
                 ?: error("Decoding Bitmap from InputStream failed")
-            val rotatedBitmap = decodedBitmap.rotateToMetadataOrientation(orientation)
+            val rotatedBitmap = decodedBitmap.rotateToExifMetadataOrientation(orientation)
             if (resizeMode is ResizeMode.Strict) {
                 rotatedBitmap.resizeToMax(resizeMode.maxWidth, resizeMode.maxHeight)
             } else {

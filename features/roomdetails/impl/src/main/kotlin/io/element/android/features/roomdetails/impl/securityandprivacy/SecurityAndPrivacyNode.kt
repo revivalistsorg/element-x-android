@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,13 +14,14 @@ import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.plugin.Plugin
 import com.bumble.appyx.core.plugin.plugins
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import io.element.android.anvilannotations.ContributesNode
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
+import io.element.android.annotations.ContributesNode
 import io.element.android.libraries.di.RoomScope
 
 @ContributesNode(RoomScope::class)
-class SecurityAndPrivacyNode @AssistedInject constructor(
+@AssistedInject
+class SecurityAndPrivacyNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
     presenterFactory: SecurityAndPrivacyPresenter.Factory,

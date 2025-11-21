@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -101,7 +102,7 @@ class DefaultBaseRoomLastMessageFormatterTest {
         val info = ImageInfo(null, null, null, null, null, null, null)
         val message = createRoomEvent(false, null, aStickerContent(body, info, aMediaSource(url = "url")))
         val result = formatter.format(message, false)
-        val expectedBody = someoneElseId.toString() + ": Sticker (a sticker body)"
+        val expectedBody = someoneElseId.value + ": Sticker (a sticker body)"
         assertThat(result.toString()).isEqualTo(expectedBody)
     }
 
@@ -174,7 +175,7 @@ class DefaultBaseRoomLastMessageFormatterTest {
     ) {
         val body = "Shared body"
         fun createMessageContent(type: MessageType): MessageContent {
-            return MessageContent(body, null, false, false, type)
+            return MessageContent(body, null, false, null, type)
         }
 
         val sharedContentMessagesTypes = arrayOf(
@@ -745,7 +746,7 @@ class DefaultBaseRoomLastMessageFormatterTest {
             OtherState.RoomCanonicalAlias,
             OtherState.RoomGuestAccess,
             OtherState.RoomHistoryVisibility,
-            OtherState.RoomJoinRules,
+            OtherState.RoomJoinRules(null),
             OtherState.RoomPinnedEvents(OtherState.RoomPinnedEvents.Change.CHANGED),
             OtherState.RoomUserPowerLevels(emptyMap()),
             OtherState.RoomServerAcl,

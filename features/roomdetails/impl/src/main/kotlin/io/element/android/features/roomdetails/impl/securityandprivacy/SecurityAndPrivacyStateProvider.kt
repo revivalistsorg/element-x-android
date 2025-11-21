@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -30,7 +31,8 @@ open class SecurityAndPrivacyStateProvider : PreviewParameterProvider<SecurityAn
             aSecurityAndPrivacyState(
                 savedSettings = aSecurityAndPrivacySettings(
                     roomAccess = SecurityAndPrivacyRoomAccess.SpaceMember
-                )
+                ),
+                isKnockEnabled = false,
             ),
             aSecurityAndPrivacyState(
                 editedSettings = aSecurityAndPrivacySettings(
@@ -53,6 +55,12 @@ open class SecurityAndPrivacyStateProvider : PreviewParameterProvider<SecurityAn
             ),
             aSecurityAndPrivacyState(
                 saveAction = AsyncAction.Loading
+            ),
+            aSecurityAndPrivacyState(
+                savedSettings = aSecurityAndPrivacySettings(
+                    roomAccess = SecurityAndPrivacyRoomAccess.AskToJoin
+                ),
+                isKnockEnabled = false,
             ),
         )
 }
@@ -83,6 +91,7 @@ fun aSecurityAndPrivacyState(
         canChangeEncryption = true,
         canChangeRoomVisibility = true
     ),
+    isKnockEnabled: Boolean = true,
     eventSink: (SecurityAndPrivacyEvents) -> Unit = {}
 ) = SecurityAndPrivacyState(
     editedSettings = editedSettings,
@@ -90,6 +99,7 @@ fun aSecurityAndPrivacyState(
     homeserverName = homeserverName,
     showEnableEncryptionConfirmation = showEncryptionConfirmation,
     saveAction = saveAction,
+    isKnockEnabled = isKnockEnabled,
     permissions = permissions,
     eventSink = eventSink
 )

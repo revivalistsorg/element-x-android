@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -22,7 +23,7 @@ import io.element.android.libraries.matrix.impl.room.member.RoomMemberMapper
 import io.element.android.libraries.matrix.impl.room.powerlevels.RoomPowerLevelsValuesMapper
 import io.element.android.libraries.matrix.impl.room.tombstone.map
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.collections.immutable.toImmutableMap
 import org.matrix.rustcomponents.sdk.Membership
 import org.matrix.rustcomponents.sdk.RoomHero
 import uniffi.matrix_sdk_base.EncryptionState
@@ -35,7 +36,7 @@ class RoomInfoMapper {
     fun map(rustRoomInfo: RustRoomInfo): RoomInfo = rustRoomInfo.let {
         return RoomInfo(
             id = RoomId(it.id),
-            creator = it.creator?.let(::UserId),
+            creators = it.creators.orEmpty().map(::UserId).toImmutableList(),
             name = it.displayName,
             rawName = it.rawName,
             topic = it.topic,
@@ -71,6 +72,8 @@ class RoomInfoMapper {
             numUnreadNotifications = it.numUnreadNotifications.toLong(),
             historyVisibility = it.historyVisibility.map(),
             successorRoom = it.successorRoom?.map(),
+            roomVersion = it.roomVersion,
+            privilegedCreatorRole = it.privilegedCreatorsRole,
         )
     }
 }
@@ -101,6 +104,6 @@ fun RoomHero.map(): MatrixUser = MatrixUser(
 fun mapPowerLevels(roomPowerLevels: RustRoomPowerLevels): RoomPowerLevels {
     return RoomPowerLevels(
         values = RoomPowerLevelsValuesMapper.map(roomPowerLevels.values()),
-        users = roomPowerLevels.userPowerLevels().mapKeys { (key, _) -> UserId(key) }.toPersistentMap()
+        users = roomPowerLevels.userPowerLevels().mapKeys { (key, _) -> UserId(key) }.toImmutableMap()
     )
 }

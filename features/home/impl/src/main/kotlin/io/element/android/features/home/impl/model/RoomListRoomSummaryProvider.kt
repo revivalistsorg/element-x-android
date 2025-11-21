@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -103,6 +104,15 @@ open class RoomListRoomSummaryProvider : PreviewParameterProvider<RoomListRoomSu
                     ),
                 ),
                 aRoomListRoomSummary(
+                    name = "A space invite",
+                    displayType = RoomSummaryDisplayType.INVITE,
+                    inviteSender = anInviteSender(
+                        userId = UserId("@bob:matrix.org"),
+                        displayName = "Bob",
+                    ),
+                    isSpace = true
+                ),
+                aRoomListRoomSummary(
                     name = "A knocked room",
                     displayType = RoomSummaryDisplayType.KNOCKED,
                 ),
@@ -151,6 +161,7 @@ internal fun aRoomListRoomSummary(
     canonicalAlias: RoomAlias? = null,
     heroes: List<AvatarData> = emptyList(),
     isTombstoned: Boolean = false,
+    isSpace: Boolean = false,
 ) = RoomListRoomSummary(
     id = id,
     roomId = RoomId(id),
@@ -172,4 +183,5 @@ internal fun aRoomListRoomSummary(
     canonicalAlias = canonicalAlias,
     heroes = heroes.toImmutableList(),
     isTombstoned = isTombstoned,
+    isSpace = isSpace
 )

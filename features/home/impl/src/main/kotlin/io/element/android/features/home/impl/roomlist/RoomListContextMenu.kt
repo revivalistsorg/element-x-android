@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -60,7 +61,7 @@ fun RoomListContextMenu(
             },
             onLeaveRoomClick = {
                 eventSink(RoomListEvents.HideContextMenu)
-                eventSink(RoomListEvents.LeaveRoom(contextMenu.roomId))
+                eventSink(RoomListEvents.LeaveRoom(contextMenu.roomId, needsConfirmation = true))
             },
             onFavoriteChange = { isFavorite ->
                 eventSink(RoomListEvents.SetRoomIsFavorite(contextMenu.roomId, isFavorite))
@@ -101,36 +102,34 @@ private fun RoomListModalBottomSheetContent(
                 )
             }
         )
-        if (contextMenu.markAsUnreadFeatureFlagEnabled) {
-            if (contextMenu.hasNewContent) {
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = stringResource(id = R.string.screen_roomlist_mark_as_read),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    },
-                    onClick = onRoomMarkReadClick,
-                    leadingContent = ListItemContent.Icon(
-                        iconSource = IconSource.Vector(CompoundIcons.MarkAsRead())
-                    ),
-                    style = ListItemStyle.Primary,
-                )
-            } else {
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = stringResource(id = R.string.screen_roomlist_mark_as_unread),
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                    },
-                    onClick = onRoomMarkUnreadClick,
-                    leadingContent = ListItemContent.Icon(
-                        iconSource = IconSource.Vector(CompoundIcons.MarkAsUnread())
-                    ),
-                    style = ListItemStyle.Primary,
-                )
-            }
+        if (contextMenu.hasNewContent) {
+            ListItem(
+                headlineContent = {
+                    Text(
+                        text = stringResource(id = R.string.screen_roomlist_mark_as_read),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                },
+                onClick = onRoomMarkReadClick,
+                leadingContent = ListItemContent.Icon(
+                    iconSource = IconSource.Vector(CompoundIcons.MarkAsRead())
+                ),
+                style = ListItemStyle.Primary,
+            )
+        } else {
+            ListItem(
+                headlineContent = {
+                    Text(
+                        text = stringResource(id = R.string.screen_roomlist_mark_as_unread),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                },
+                onClick = onRoomMarkUnreadClick,
+                leadingContent = ListItemContent.Icon(
+                    iconSource = IconSource.Vector(CompoundIcons.MarkAsUnread())
+                ),
+                style = ListItemStyle.Primary,
+            )
         }
         ListItem(
             headlineContent = {
@@ -176,7 +175,6 @@ private fun RoomListModalBottomSheetContent(
                 leadingContent = ListItemContent.Icon(
                     iconSource = IconSource.Vector(
                         CompoundIcons.ChatProblem(),
-                        contentDescription = stringResource(CommonStrings.action_report_room),
                     )
                 ),
                 style = ListItemStyle.Destructive,

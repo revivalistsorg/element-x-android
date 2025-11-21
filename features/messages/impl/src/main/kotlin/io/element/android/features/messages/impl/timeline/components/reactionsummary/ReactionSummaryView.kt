@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -32,7 +33,6 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -83,8 +83,6 @@ fun ReactionSummaryView(
     state: ReactionSummaryState,
     modifier: Modifier = Modifier,
 ) {
-    val sheetState = rememberModalBottomSheetState()
-
     fun onDismiss() {
         state.eventSink(ReactionSummaryEvents.Clear)
     }
@@ -92,7 +90,6 @@ fun ReactionSummaryView(
     if (state.target != null) {
         ModalBottomSheet(
             onDismissRequest = ::onDismiss,
-            sheetState = sheetState,
             modifier = modifier
         ) {
             ReactionSummaryViewContent(summary = state.target)

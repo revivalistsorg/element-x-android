@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -19,7 +20,6 @@ import io.element.android.libraries.push.api.battery.BatteryOptimizationState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableSet
 
-@Immutable
 data class RoomListState(
     val contextMenu: ContextMenu,
     val declineInviteMenu: DeclineInviteMenu,
@@ -41,7 +41,6 @@ data class RoomListState(
             val roomName: String?,
             val isDm: Boolean,
             val isFavorite: Boolean,
-            val markAsUnreadFeatureFlagEnabled: Boolean,
             val hasNewContent: Boolean,
             val displayClearRoomCacheAction: Boolean,
         ) : ContextMenu
@@ -70,6 +69,7 @@ sealed interface RoomListContentState {
         val securityBannerState: SecurityBannerState,
         val fullScreenIntentPermissionsState: FullScreenIntentPermissionsState,
         val batteryOptimizationState: BatteryOptimizationState,
+        val showNewNotificationSoundBanner: Boolean,
         val summaries: ImmutableList<RoomListRoomSummary>,
         val seenRoomInvites: ImmutableSet<RoomId>,
     ) : RoomListContentState

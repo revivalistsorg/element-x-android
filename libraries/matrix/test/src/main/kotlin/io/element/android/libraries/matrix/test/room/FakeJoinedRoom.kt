@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -55,7 +56,6 @@ class FakeJoinedRoom(
     private val roomNotificationSettingsService: FakeNotificationSettingsService = FakeNotificationSettingsService(),
     private var createTimelineResult: (CreateTimelineParams) -> Result<Timeline> = { lambdaError() },
     private val editMessageLambda: (EventId, String, String?, List<IntentionalMention>) -> Result<Unit> = { _, _, _, _ -> lambdaError() },
-    private val sendCallNotificationIfNeededResult: () -> Result<Boolean> = { lambdaError() },
     private val progressCallbackValues: List<Pair<Long, Long>> = emptyList(),
     private val generateWidgetWebViewUrlResult: (MatrixWidgetSettings, String, String?, String?) -> Result<String> = { _, _, _, _ -> lambdaError() },
     private val getWidgetDriverResult: (MatrixWidgetSettings) -> Result<MatrixWidgetDriver> = { lambdaError() },
@@ -205,10 +205,6 @@ class FakeJoinedRoom(
 
     override fun getWidgetDriver(widgetSettings: MatrixWidgetSettings): Result<MatrixWidgetDriver> {
         return getWidgetDriverResult(widgetSettings)
-    }
-
-    override suspend fun sendCallNotificationIfNeeded(): Result<Boolean> = simulateLongTask {
-        sendCallNotificationIfNeededResult()
     }
 
     override suspend fun setSendQueueEnabled(enabled: Boolean) = simulateLongTask {

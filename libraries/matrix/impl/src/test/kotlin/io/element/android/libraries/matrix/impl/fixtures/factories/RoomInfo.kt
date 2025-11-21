@@ -1,13 +1,13 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.fixtures.factories
 
-import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.impl.fixtures.fakes.FakeFfiRoomPowerLevels
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_ROOM_NAME
@@ -52,10 +52,12 @@ fun aRustRoomInfo(
     numUnreadNotifications: ULong = 0uL,
     numUnreadMentions: ULong = 0uL,
     pinnedEventIds: List<String> = listOf(),
-    roomCreator: UserId? = null,
+    roomCreators: List<String>? = emptyList(),
     joinRule: JoinRule? = null,
     historyVisibility: RoomHistoryVisibility = RoomHistoryVisibility.Joined,
     successorRoom: SuccessorRoom? = null,
+    roomVersion: String? = "11",
+    privilegedCreatorsRole: Boolean = false,
 ) = RoomInfo(
     id = id,
     displayName = displayName,
@@ -86,8 +88,10 @@ fun aRustRoomInfo(
     numUnreadNotifications = numUnreadNotifications,
     numUnreadMentions = numUnreadMentions,
     pinnedEventIds = pinnedEventIds,
-    creator = roomCreator?.value,
+    creators = roomCreators,
     joinRule = joinRule,
     historyVisibility = historyVisibility,
     successorRoom = successorRoom,
+    roomVersion = roomVersion,
+    privilegedCreatorsRole = privilegedCreatorsRole,
 )

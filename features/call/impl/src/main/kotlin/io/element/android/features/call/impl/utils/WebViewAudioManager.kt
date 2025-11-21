@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -21,13 +22,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * This class manages the audio devices for a WebView.
@@ -42,6 +45,13 @@ class WebViewAudioManager(
     private val coroutineScope: CoroutineScope,
     private val onInvalidAudioDeviceAdded: (InvalidAudioDeviceReason) -> Unit,
 ) {
+    private val json by lazy {
+        Json {
+            encodeDefaults = true
+            explicitNulls = false
+        }
+    }
+
     /**
      * Whether to disable bluetooth audio devices. This must be done on Android versions lower than Android 12,
      * since the WebView approach breaks when using the legacy Bluetooth audio APIs.
@@ -83,6 +93,11 @@ class WebViewAudioManager(
             ?.takeIf { it.isWakeLockLevelSupported(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK) }
             ?.newWakeLock(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK, "${webView.context.packageName}:ProximitySensorCallWakeLock")
     }
+
+    /**
+     * Used to ensure that only one coroutine can access the proximity sensor wake lock at a time, preventing re-acquiring or re-releasing it.
+     */
+    private val proximitySensorMutex = Mutex()
 
     /**
      * This listener tracks the current communication device and updates the WebView when it changes.
@@ -208,8 +223,12 @@ class WebViewAudioManager(
             return
         }
 
-        if (proximitySensorWakeLock?.isHeld == true) {
-            proximitySensorWakeLock?.release()
+        coroutineScope.launch {
+            proximitySensorMutex.withLock {
+                if (proximitySensorWakeLock?.isHeld == true) {
+                    proximitySensorWakeLock?.release()
+                }
+            }
         }
 
         audioManager.mode = AudioManager.MODE_NORMAL
@@ -235,7 +254,6 @@ class WebViewAudioManager(
     private fun registerWebViewDeviceSelectedCallback() {
         val webViewAudioDeviceSelectedCallback = AndroidWebViewAudioBridge(
             onAudioDeviceSelected = { selectedDeviceId ->
-                Timber.d("Audio device selected in webview, id: $selectedDeviceId")
                 previousSelectedDevice = listAudioDevices().find { it.id.toString() == selectedDeviceId }
                 audioManager.selectAudioDevice(selectedDeviceId)
             },
@@ -243,7 +261,7 @@ class WebViewAudioManager(
                 coroutineScope.launch(Dispatchers.Main) {
                     // Even with the callback, it seems like starting the audio takes a bit on the webview side,
                     // so we add an extra delay here to make sure it's ready
-                    delay(500.milliseconds)
+                    delay(2.seconds)
 
                     // Calling this ahead of time makes the default audio device to not use the right audio stream
                     setAvailableAudioDevices()
@@ -298,11 +316,7 @@ class WebViewAudioManager(
         devices: List<SerializableAudioDevice> = listAudioDevices().map(SerializableAudioDevice::fromAudioDeviceInfo),
     ) {
         Timber.d("Updating available audio devices")
-        val jsonSerializer = Json {
-            encodeDefaults = true
-            explicitNulls = false
-        }
-        val deviceList = jsonSerializer.encodeToString(devices)
+        val deviceList = json.encodeToString(devices)
         webView.evaluateJavascript("controls.setAvailableOutputDevices($deviceList);", {
             Timber.d("Audio: setAvailableOutputDevices result: $it")
         })
@@ -397,13 +411,17 @@ class WebViewAudioManager(
 
         expectedNewCommunicationDeviceId = null
 
-        @Suppress("WakeLock", "WakeLockTimeout")
-        if (device?.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE && proximitySensorWakeLock?.isHeld == false) {
-            // If the device is the built-in earpiece, we need to acquire the proximity sensor wake lock
-            proximitySensorWakeLock?.acquire()
-        } else if (proximitySensorWakeLock?.isHeld == true) {
-            // If the device is no longer the earpiece, we need to release the wake lock
-            proximitySensorWakeLock?.release()
+        coroutineScope.launch {
+            proximitySensorMutex.withLock {
+                @Suppress("WakeLock", "WakeLockTimeout")
+                if (device?.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE && proximitySensorWakeLock?.isHeld == false) {
+                    // If the device is the built-in earpiece, we need to acquire the proximity sensor wake lock
+                    proximitySensorWakeLock?.acquire()
+                } else if (proximitySensorWakeLock?.isHeld == true) {
+                    // If the device is no longer the earpiece, we need to release the wake lock
+                    proximitySensorWakeLock?.release()
+                }
+            }
         }
     }
 

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -25,6 +26,7 @@ import io.element.android.tests.testutils.EventsRecorder
 import io.element.android.tests.testutils.clickOn
 import io.element.android.tests.testutils.ensureCalledOnce
 import io.element.android.tests.testutils.ensureCalledOnceWithParam
+import io.element.android.tests.testutils.pressBack
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestRule
@@ -47,6 +49,21 @@ class OnboardingViewTest {
                 onCreateAccount = callback,
             )
             rule.clickOn(R.string.screen_onboarding_sign_up)
+        }
+    }
+
+    @Test
+    fun `when can go back - clicking on back calls the expected callback`() {
+        val eventSink = EventsRecorder<OnBoardingEvents>(expectEvents = false)
+        ensureCalledOnce { callback ->
+            rule.setOnboardingView(
+                state = anOnBoardingState(
+                    isAddingAccount = true,
+                    eventSink = eventSink,
+                ),
+                onBackClick = callback,
+            )
+            rule.pressBack()
         }
     }
 
@@ -235,6 +252,7 @@ class OnboardingViewTest {
 
     private fun <R : TestRule> AndroidComposeTestRule<R, ComponentActivity>.setOnboardingView(
         state: OnBoardingState,
+        onBackClick: () -> Unit = EnsureNeverCalled(),
         onSignInWithQrCode: () -> Unit = EnsureNeverCalled(),
         onSignIn: (Boolean) -> Unit = EnsureNeverCalledWithParam(),
         onCreateAccount: () -> Unit = EnsureNeverCalled(),
@@ -247,6 +265,7 @@ class OnboardingViewTest {
         setContent {
             OnBoardingView(
                 state = state,
+                onBackClick = onBackClick,
                 onSignInWithQrCode = onSignInWithQrCode,
                 onSignIn = onSignIn,
                 onCreateAccount = onCreateAccount,

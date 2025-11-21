@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,9 +17,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.androidutils.R
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
@@ -44,7 +45,8 @@ import io.element.android.libraries.mediaviewer.impl.model.mediaSource
 import io.element.android.libraries.ui.strings.CommonStrings
 import kotlinx.coroutines.launch
 
-class MediaGalleryPresenter @AssistedInject constructor(
+@AssistedInject
+class MediaGalleryPresenter(
     @Assisted private val navigator: MediaGalleryNavigator,
     private val room: BaseRoom,
     private val mediaGalleryDataSource: MediaGalleryDataSource,
@@ -81,7 +83,7 @@ class MediaGalleryPresenter @AssistedInject constructor(
         val snackbarMessage by snackbarDispatcher.collectSnackbarMessageAsState()
         localMediaActions.Configure()
 
-        fun handleEvents(event: MediaGalleryEvents) {
+        fun handleEvent(event: MediaGalleryEvents) {
             when (event) {
                 is MediaGalleryEvents.ChangeMode -> {
                     mode = event.mode
@@ -103,6 +105,10 @@ class MediaGalleryPresenter @AssistedInject constructor(
                     groupedMediaItems.dataOrNull().find(event.eventId)?.let {
                         share(it)
                     }
+                }
+                is MediaGalleryEvents.Forward -> {
+                    mediaBottomSheetState = MediaBottomSheetState.Hidden
+                    navigator.onForwardClick(event.eventId)
                 }
                 is MediaGalleryEvents.ViewInTimeline -> {
                     mediaBottomSheetState = MediaBottomSheetState.Hidden
@@ -145,7 +151,7 @@ class MediaGalleryPresenter @AssistedInject constructor(
             groupedMediaItems = groupedMediaItems,
             mediaBottomSheetState = mediaBottomSheetState,
             snackbarMessage = snackbarMessage,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

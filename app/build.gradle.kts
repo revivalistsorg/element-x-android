@@ -1,7 +1,8 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2022-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,7 +14,6 @@ import com.android.build.gradle.tasks.GenerateBuildConfig
 import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import config.BuildTimeConfig
 import extension.AssetCopyTask
-import extension.ComponentMergingStrategy
 import extension.GitBranchNameValueSource
 import extension.GitRevisionValueSource
 import extension.allEnterpriseImpl
@@ -23,8 +23,9 @@ import extension.allServicesImpl
 import extension.buildConfigFieldStr
 import extension.koverDependencies
 import extension.locales
-import extension.setupAnvil
+import extension.setupDependencyInjection
 import extension.setupKover
+import extension.testCommonDependencies
 import java.util.Locale
 
 plugins {
@@ -37,7 +38,7 @@ plugins {
     alias(libs.plugins.licensee)
     alias(libs.plugins.kotlin.serialization)
     // To be able to update the firebase.xml files, uncomment and build the project
-    // id("com.google.gms.google-services")
+    // alias(libs.plugins.gms.google.services)
 }
 
 setupKover()
@@ -103,7 +104,8 @@ android {
     }
     
     val baseAppName = BuildTimeConfig.APPLICATION_NAME
-    logger.warnInBox("Building ${defaultConfig.applicationId} ($baseAppName)")
+    val buildType = if (isEnterpriseBuild) "Enterprise" else "FOSS"
+    logger.warnInBox("Building ${defaultConfig.applicationId} ($baseAppName) [$buildType]")
 
     buildTypes {
         val oidcRedirectSchemeBase = BuildTimeConfig.METADATA_HOST_REVERSED ?: "io.element.android"
@@ -196,6 +198,12 @@ android {
             buildConfigFieldStr("FLAVOR_DESCRIPTION", "FDroid")
         }
     }
+
+    packaging {
+        resources.pickFirsts += setOf(
+            "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+        )
+    }
 }
 
 androidComponents {
@@ -247,11 +255,7 @@ knit {
     }
 }
 
-setupAnvil(
-    generateDaggerCode = true,
-    generateDaggerFactoriesUsingAnvil = false,
-    componentMergingStrategy = ComponentMergingStrategy.KSP,
-)
+setupDependencyInjection()
 
 dependencies {
     allLibrariesImpl()
@@ -260,6 +264,7 @@ dependencies {
         allEnterpriseImpl(project)
         implementation(projects.appicon.enterprise)
     } else {
+        implementation(projects.features.enterprise.implFoss)
         implementation(projects.appicon.element)
     }
     allFeaturesImpl(project)
@@ -293,12 +298,7 @@ dependencies {
 
     implementation(libs.matrix.emojibase.bindings)
 
-    testImplementation(libs.test.junit)
-    testImplementation(libs.test.robolectric)
-    testImplementation(libs.coroutines.test)
-    testImplementation(libs.molecule.runtime)
-    testImplementation(libs.test.truth)
-    testImplementation(libs.test.turbine)
+    testCommonDependencies(libs)
     testImplementation(projects.libraries.matrix.test)
     testImplementation(projects.services.toolbox.test)
 
@@ -318,12 +318,14 @@ licensee {
     allow("MIT")
     allow("BSD-2-Clause")
     allow("BSD-3-Clause")
+    allow("EPL-1.0")
     allowUrl("https://opensource.org/licenses/MIT")
     allowUrl("https://developer.android.com/studio/terms.html")
     allowUrl("https://www.zetetic.net/sqlcipher/license/")
     allowUrl("https://jsoup.org/license")
     allowUrl("https://asm.ow2.io/license.html")
     allowUrl("https://www.gnu.org/licenses/agpl-3.0.txt")
+    allowUrl("https://github.com/mhssn95/compose-color-picker/blob/main/LICENSE")
     ignoreDependencies("com.github.matrix-org", "matrix-analytics-events")
     // Ignore dependency that are not third-party licenses to us.
     ignoreDependencies(groupId = "io.element.android")

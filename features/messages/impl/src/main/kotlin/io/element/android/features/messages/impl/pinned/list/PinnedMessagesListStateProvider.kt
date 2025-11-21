@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -92,6 +93,7 @@ fun aLoadedPinnedMessagesListState(
     timelineItems: List<TimelineItem> = emptyList(),
     actionListState: ActionListState = anActionListState(),
     aUserEventPermissions: UserEventPermissions = UserEventPermissions.DEFAULT,
+    displayThreadSummaries: Boolean = false,
     eventSink: (PinnedMessagesListEvents) -> Unit = {}
 ) = PinnedMessagesListState.Filled(
     timelineRoomInfo = timelineRoomInfo,
@@ -100,5 +102,6 @@ fun aLoadedPinnedMessagesListState(
     timelineItems = timelineItems.toImmutableList(),
     actionListState = actionListState,
     userEventPermissions = aUserEventPermissions,
+    displayThreadSummaries = displayThreadSummaries,
     eventSink = eventSink,
 )

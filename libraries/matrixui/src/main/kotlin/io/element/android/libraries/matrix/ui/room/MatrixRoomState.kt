@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -23,6 +24,7 @@ import io.element.android.libraries.matrix.api.room.powerlevels.canKick
 import io.element.android.libraries.matrix.api.room.powerlevels.canRedactOther
 import io.element.android.libraries.matrix.api.room.powerlevels.canRedactOwn
 import io.element.android.libraries.matrix.api.room.powerlevels.canSendMessage
+import io.element.android.libraries.matrix.ui.model.roleOf
 
 @Composable
 fun BaseRoom.canSendMessageAsState(type: MessageEventType, updateKey: Long): State<Boolean> {
@@ -98,7 +100,7 @@ fun BaseRoom.canHandleKnockRequestsAsState(updateKey: Long): State<Boolean> {
 fun BaseRoom.userPowerLevelAsState(updateKey: Long): State<Long> {
     return produceState(initialValue = 0, key1 = updateKey) {
         value = userRole(sessionId)
-            .getOrDefault(RoomMember.Role.USER)
+            .getOrDefault(RoomMember.Role.User)
             .powerLevel
     }
 }
@@ -106,8 +108,8 @@ fun BaseRoom.userPowerLevelAsState(updateKey: Long): State<Long> {
 @Composable
 fun BaseRoom.isOwnUserAdmin(): Boolean {
     val roomInfo by roomInfoFlow.collectAsState()
-    val powerLevel = roomInfo.roomPowerLevels?.users?.get(sessionId) ?: 0L
-    return RoomMember.Role.forPowerLevel(powerLevel) == RoomMember.Role.ADMIN
+    val role = roomInfo.roleOf(sessionId)
+    return role == RoomMember.Role.Admin || role is RoomMember.Role.Owner
 }
 
 @Composable

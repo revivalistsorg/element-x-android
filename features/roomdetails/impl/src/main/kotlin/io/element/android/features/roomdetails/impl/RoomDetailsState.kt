@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -18,7 +19,7 @@ import io.element.android.libraries.matrix.api.room.RoomMember
 import io.element.android.libraries.matrix.api.room.RoomNotificationSettings
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import kotlinx.collections.immutable.ImmutableList
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 
 data class RoomDetailsState(
     val roomId: RoomId,
@@ -32,7 +33,6 @@ data class RoomDetailsState(
     val roomMemberDetailsState: UserProfileState?,
     val canEdit: Boolean,
     val canInvite: Boolean,
-    val canShowNotificationSettings: Boolean,
     val roomCallState: RoomCallState,
     val leaveRoomState: LeaveRoomState,
     val roomNotificationSettings: RoomNotificationSettings?,
@@ -40,8 +40,6 @@ data class RoomDetailsState(
     val displayRolesAndPermissionsSettings: Boolean,
     val isPublic: Boolean,
     val heroes: ImmutableList<MatrixUser>,
-    val canShowPinnedMessages: Boolean,
-    val canShowMediaGallery: Boolean,
     val pinnedMessagesCount: Int?,
     val snackbarMessage: SnackbarMessage?,
     val canShowKnockRequests: Boolean,
@@ -62,7 +60,7 @@ data class RoomDetailsState(
         if (isPublic) {
             add(RoomBadge.PUBLIC)
         }
-    }.toPersistentList()
+    }.toImmutableList()
 }
 
 @Immutable

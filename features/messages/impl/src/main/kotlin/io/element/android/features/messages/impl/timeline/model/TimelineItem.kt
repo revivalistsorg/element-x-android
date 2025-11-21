@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,9 +18,11 @@ import io.element.android.features.messages.impl.timeline.model.virtual.Timeline
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.SendHandle
+import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.core.TransactionId
 import io.element.android.libraries.matrix.api.core.UniqueId
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.timeline.item.ThreadSummary
 import io.element.android.libraries.matrix.api.timeline.item.TimelineItemDebugInfo
 import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
 import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSendState
@@ -55,13 +58,11 @@ sealed interface TimelineItem {
         is GroupedEvents -> "groupedEvent"
     }
 
-    @Immutable
     data class Virtual(
         val id: UniqueId,
         val model: TimelineItemVirtualModel
     ) : TimelineItem
 
-    @Immutable
     data class Event(
         val id: UniqueId,
         // Note: eventId can be null when the event is a local echo
@@ -81,7 +82,7 @@ sealed interface TimelineItem {
         val readReceiptState: TimelineItemReadReceipts,
         val localSendState: LocalEventSendState?,
         val inReplyTo: InReplyToDetails?,
-        val isThreaded: Boolean,
+        val threadInfo: TimelineItemThreadInfo?,
         val origin: TimelineItemEventOrigin?,
         val timelineItemDebugInfoProvider: TimelineItemDebugInfoProvider,
         val messageShieldProvider: MessageShieldProvider,
@@ -122,10 +123,14 @@ sealed interface TimelineItem {
         val sendhandle: SendHandle? get() = sendHandleProvider()
     }
 
-    @Immutable
     data class GroupedEvents(
         val id: UniqueId,
         val events: ImmutableList<Event>,
         val aggregatedReadReceipts: ImmutableList<ReadReceiptData>,
     ) : TimelineItem
+}
+
+sealed interface TimelineItemThreadInfo {
+    data class ThreadRoot(val summary: ThreadSummary, val latestEventText: String?) : TimelineItemThreadInfo
+    data class ThreadResponse(val threadRootId: ThreadId) : TimelineItemThreadInfo
 }

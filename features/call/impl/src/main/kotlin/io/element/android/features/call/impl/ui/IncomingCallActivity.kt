@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -11,8 +12,13 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.core.content.IntentCompat
 import androidx.lifecycle.lifecycleScope
+import dev.zacsweers.metro.Inject
+import io.element.android.compound.colors.SemanticColorsLightDark
 import io.element.android.features.call.api.CallType
 import io.element.android.features.call.api.ElementCallEntryPoint
 import io.element.android.features.call.impl.di.CallBindings
@@ -30,7 +36,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Activity that's displayed as a full screen intent when an incoming call is received.
@@ -64,7 +69,7 @@ class IncomingCallActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        applicationContext.bindings<CallBindings>().inject(this)
+        bindings<CallBindings>().inject(this)
 
         // Set flags so it can be displayed in the lock screen
         @Suppress("DEPRECATION")
@@ -78,9 +83,13 @@ class IncomingCallActivity : AppCompatActivity() {
         val notificationData = intent?.let { IntentCompat.getParcelableExtra(it, EXTRA_NOTIFICATION_DATA, CallNotificationData::class.java) }
         if (notificationData != null) {
             setContent {
+                val colors by remember {
+                    enterpriseService.semanticColorsFlow(sessionId = notificationData.sessionId)
+                }.collectAsState(SemanticColorsLightDark.default)
                 ElementThemeApp(
                     appPreferencesStore = appPreferencesStore,
-                    enterpriseService = enterpriseService,
+                    compoundLight = colors.light,
+                    compoundDark = colors.dark,
                     buildMeta = buildMeta,
                 ) {
                     IncomingCallScreen(

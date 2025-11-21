@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,7 +10,10 @@
 
 package io.element.android.features.preferences.impl.developer
 
+import androidx.compose.ui.graphics.Color
 import com.google.common.truth.Truth.assertThat
+import io.element.android.features.enterprise.api.EnterpriseService
+import io.element.android.features.enterprise.test.FakeEnterpriseService
 import io.element.android.features.preferences.impl.developer.tracing.LogLevelItem
 import io.element.android.features.preferences.impl.tasks.FakeClearCacheUseCase
 import io.element.android.features.preferences.impl.tasks.FakeComputeCacheSizeUseCase
@@ -18,11 +22,17 @@ import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.core.meta.BuildType
+import io.element.android.libraries.featureflag.api.Feature
 import io.element.android.libraries.featureflag.api.FeatureFlags
+import io.element.android.libraries.featureflag.test.FakeFeature
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
+import io.element.android.libraries.matrix.api.core.SessionId
+import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.core.aBuildMeta
 import io.element.android.libraries.preferences.test.InMemoryAppPreferencesStore
 import io.element.android.tests.testutils.WarmUpRule
+import io.element.android.tests.testutils.lambda.lambdaRecorder
+import io.element.android.tests.testutils.lambda.value
 import io.element.android.tests.testutils.test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -35,7 +45,18 @@ class DeveloperSettingsPresenterTest {
 
     @Test
     fun `present - ensures initial states are correct`() = runTest {
-        val presenter = createDeveloperSettingsPresenter()
+        val getAvailableFeaturesResult = lambdaRecorder<Boolean, Boolean, List<Feature>> { _, _ ->
+            listOf(
+                FakeFeature(
+                    key = "feature_1",
+                    title = "Feature 1",
+                    isInLabs = false,
+                )
+            )
+        }
+        val presenter = createDeveloperSettingsPresenter(
+            featureFlagService = FakeFeatureFlagService(getAvailableFeaturesResult = getAvailableFeaturesResult)
+        )
         presenter.test {
             awaitItem().also { state ->
                 assertThat(state.features).isEmpty()
@@ -47,16 +68,19 @@ class DeveloperSettingsPresenterTest {
                 assertThat(state.rageshakeState.isSupported).isTrue()
                 assertThat(state.rageshakeState.sensitivity).isEqualTo(0.3f)
                 assertThat(state.tracingLogLevel).isEqualTo(AsyncData.Uninitialized)
+                assertThat(state.isEnterpriseBuild).isFalse()
+                assertThat(state.showColorPicker).isFalse()
             }
             awaitItem().also { state ->
                 assertThat(state.features).isNotEmpty()
-                val numberOfModifiableFeatureFlags = FeatureFlags.entries.count { it.isFinished.not() }
-                assertThat(state.features).hasSize(numberOfModifiableFeatureFlags)
+                assertThat(state.features).hasSize(1)
                 assertThat(state.tracingLogLevel.dataOrNull()).isEqualTo(LogLevelItem.INFO)
             }
             awaitItem().also { state ->
                 assertThat(state.cacheSize).isInstanceOf(AsyncData.Success::class.java)
             }
+            getAvailableFeaturesResult.assertions().isCalledOnce()
+                .with(value(false), value(false))
         }
     }
 
@@ -161,20 +185,61 @@ class DeveloperSettingsPresenterTest {
         }
     }
 
+    @Test
+    fun `present - enterprise build can change the brand color`() = runTest {
+        val overrideBrandColorResult = lambdaRecorder<SessionId?, String?, Unit> { _, _ -> }
+        val presenter = createDeveloperSettingsPresenter(
+            enterpriseService = FakeEnterpriseService(
+                isEnterpriseBuild = true,
+                overrideBrandColorResult = overrideBrandColorResult,
+            )
+        )
+        presenter.test {
+            skipItems(1)
+            val initialState = awaitItem()
+            assertThat(initialState.isEnterpriseBuild).isTrue()
+            initialState.eventSink(DeveloperSettingsEvents.SetShowColorPicker(true))
+            assertThat(awaitItem().showColorPicker).isTrue()
+            initialState.eventSink(DeveloperSettingsEvents.SetShowColorPicker(false))
+            assertThat(awaitItem().showColorPicker).isFalse()
+            initialState.eventSink(DeveloperSettingsEvents.SetShowColorPicker(true))
+            assertThat(awaitItem().showColorPicker).isTrue()
+            initialState.eventSink(DeveloperSettingsEvents.ChangeBrandColor(Color.Green))
+            assertThat(awaitItem().showColorPicker).isFalse()
+            skipItems(1)
+            overrideBrandColorResult.assertions().isCalledOnce()
+                .with(value(A_SESSION_ID), value("#00FF00"))
+        }
+    }
+
     private fun createDeveloperSettingsPresenter(
-        featureFlagService: FakeFeatureFlagService = FakeFeatureFlagService(),
+        sessionId: SessionId = A_SESSION_ID,
+        featureFlagService: FakeFeatureFlagService = FakeFeatureFlagService(
+            getAvailableFeaturesResult = { _, _ ->
+                listOf(
+                    FakeFeature(
+                        key = "feature_1",
+                        title = "Feature 1",
+                        isInLabs = false,
+                    )
+                )
+            }
+        ),
         cacheSizeUseCase: FakeComputeCacheSizeUseCase = FakeComputeCacheSizeUseCase(),
         clearCacheUseCase: FakeClearCacheUseCase = FakeClearCacheUseCase(),
         preferencesStore: InMemoryAppPreferencesStore = InMemoryAppPreferencesStore(),
         buildMeta: BuildMeta = aBuildMeta(),
+        enterpriseService: EnterpriseService = FakeEnterpriseService(),
     ): DeveloperSettingsPresenter {
         return DeveloperSettingsPresenter(
+            sessionId = sessionId,
             featureFlagService = featureFlagService,
             computeCacheSizeUseCase = cacheSizeUseCase,
             clearCacheUseCase = clearCacheUseCase,
             rageshakePresenter = { aRageshakePreferencesState() },
             appPreferencesStore = preferencesStore,
             buildMeta = buildMeta,
+            enterpriseService = enterpriseService,
         )
     }
 }

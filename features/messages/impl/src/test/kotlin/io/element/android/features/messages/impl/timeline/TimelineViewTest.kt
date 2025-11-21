@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -36,7 +37,7 @@ import io.element.android.tests.testutils.clickOn
 import io.element.android.tests.testutils.setSafeContent
 import io.element.android.wysiwyg.link.Link
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestRule
@@ -116,7 +117,7 @@ class TimelineViewTest {
                 eventSink = eventsRecorder,
             ),
         )
-        val contentDescription = rule.activity.getString(CommonStrings.event_shield_reason_unverified_identity)
+        val contentDescription = rule.activity.getString(CommonStrings.a11y_encryption_details)
         rule.onNodeWithContentDescription(contentDescription).performClick()
         eventsRecorder.assertList(
             listOf(
@@ -148,7 +149,7 @@ class TimelineViewTest {
                 eventId = EventId("\$event_$it"),
                 content = aTimelineItemUnknownContent(),
             )
-        }.toPersistentList()
+        }.toImmutableList()
 
         rule.setTimelineView(
             state = aTimelineState(

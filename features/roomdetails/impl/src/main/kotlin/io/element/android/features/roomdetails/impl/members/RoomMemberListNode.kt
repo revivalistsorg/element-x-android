@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,20 +14,21 @@ import com.bumble.appyx.core.lifecycle.subscribe
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.plugin.Plugin
-import com.bumble.appyx.core.plugin.plugins
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
 import im.vector.app.features.analytics.plan.MobileScreen
-import io.element.android.anvilannotations.ContributesNode
+import io.element.android.annotations.ContributesNode
 import io.element.android.features.roommembermoderation.api.ModerationAction
 import io.element.android.features.roommembermoderation.api.RoomMemberModerationEvents
 import io.element.android.features.roommembermoderation.api.RoomMemberModerationRenderer
+import io.element.android.libraries.architecture.callback
 import io.element.android.libraries.di.RoomScope
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.services.analytics.api.AnalyticsService
 
 @ContributesNode(RoomScope::class)
-class RoomMemberListNode @AssistedInject constructor(
+@AssistedInject
+class RoomMemberListNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
     private val presenter: RoomMemberListPresenter,
@@ -34,11 +36,11 @@ class RoomMemberListNode @AssistedInject constructor(
     private val roomMemberModerationRenderer: RoomMemberModerationRenderer,
 ) : Node(buildContext, plugins = plugins), RoomMemberListNavigator {
     interface Callback : Plugin {
-        fun openRoomMemberDetails(roomMemberId: UserId)
-        fun openInviteMembers()
+        fun navigateToRoomMemberDetails(roomMemberId: UserId)
+        fun navigateToInviteMembers()
     }
 
-    private val callbacks = plugins<Callback>()
+    private val callback: Callback = callback()
 
     init {
         lifecycle.subscribe(
@@ -49,15 +51,11 @@ class RoomMemberListNode @AssistedInject constructor(
     }
 
     override fun openRoomMemberDetails(roomMemberId: UserId) {
-        callbacks.forEach {
-            it.openRoomMemberDetails(roomMemberId)
-        }
+        callback.navigateToRoomMemberDetails(roomMemberId)
     }
 
     override fun openInviteMembers() {
-        callbacks.forEach {
-            it.openInviteMembers()
-        }
+        callback.navigateToInviteMembers()
     }
 
     override fun exitRoomMemberList() {

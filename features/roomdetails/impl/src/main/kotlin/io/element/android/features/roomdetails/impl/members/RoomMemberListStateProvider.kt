@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -41,7 +42,8 @@ internal class RoomMemberListStateProvider : PreviewParameterProvider<RoomMember
                         ),
                         banned = persistentListOf(),
                     )
-                )
+                ),
+                moderationState = aRoomMemberModerationState(canBan = true)
             ),
             aRoomMemberListState(roomMembers = AsyncData.Loading()),
             aRoomMemberListState().copy(canInvite = true),
@@ -148,9 +150,8 @@ fun aRoomMember(
     membership: RoomMembershipState = RoomMembershipState.JOIN,
     isNameAmbiguous: Boolean = false,
     powerLevel: Long = 0L,
-    normalizedPowerLevel: Long = 0L,
     isIgnored: Boolean = false,
-    role: RoomMember.Role = RoomMember.Role.USER,
+    role: RoomMember.Role = RoomMember.Role.User,
     membershipChangeReason: String? = null,
 ) = RoomMember(
     userId = userId,
@@ -159,7 +160,6 @@ fun aRoomMember(
     membership = membership,
     isNameAmbiguous = isNameAmbiguous,
     powerLevel = powerLevel,
-    normalizedPowerLevel = normalizedPowerLevel,
     isIgnored = isIgnored,
     role = role,
     membershipChangeReason = membershipChangeReason,
@@ -178,8 +178,8 @@ fun aRoomMemberList() = persistentListOf(
     aWalter(),
 )
 
-fun anAlice() = aRoomMember(UserId("@alice:server.org"), "Alice", role = RoomMember.Role.ADMIN)
-fun aBob() = aRoomMember(UserId("@bob:server.org"), "Bob", role = RoomMember.Role.MODERATOR)
+fun anAlice() = aRoomMember(UserId("@alice:server.org"), "Alice", role = RoomMember.Role.Admin)
+fun aBob() = aRoomMember(UserId("@bob:server.org"), "Bob", role = RoomMember.Role.Moderator)
 
 fun aVictor() = aRoomMember(UserId("@victor:server.org"), "Victor", membership = RoomMembershipState.INVITE)
 

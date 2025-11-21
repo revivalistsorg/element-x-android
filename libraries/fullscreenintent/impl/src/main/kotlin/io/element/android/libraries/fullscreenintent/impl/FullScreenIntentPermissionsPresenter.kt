@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -19,10 +20,11 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.meta.BuildMeta
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.SingleIn
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsEvents
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsState
 import io.element.android.libraries.preferences.api.store.PreferenceDataStoreFactory
@@ -30,10 +32,10 @@ import io.element.android.services.toolbox.api.intent.ExternalIntentLauncher
 import io.element.android.services.toolbox.api.sdk.BuildVersionSdkIntProvider
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @SingleIn(AppScope::class)
-class FullScreenIntentPermissionsPresenter @Inject constructor(
+@Inject
+class FullScreenIntentPermissionsPresenter(
     private val buildVersionSdkIntProvider: BuildVersionSdkIntProvider,
     private val externalIntentLauncher: ExternalIntentLauncher,
     private val buildMeta: BuildMeta,
@@ -62,7 +64,7 @@ class FullScreenIntentPermissionsPresenter @Inject constructor(
         val isGranted = notificationManagerCompat.canUseFullScreenIntent()
         val isBannerDismissed by isFullScreenIntentBannerDismissed.collectAsState(initial = true)
 
-        fun handleEvents(event: FullScreenIntentPermissionsEvents) {
+        fun handleEvent(event: FullScreenIntentPermissionsEvents) {
             when (event) {
                 FullScreenIntentPermissionsEvents.Dismiss -> coroutineScope.launch {
                     dismissFullScreenIntentBanner()
@@ -74,7 +76,7 @@ class FullScreenIntentPermissionsPresenter @Inject constructor(
         return FullScreenIntentPermissionsState(
             permissionGranted = isGranted,
             shouldDisplayBanner = !isBannerDismissed && !isGranted,
-            eventSink = ::handleEvents,
+            eventSink = ::handleEvent,
         )
     }
 

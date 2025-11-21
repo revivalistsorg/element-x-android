@@ -1,7 +1,8 @@
 /*
- * Copyright 2022-2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2022-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -19,13 +20,16 @@ import io.element.android.features.messages.impl.actionlist.model.TimelineItemAc
 import io.element.android.features.messages.impl.crypto.identity.anIdentityChangeState
 import io.element.android.features.messages.impl.fixtures.aMessageEvent
 import io.element.android.features.messages.impl.link.aLinkState
-import io.element.android.features.messages.impl.messagecomposer.MessageComposerEvents
+import io.element.android.features.messages.impl.messagecomposer.MessageComposerEvent
 import io.element.android.features.messages.impl.messagecomposer.MessageComposerState
 import io.element.android.features.messages.impl.messagecomposer.aMessageComposerState
 import io.element.android.features.messages.impl.pinned.banner.aLoadedPinnedMessagesBannerState
+import io.element.android.features.messages.impl.timeline.FakeMarkAsFullyRead
+import io.element.android.features.messages.impl.timeline.MarkAsFullyRead
 import io.element.android.features.messages.impl.timeline.TimelineController
 import io.element.android.features.messages.impl.timeline.TimelineEvents
 import io.element.android.features.messages.impl.timeline.aTimelineState
+import io.element.android.features.messages.impl.timeline.model.TimelineItemThreadInfo
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemFileContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemImageContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemTextContent
@@ -34,8 +38,8 @@ import io.element.android.features.messages.impl.timeline.model.event.aTimelineI
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemPollContent
 import io.element.android.features.messages.impl.timeline.model.event.aTimelineItemTextContent
 import io.element.android.features.messages.impl.timeline.protection.aTimelineProtectionState
-import io.element.android.features.messages.impl.voicemessages.composer.aVoiceMessageComposerState
 import io.element.android.features.messages.test.timeline.FakeHtmlConverterProvider
+import io.element.android.features.messages.test.timeline.voicemessages.composer.FakeDefaultVoiceMessageComposerPresenterFactory
 import io.element.android.features.roomcall.api.aStandByCallState
 import io.element.android.features.roommembermoderation.api.RoomMemberModerationState
 import io.element.android.libraries.androidutils.clipboard.FakeClipboardHelper
@@ -46,12 +50,13 @@ import io.element.android.libraries.core.mimetype.MimeTypes
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
-import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.core.toThreadId
 import io.element.android.libraries.matrix.api.encryption.identity.IdentityState
 import io.element.android.libraries.matrix.api.media.MediaSource
 import io.element.android.libraries.matrix.api.permalink.PermalinkParser
@@ -59,6 +64,7 @@ import io.element.android.libraries.matrix.api.room.MessageEventType
 import io.element.android.libraries.matrix.api.room.RoomMembersState
 import io.element.android.libraries.matrix.api.room.RoomMembershipState
 import io.element.android.libraries.matrix.api.room.tombstone.SuccessorRoom
+import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.TimelineItemDebugInfo
 import io.element.android.libraries.matrix.api.timeline.item.event.EventOrTransactionId
 import io.element.android.libraries.matrix.api.timeline.item.event.toEventOrTransactionId
@@ -69,6 +75,7 @@ import io.element.android.libraries.matrix.test.A_CAPTION
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.libraries.matrix.test.A_SESSION_ID_2
+import io.element.android.libraries.matrix.test.A_THREAD_ID
 import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.matrix.test.A_USER_ID_2
 import io.element.android.libraries.matrix.test.core.aBuildMeta
@@ -78,10 +85,10 @@ import io.element.android.libraries.matrix.test.room.FakeBaseRoom
 import io.element.android.libraries.matrix.test.room.FakeJoinedRoom
 import io.element.android.libraries.matrix.test.room.aRoomInfo
 import io.element.android.libraries.matrix.test.room.aRoomMember
-import io.element.android.libraries.matrix.test.sync.FakeSyncService
 import io.element.android.libraries.matrix.test.timeline.FakeTimeline
 import io.element.android.libraries.matrix.test.timeline.aTimelineItemDebugInfo
 import io.element.android.libraries.matrix.ui.messages.reply.InReplyToDetails
+import io.element.android.libraries.recentemojis.api.AddRecentEmoji
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.TextEditorState
 import io.element.android.libraries.textcomposer.model.aTextEditorStateMarkdown
@@ -124,7 +131,6 @@ class MessagesPresenterTest {
                 .isEqualTo(AvatarData(id = A_ROOM_ID.value, name = "", url = AN_AVATAR_URL, size = AvatarSize.TimelineRoom))
             assertThat(initialState.userEventPermissions.canSendMessage).isTrue()
             assertThat(initialState.userEventPermissions.canRedactOwn).isTrue()
-            assertThat(initialState.hasNetworkConnection).isTrue()
             assertThat(initialState.snackbarMessage).isNull()
             assertThat(initialState.inviteProgress).isEqualTo(AsyncData.Uninitialized)
             assertThat(initialState.showReinvitePrompt).isFalse()
@@ -156,9 +162,10 @@ class MessagesPresenterTest {
     @Test
     fun `present - handle toggling a reaction`() = runTest {
         val coroutineDispatchers = testCoroutineDispatchers(useUnconfinedTestDispatcher = true)
-        val toggleReactionSuccess = lambdaRecorder { _: String, _: EventOrTransactionId -> Result.success(Unit) }
+        val toggleReactionSuccess = lambdaRecorder { _: String, _: EventOrTransactionId -> Result.success(true) }
         val toggleReactionFailure =
-            lambdaRecorder { _: String, _: EventOrTransactionId -> Result.failure<Unit>(IllegalStateException("Failed to send reaction")) }
+            lambdaRecorder { _: String, _: EventOrTransactionId -> Result.failure<Boolean>(IllegalStateException("Failed to send reaction")) }
+        val addRecentEmojiResult = lambdaRecorder { _: String -> Result.success(Unit) }
 
         val timeline = FakeTimeline().apply {
             this.toggleReactionLambda = toggleReactionSuccess
@@ -174,7 +181,12 @@ class MessagesPresenterTest {
             liveTimeline = timeline,
             typingNoticeResult = { Result.success(Unit) },
         )
-        val presenter = createMessagesPresenter(joinedRoom = room, coroutineDispatchers = coroutineDispatchers)
+        val presenter = createMessagesPresenter(
+            timeline = timeline,
+            joinedRoom = room,
+            addRecentEmoji = AddRecentEmoji { addRecentEmojiResult(it) },
+            coroutineDispatchers = coroutineDispatchers,
+        )
         presenter.testWithLifecycleOwner {
             skipItems(1)
             val initialState = awaitItem()
@@ -190,14 +202,21 @@ class MessagesPresenterTest {
             assert(toggleReactionFailure)
                 .isCalledOnce()
                 .with(value("👍"), value(AN_EVENT_ID.toEventOrTransactionId()))
+            addRecentEmojiResult.assertions().isCalledOnce().with(value("👍"))
         }
     }
 
     @Test
     fun `present - handle toggling a reaction twice`() = runTest {
         val coroutineDispatchers = testCoroutineDispatchers(useUnconfinedTestDispatcher = true)
-        val toggleReactionSuccess = lambdaRecorder { _: String, _: EventOrTransactionId -> Result.success(Unit) }
-
+        var toggle = false
+        val toggleReactionSuccess = lambdaRecorder { _: String, _: EventOrTransactionId ->
+            toggle = !toggle
+            Result.success(toggle)
+        }
+        val addRecentEmoji = lambdaRecorder { _: String ->
+            Result.success(Unit)
+        }
         val timeline = FakeTimeline().apply {
             this.toggleReactionLambda = toggleReactionSuccess
         }
@@ -212,7 +231,12 @@ class MessagesPresenterTest {
             liveTimeline = timeline,
             typingNoticeResult = { Result.success(Unit) },
         )
-        val presenter = createMessagesPresenter(joinedRoom = room, coroutineDispatchers = coroutineDispatchers)
+        val presenter = createMessagesPresenter(
+            timeline = timeline,
+            joinedRoom = room,
+            addRecentEmoji = AddRecentEmoji { addRecentEmoji(it) },
+            coroutineDispatchers = coroutineDispatchers
+        )
         presenter.testWithLifecycleOwner {
             val initialState = awaitItem()
             initialState.eventSink(MessagesEvents.ToggleReaction("👍", AN_EVENT_ID.toEventOrTransactionId()))
@@ -225,6 +249,7 @@ class MessagesPresenterTest {
                     listOf(value("👍"), value(AN_EVENT_ID.toEventOrTransactionId())),
                 )
             skipItems(1)
+            addRecentEmoji.assertions().isCalledOnce().with(value("👍"))
         }
     }
 
@@ -285,7 +310,7 @@ class MessagesPresenterTest {
 
     @Test
     fun `present - handle action reply`() = runTest {
-        val composerRecorder = EventsRecorder<MessageComposerEvents>()
+        val composerRecorder = EventsRecorder<MessageComposerEvent>()
         val presenter = createMessagesPresenter(
             messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
         )
@@ -294,7 +319,7 @@ class MessagesPresenterTest {
             initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.Reply, aMessageEvent()))
             awaitItem()
             composerRecorder.assertSingle(
-                MessageComposerEvents.SetMode(
+                MessageComposerEvent.SetMode(
                     composerMode = MessageComposerMode.Reply(
                         replyToDetails = InReplyToDetails.Loading(AN_EVENT_ID),
                         hideImage = false,
@@ -316,7 +341,7 @@ class MessagesPresenterTest {
 
     @Test
     fun `present - handle action reply to an image media message`() = runTest {
-        val composerRecorder = EventsRecorder<MessageComposerEvents>()
+        val composerRecorder = EventsRecorder<MessageComposerEvent>()
         val presenter = createMessagesPresenter(
             messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
         )
@@ -325,6 +350,7 @@ class MessagesPresenterTest {
             val mediaMessage = aMessageEvent(
                 content = TimelineItemImageContent(
                     filename = "image.jpg",
+                    fileSize = 4 * 1024 * 1024L,
                     caption = null,
                     formattedCaption = null,
                     isEdited = false,
@@ -344,7 +370,7 @@ class MessagesPresenterTest {
             initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.Reply, mediaMessage))
             awaitItem()
             composerRecorder.assertSingle(
-                MessageComposerEvents.SetMode(
+                MessageComposerEvent.SetMode(
                     composerMode = MessageComposerMode.Reply(
                         replyToDetails = InReplyToDetails.Loading(AN_EVENT_ID),
                         hideImage = false,
@@ -356,7 +382,7 @@ class MessagesPresenterTest {
 
     @Test
     fun `present - handle action reply to a video media message`() = runTest {
-        val composerRecorder = EventsRecorder<MessageComposerEvents>()
+        val composerRecorder = EventsRecorder<MessageComposerEvent>()
         val presenter = createMessagesPresenter(
             messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
         )
@@ -365,6 +391,7 @@ class MessagesPresenterTest {
             val mediaMessage = aMessageEvent(
                 content = TimelineItemVideoContent(
                     filename = "video.mp4",
+                    fileSize = 50 * 1024 * 1024L,
                     caption = null,
                     formattedCaption = null,
                     isEdited = false,
@@ -385,7 +412,7 @@ class MessagesPresenterTest {
             initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.Reply, mediaMessage))
             awaitItem()
             composerRecorder.assertSingle(
-                MessageComposerEvents.SetMode(
+                MessageComposerEvent.SetMode(
                     composerMode = MessageComposerMode.Reply(
                         replyToDetails = InReplyToDetails.Loading(AN_EVENT_ID),
                         hideImage = false,
@@ -397,7 +424,7 @@ class MessagesPresenterTest {
 
     @Test
     fun `present - handle action reply to a file media message`() = runTest {
-        val composerRecorder = EventsRecorder<MessageComposerEvents>()
+        val composerRecorder = EventsRecorder<MessageComposerEvent>()
         val presenter = createMessagesPresenter(
             messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
         )
@@ -406,6 +433,7 @@ class MessagesPresenterTest {
             val mediaMessage = aMessageEvent(
                 content = TimelineItemFileContent(
                     filename = "file.pdf",
+                    fileSize = 10 * 1024 * 1024L,
                     caption = null,
                     isEdited = false,
                     formattedCaption = null,
@@ -419,7 +447,7 @@ class MessagesPresenterTest {
             initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.Reply, mediaMessage))
             awaitItem()
             composerRecorder.assertSingle(
-                MessageComposerEvents.SetMode(
+                MessageComposerEvent.SetMode(
                     composerMode = MessageComposerMode.Reply(
                         replyToDetails = InReplyToDetails.Loading(AN_EVENT_ID),
                         hideImage = false,
@@ -431,7 +459,7 @@ class MessagesPresenterTest {
 
     @Test
     fun `present - handle action edit`() = runTest {
-        val composerRecorder = EventsRecorder<MessageComposerEvents>()
+        val composerRecorder = EventsRecorder<MessageComposerEvent>()
         val presenter = createMessagesPresenter(
             messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
         )
@@ -440,7 +468,7 @@ class MessagesPresenterTest {
             initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.Edit, aMessageEvent()))
             awaitItem()
             composerRecorder.assertSingle(
-                MessageComposerEvents.SetMode(
+                MessageComposerEvent.SetMode(
                     composerMode = MessageComposerMode.Edit(
                         eventOrTransactionId = AN_EVENT_ID.toEventOrTransactionId(),
                         content = (aMessageEvent().content as TimelineItemTextContent).body
@@ -498,6 +526,7 @@ class MessagesPresenterTest {
         val redactEventLambda = lambdaRecorder { _: EventOrTransactionId, _: String? -> Result.success(Unit) }
         liveTimeline.redactEventLambda = redactEventLambda
         val presenter = createMessagesPresenter(
+            timeline = liveTimeline,
             joinedRoom = joinedRoom,
             coroutineDispatchers = coroutineDispatchers,
         )
@@ -783,8 +812,8 @@ class MessagesPresenterTest {
                 canUserPinUnpinResult = { Result.success(true) },
                 canUserSendMessageResult = { _, messageEventType ->
                     when (messageEventType) {
-                        MessageEventType.ROOM_MESSAGE -> Result.success(true)
-                        MessageEventType.REACTION -> Result.success(true)
+                        MessageEventType.RoomMessage -> Result.success(true)
+                        MessageEventType.Reaction -> Result.success(true)
                         else -> lambdaError()
                     }
                 },
@@ -809,8 +838,8 @@ class MessagesPresenterTest {
                 canUserPinUnpinResult = { Result.success(true) },
                 canUserSendMessageResult = { _, messageEventType ->
                     when (messageEventType) {
-                        MessageEventType.ROOM_MESSAGE -> Result.success(false)
-                        MessageEventType.REACTION -> Result.success(false)
+                        MessageEventType.RoomMessage -> Result.success(false)
+                        MessageEventType.Reaction -> Result.success(false)
                         else -> lambdaError()
                     }
                 },
@@ -869,7 +898,7 @@ class MessagesPresenterTest {
 
     @Test
     fun `present - handle action reply to a poll`() = runTest {
-        val composerRecorder = EventsRecorder<MessageComposerEvents>()
+        val composerRecorder = EventsRecorder<MessageComposerEvent>()
         val presenter = createMessagesPresenter(
             messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
         )
@@ -881,7 +910,7 @@ class MessagesPresenterTest {
             initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.Reply, poll))
             skipItems(1)
             composerRecorder.assertSingle(
-                MessageComposerEvents.SetMode(
+                MessageComposerEvent.SetMode(
                     composerMode = MessageComposerMode.Reply(
                         replyToDetails = InReplyToDetails.Loading(AN_EVENT_ID),
                         hideImage = false,
@@ -908,7 +937,11 @@ class MessagesPresenterTest {
             liveTimeline = timeline,
             typingNoticeResult = { Result.success(Unit) },
         )
-        val presenter = createMessagesPresenter(joinedRoom = room, analyticsService = analyticsService)
+        val presenter = createMessagesPresenter(
+            timeline = timeline,
+            joinedRoom = room,
+            analyticsService = analyticsService,
+        )
         presenter.testWithLifecycleOwner {
             val messageEvent = aMessageEvent(
                 content = aTimelineItemTextContent()
@@ -948,7 +981,11 @@ class MessagesPresenterTest {
             liveTimeline = timeline,
             typingNoticeResult = { Result.success(Unit) },
         )
-        val presenter = createMessagesPresenter(joinedRoom = room, analyticsService = analyticsService)
+        val presenter = createMessagesPresenter(
+            timeline = timeline,
+            joinedRoom = room,
+            analyticsService = analyticsService
+        )
         presenter.testWithLifecycleOwner {
             val messageEvent = aMessageEvent(
                 content = aTimelineItemTextContent()
@@ -978,7 +1015,7 @@ class MessagesPresenterTest {
                 caption = A_CAPTION,
             )
         )
-        val composerRecorder = EventsRecorder<MessageComposerEvents>()
+        val composerRecorder = EventsRecorder<MessageComposerEvent>()
         val presenter = createMessagesPresenter(
             messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
         )
@@ -987,41 +1024,10 @@ class MessagesPresenterTest {
             initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.EditCaption, messageEvent))
             awaitItem()
             composerRecorder.assertSingle(
-                MessageComposerEvents.SetMode(
+                MessageComposerEvent.SetMode(
                     composerMode = MessageComposerMode.EditCaption(
                         eventOrTransactionId = AN_EVENT_ID.toEventOrTransactionId(),
                         content = A_CAPTION,
-                        showCaptionCompatibilityWarning = true,
-                    )
-                )
-            )
-        }
-    }
-
-    @Test
-    fun `present - handle action edit caption without warning`() = runTest {
-        val messageEvent = aMessageEvent(
-            content = aTimelineItemImageContent(
-                caption = A_CAPTION,
-            )
-        )
-        val composerRecorder = EventsRecorder<MessageComposerEvents>()
-        val presenter = createMessagesPresenter(
-            messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
-            featureFlagService = FakeFeatureFlagService(
-                initialState = mapOf(FeatureFlags.MediaCaptionWarning.key to false)
-            )
-        )
-        presenter.testWithLifecycleOwner {
-            val initialState = awaitItem()
-            initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.EditCaption, messageEvent))
-            awaitItem()
-            composerRecorder.assertSingle(
-                MessageComposerEvents.SetMode(
-                    composerMode = MessageComposerMode.EditCaption(
-                        eventOrTransactionId = AN_EVENT_ID.toEventOrTransactionId(),
-                        content = A_CAPTION,
-                        showCaptionCompatibilityWarning = false,
                     )
                 )
             )
@@ -1030,7 +1036,7 @@ class MessagesPresenterTest {
 
     @Test
     fun `present - handle action add caption`() = runTest {
-        val composerRecorder = EventsRecorder<MessageComposerEvents>()
+        val composerRecorder = EventsRecorder<MessageComposerEvent>()
         val presenter = createMessagesPresenter(
             messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
         )
@@ -1044,41 +1050,10 @@ class MessagesPresenterTest {
             initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.AddCaption, messageEvent))
             awaitItem()
             composerRecorder.assertSingle(
-                MessageComposerEvents.SetMode(
+                MessageComposerEvent.SetMode(
                     composerMode = MessageComposerMode.EditCaption(
                         eventOrTransactionId = AN_EVENT_ID.toEventOrTransactionId(),
                         content = "",
-                        showCaptionCompatibilityWarning = true,
-                    )
-                )
-            )
-        }
-    }
-
-    @Test
-    fun `present - handle action add caption without warning`() = runTest {
-        val composerRecorder = EventsRecorder<MessageComposerEvents>()
-        val presenter = createMessagesPresenter(
-            messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
-            featureFlagService = FakeFeatureFlagService(
-                initialState = mapOf(FeatureFlags.MediaCaptionWarning.key to false)
-            )
-        )
-        val messageEvent = aMessageEvent(
-            content = aTimelineItemImageContent(
-                caption = null,
-            )
-        )
-        presenter.testWithLifecycleOwner {
-            val initialState = awaitItem()
-            initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.AddCaption, messageEvent))
-            awaitItem()
-            composerRecorder.assertSingle(
-                MessageComposerEvents.SetMode(
-                    composerMode = MessageComposerMode.EditCaption(
-                        eventOrTransactionId = AN_EVENT_ID.toEventOrTransactionId(),
-                        content = "",
-                        showCaptionCompatibilityWarning = false,
                     )
                 )
             )
@@ -1109,6 +1084,7 @@ class MessagesPresenterTest {
         )
         val presenter = createMessagesPresenter(
             joinedRoom = room,
+            timeline = timeline,
         )
         presenter.testWithLifecycleOwner {
             skipItems(1)
@@ -1215,8 +1191,129 @@ class MessagesPresenterTest {
         }
     }
 
+    @Test
+    fun `present - handle action reply in thread for an event in a thread`() = runTest {
+        val openThreadLambda = lambdaRecorder { _: ThreadId, _: EventId? -> }
+        val presenter = createMessagesPresenter(
+            navigator = FakeMessagesNavigator(onOpenThreadLambda = openThreadLambda),
+            featureFlagService = FakeFeatureFlagService(
+                initialState = mapOf(FeatureFlags.Threads.key to true)
+            ),
+        )
+        presenter.testWithLifecycleOwner {
+            val initialState = awaitItem()
+            initialState.eventSink(
+                MessagesEvents.HandleAction(
+                    action = TimelineItemAction.ReplyInThread,
+                    event = aMessageEvent(threadInfo = TimelineItemThreadInfo.ThreadResponse(A_THREAD_ID))
+                )
+            )
+            awaitItem()
+            openThreadLambda.assertions().isCalledOnce().with(value(A_THREAD_ID), value(null))
+        }
+    }
+
+    @Test
+    fun `present - handle action reply in thread to start a new thread`() = runTest {
+        val openThreadLambda = lambdaRecorder { _: ThreadId, _: EventId? -> }
+        val presenter = createMessagesPresenter(
+            navigator = FakeMessagesNavigator(onOpenThreadLambda = openThreadLambda),
+            featureFlagService = FakeFeatureFlagService(
+                initialState = mapOf(FeatureFlags.Threads.key to true)
+            ),
+        )
+        presenter.testWithLifecycleOwner {
+            val initialState = awaitItem()
+            initialState.eventSink(
+                MessagesEvents.HandleAction(
+                    action = TimelineItemAction.ReplyInThread,
+                    event = aMessageEvent(
+                        // The event id will be used as the thread id instead
+                        eventId = AN_EVENT_ID,
+                        threadInfo = null,
+                    )
+                )
+            )
+            awaitItem()
+            openThreadLambda.assertions().isCalledOnce().with(value(AN_EVENT_ID.toThreadId()), value(null))
+        }
+    }
+
+    @Test
+    fun `present - handle action reply in a thread with threads disabled`() = runTest {
+        val composerRecorder = EventsRecorder<MessageComposerEvent>()
+        val presenter = createMessagesPresenter(
+            featureFlagService = FakeFeatureFlagService(
+                initialState = mapOf(FeatureFlags.Threads.key to false)
+            ),
+            messageComposerPresenter = { aMessageComposerState(eventSink = composerRecorder) },
+        )
+        presenter.testWithLifecycleOwner {
+            val initialState = awaitItem()
+            initialState.eventSink(MessagesEvents.HandleAction(TimelineItemAction.ReplyInThread, aMessageEvent()))
+            awaitItem()
+            composerRecorder.assertSingle(
+                MessageComposerEvent.SetMode(
+                    composerMode = MessageComposerMode.Reply(
+                        replyToDetails = InReplyToDetails.Loading(AN_EVENT_ID),
+                        hideImage = false,
+                    )
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `present - handle MarkAsFullyReadAndExit marks the room as fully read and navigates up`() = runTest {
+        val markAsFullyReadRecorder = lambdaRecorder<RoomId, EventId, Unit> { _, _ -> }
+        val markAsFullyReadUseCase = FakeMarkAsFullyRead(markAsFullyReadRecorder)
+        val closeLambda = lambdaRecorder<Unit> {}
+        val navigator = FakeMessagesNavigator(closeLambda = closeLambda)
+
+        val presenter = createMessagesPresenter(
+            timeline = FakeTimeline(getLatestEventIdResult = { Result.success(AN_EVENT_ID) }),
+            markAsFullyRead = markAsFullyReadUseCase,
+            navigator = navigator,
+        )
+        presenter.testWithLifecycleOwner {
+            val initialState = awaitItem()
+            initialState.eventSink(MessagesEvents.MarkAsFullyReadAndExit)
+
+            runCurrent()
+
+            markAsFullyReadRecorder.assertions().isCalledOnce()
+            closeLambda.assertions().isCalledOnce()
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - handle MarkAsFullyReadAndExit still navigates up if marking as read fails`() = runTest {
+        val markAsFullyReadUseCase = FakeMarkAsFullyRead { _, _ -> error("boom") }
+        val closeLambda = lambdaRecorder<Unit> {}
+        val navigator = FakeMessagesNavigator(closeLambda = closeLambda)
+
+        val presenter = createMessagesPresenter(
+            timeline = FakeTimeline(getLatestEventIdResult = { Result.success(AN_EVENT_ID) }),
+            markAsFullyRead = markAsFullyReadUseCase,
+            navigator = navigator,
+        )
+        presenter.testWithLifecycleOwner {
+            val initialState = awaitItem()
+            initialState.eventSink(MessagesEvents.MarkAsFullyReadAndExit)
+
+            runCurrent()
+
+            closeLambda.assertions().isCalledOnce()
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private fun TestScope.createMessagesPresenter(
         coroutineDispatchers: CoroutineDispatchers = testCoroutineDispatchers(),
+        timeline: Timeline = FakeTimeline(),
         joinedRoom: FakeJoinedRoom = FakeJoinedRoom(
             baseRoom = FakeBaseRoom(
                 canUserSendMessageResult = { _, _ -> Result.success(true) },
@@ -1227,11 +1324,10 @@ class MessagesPresenterTest {
             ).apply {
                 givenRoomInfo(aRoomInfo(id = roomId, name = ""))
             },
-            liveTimeline = FakeTimeline(),
+            liveTimeline = timeline,
             typingNoticeResult = { Result.success(Unit) },
         ),
         navigator: FakeMessagesNavigator = FakeMessagesNavigator(),
-        featureFlagService: FeatureFlagService = FakeFeatureFlagService(),
         clipboardHelper: FakeClipboardHelper = FakeClipboardHelper(),
         analyticsService: FakeAnalyticsService = FakeAnalyticsService(),
         timelineEventSink: (TimelineEvents) -> Unit = {},
@@ -1246,35 +1342,40 @@ class MessagesPresenterTest {
             aRoomMemberModerationState()
         },
         encryptionService: FakeEncryptionService = FakeEncryptionService(),
+        featureFlagService: FakeFeatureFlagService = FakeFeatureFlagService(),
         actionListEventSink: (ActionListEvents) -> Unit = {},
+        addRecentEmoji: AddRecentEmoji = AddRecentEmoji { _ -> lambdaError() },
+        markAsFullyRead: MarkAsFullyRead = FakeMarkAsFullyRead(),
     ): MessagesPresenter {
         return MessagesPresenter(
+            navigator = navigator,
             room = joinedRoom,
             composerPresenter = messageComposerPresenter,
-            voiceMessageComposerPresenter = { aVoiceMessageComposerState() },
+            voiceMessageComposerPresenterFactory = FakeDefaultVoiceMessageComposerPresenterFactory(backgroundScope),
             timelinePresenter = { aTimelineState(eventSink = timelineEventSink) },
             timelineProtectionPresenter = { aTimelineProtectionState() },
+            identityChangeStatePresenter = { anIdentityChangeState() },
+            linkPresenter = { aLinkState() },
             actionListPresenter = { anActionListState(eventSink = actionListEventSink) },
             customReactionPresenter = { aCustomReactionState() },
             reactionSummaryPresenter = { aReactionSummaryState() },
             readReceiptBottomSheetPresenter = { aReadReceiptBottomSheetState() },
-            identityChangeStatePresenter = { anIdentityChangeState() },
-            linkPresenter = { aLinkState() },
             pinnedMessagesBannerPresenter = { aLoadedPinnedMessagesBannerState() },
             roomCallStatePresenter = { aStandByCallState() },
             roomMemberModerationPresenter = roomMemberModerationPresenter,
-            syncService = FakeSyncService(),
             snackbarDispatcher = SnackbarDispatcher(),
-            navigator = navigator,
-            clipboardHelper = clipboardHelper,
-            featureFlagsService = featureFlagService,
-            buildMeta = aBuildMeta(),
             dispatchers = coroutineDispatchers,
+            clipboardHelper = clipboardHelper,
             htmlConverterProvider = FakeHtmlConverterProvider(),
-            timelineController = TimelineController(joinedRoom),
+            buildMeta = aBuildMeta(),
+            timelineController = TimelineController(joinedRoom, timeline),
             permalinkParser = permalinkParser,
-            encryptionService = encryptionService,
             analyticsService = analyticsService,
+            encryptionService = encryptionService,
+            featureFlagService = featureFlagService,
+            addRecentEmoji = addRecentEmoji,
+            markAsFullyRead = markAsFullyRead,
+            sessionCoroutineScope = backgroundScope,
         )
     }
 }

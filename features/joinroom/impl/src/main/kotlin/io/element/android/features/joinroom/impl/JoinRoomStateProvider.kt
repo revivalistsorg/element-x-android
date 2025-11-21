@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,8 +10,8 @@ package io.element.android.features.joinroom.impl
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import io.element.android.features.invite.api.InviteData
-import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteEvents
 import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteState
+import io.element.android.features.invite.api.acceptdecline.anAcceptDeclineInviteState
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
@@ -20,9 +21,11 @@ import io.element.android.libraries.matrix.api.core.RoomIdOrAlias
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.core.toRoomIdOrAlias
 import io.element.android.libraries.matrix.api.exception.ClientException
-import io.element.android.libraries.matrix.api.room.RoomType
 import io.element.android.libraries.matrix.api.room.join.JoinRoom
+import io.element.android.libraries.matrix.api.room.join.JoinRule
+import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.model.InviteSender
+import kotlinx.collections.immutable.toImmutableList
 
 open class JoinRoomStateProvider : PreviewParameterProvider<JoinRoomState> {
     override val values: Sequence<JoinRoomState>
@@ -77,13 +80,17 @@ open class JoinRoomStateProvider : PreviewParameterProvider<JoinRoomState> {
                     name = "A space",
                     alias = null,
                     topic = "This is the topic of a space",
-                    roomType = RoomType.Space,
+                    details = aLoadedDetailsSpace(
+                        childrenCount = 42,
+                    ),
                 )
             ),
             aJoinRoomState(
                 contentState = aLoadedContentState(
                     name = "A DM",
-                    isDm = true,
+                    details = aLoadedDetailsRoom(
+                        isDm = true,
+                    ),
                 )
             ),
             aJoinRoomState(
@@ -156,20 +163,34 @@ fun aLoadedContentState(
     alias: RoomAlias? = RoomAlias("#exa:matrix.org"),
     topic: String? = "Element X is a secure, private and decentralized messenger.",
     numberOfMembers: Long? = null,
-    isDm: Boolean = false,
-    roomType: RoomType = RoomType.Room,
     roomAvatarUrl: String? = null,
     joinAuthorisationStatus: JoinAuthorisationStatus = JoinAuthorisationStatus.Unknown,
+    joinRule: JoinRule? = null,
+    details: LoadedDetails = aLoadedDetailsRoom(isDm = false),
 ) = ContentState.Loaded(
     roomId = roomId,
     name = name,
     alias = alias,
     topic = topic,
     numberOfMembers = numberOfMembers,
-    isDm = isDm,
-    roomType = roomType,
     roomAvatarUrl = roomAvatarUrl,
-    joinAuthorisationStatus = joinAuthorisationStatus
+    joinAuthorisationStatus = joinAuthorisationStatus,
+    joinRule = joinRule,
+    details = details,
+)
+
+fun aLoadedDetailsRoom(
+    isDm: Boolean = false,
+) = LoadedDetails.Room(
+    isDm = isDm
+)
+
+fun aLoadedDetailsSpace(
+    childrenCount: Int = 0,
+    heroes: List<MatrixUser> = emptyList(),
+) = LoadedDetails.Space(
+    childrenCount = childrenCount,
+    heroes = heroes.toImmutableList()
 )
 
 fun aJoinRoomState(
@@ -197,16 +218,6 @@ fun aJoinRoomState(
     hideInviteAvatars = hideInviteAvatars,
     canReportRoom = canReportRoom,
     eventSink = eventSink
-)
-
-internal fun anAcceptDeclineInviteState(
-    acceptAction: AsyncAction<RoomId> = AsyncAction.Uninitialized,
-    declineAction: AsyncAction<RoomId> = AsyncAction.Uninitialized,
-    eventSink: (AcceptDeclineInviteEvents) -> Unit = {}
-) = AcceptDeclineInviteState(
-    acceptAction = acceptAction,
-    declineAction = declineAction,
-    eventSink = eventSink,
 )
 
 internal fun anInviteSender(

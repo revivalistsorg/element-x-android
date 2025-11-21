@@ -1,15 +1,16 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.roomdetails.impl
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import io.element.android.features.leaveroom.api.LeaveRoomEvent
 import io.element.android.features.leaveroom.api.LeaveRoomState
-import io.element.android.features.leaveroom.api.aLeaveRoomState
 import io.element.android.features.roomcall.api.RoomCallState
 import io.element.android.features.roomcall.api.aStandByCallState
 import io.element.android.features.roomdetails.impl.members.aRoomMember
@@ -27,7 +28,7 @@ import io.element.android.libraries.matrix.api.room.RoomNotificationMode
 import io.element.android.libraries.matrix.api.room.RoomNotificationSettings
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.ui.components.aMatrixUserList
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 
 open class RoomDetailsStateProvider : PreviewParameterProvider<RoomDetailsState> {
     override val values: Sequence<RoomDetailsState>
@@ -67,9 +68,8 @@ fun aDmRoomMember(
     membership: RoomMembershipState = RoomMembershipState.JOIN,
     isNameAmbiguous: Boolean = false,
     powerLevel: Long = 0,
-    normalizedPowerLevel: Long = powerLevel,
     isIgnored: Boolean = false,
-    role: RoomMember.Role = RoomMember.Role.USER,
+    role: RoomMember.Role = RoomMember.Role.User,
     membershipChangeReason: String? = null,
 ) = RoomMember(
     userId = userId,
@@ -78,7 +78,6 @@ fun aDmRoomMember(
     membership = membership,
     isNameAmbiguous = isNameAmbiguous,
     powerLevel = powerLevel,
-    normalizedPowerLevel = normalizedPowerLevel,
     isIgnored = isIgnored,
     role = role,
     membershipChangeReason = membershipChangeReason
@@ -100,7 +99,6 @@ fun aRoomDetailsState(
     isEncrypted: Boolean = true,
     canInvite: Boolean = false,
     canEdit: Boolean = false,
-    canShowNotificationSettings: Boolean = true,
     roomCallState: RoomCallState = aStandByCallState(),
     roomType: RoomDetailsType = RoomDetailsType.Room,
     roomMemberDetailsState: UserProfileState? = null,
@@ -110,8 +108,6 @@ fun aRoomDetailsState(
     displayAdminSettings: Boolean = false,
     isPublic: Boolean = true,
     heroes: List<MatrixUser> = emptyList(),
-    canShowPinnedMessages: Boolean = true,
-    canShowMediaGallery: Boolean = true,
     pinnedMessagesCount: Int? = null,
     snackbarMessage: SnackbarMessage? = null,
     canShowKnockRequests: Boolean = false,
@@ -132,7 +128,6 @@ fun aRoomDetailsState(
     isEncrypted = isEncrypted,
     canInvite = canInvite,
     canEdit = canEdit,
-    canShowNotificationSettings = canShowNotificationSettings,
     roomCallState = roomCallState,
     roomType = roomType,
     roomMemberDetailsState = roomMemberDetailsState,
@@ -141,9 +136,7 @@ fun aRoomDetailsState(
     isFavorite = isFavorite,
     displayRolesAndPermissionsSettings = displayAdminSettings,
     isPublic = isPublic,
-    heroes = heroes.toPersistentList(),
-    canShowPinnedMessages = canShowPinnedMessages,
-    canShowMediaGallery = canShowMediaGallery,
+    heroes = heroes.toImmutableList(),
     pinnedMessagesCount = pinnedMessagesCount,
     snackbarMessage = snackbarMessage,
     canShowKnockRequests = canShowKnockRequests,
@@ -155,6 +148,12 @@ fun aRoomDetailsState(
     showDebugInfo = showDebugInfo,
     eventSink = eventSink,
 )
+
+internal fun aLeaveRoomState(
+    eventSink: (LeaveRoomEvent) -> Unit = {}
+) = object : LeaveRoomState {
+    override val eventSink: (LeaveRoomEvent) -> Unit = eventSink
+}
 
 fun aRoomNotificationSettings(
     mode: RoomNotificationMode = RoomNotificationMode.MUTE,

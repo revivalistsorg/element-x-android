@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -13,10 +14,10 @@ import app.cash.molecule.moleculeFlow
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import io.element.android.features.createroom.api.ConfirmingStartDmWithMatrixUser
-import io.element.android.features.createroom.api.StartDMAction
-import io.element.android.features.createroom.test.FakeStartDMAction
 import io.element.android.features.enterprise.test.FakeSessionEnterpriseService
+import io.element.android.features.invitepeople.test.FakeStartDMAction
+import io.element.android.features.startchat.api.ConfirmingStartDmWithMatrixUser
+import io.element.android.features.startchat.api.StartDMAction
 import io.element.android.features.userprofile.api.UserProfileEvents
 import io.element.android.features.userprofile.api.UserProfileState
 import io.element.android.features.userprofile.api.UserProfileVerificationState

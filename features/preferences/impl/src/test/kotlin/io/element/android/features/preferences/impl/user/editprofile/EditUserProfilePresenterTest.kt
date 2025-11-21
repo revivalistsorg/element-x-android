@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -23,6 +24,7 @@ import io.element.android.libraries.matrix.ui.components.aMatrixUser
 import io.element.android.libraries.matrix.ui.media.AvatarAction
 import io.element.android.libraries.mediapickers.test.FakePickerProvider
 import io.element.android.libraries.mediaupload.api.MediaUploadInfo
+import io.element.android.libraries.mediaupload.test.FakeMediaOptimizationConfigProvider
 import io.element.android.libraries.mediaupload.test.FakeMediaPreProcessor
 import io.element.android.libraries.permissions.api.PermissionsPresenter
 import io.element.android.libraries.permissions.test.FakePermissionsPresenter
@@ -65,7 +67,9 @@ class EditUserProfilePresenterTest {
         mockkStatic(Uri::class)
 
         every { Uri.parse(AN_AVATAR_URL) } returns userAvatarUri
+        every { userAvatarUri.toString() } returns AN_AVATAR_URL
         every { Uri.parse(ANOTHER_AVATAR_URL) } returns anotherAvatarUri
+        every { anotherAvatarUri.toString() } returns ANOTHER_AVATAR_URL
     }
 
     @After
@@ -78,6 +82,7 @@ class EditUserProfilePresenterTest {
         matrixUser: MatrixUser = aMatrixUser(),
         permissionsPresenter: PermissionsPresenter = FakePermissionsPresenter(),
         temporaryUriDeleter: TemporaryUriDeleter = FakeTemporaryUriDeleter(),
+        mediaOptimizationConfigProvider: FakeMediaOptimizationConfigProvider = FakeMediaOptimizationConfigProvider(),
     ): EditUserProfilePresenter {
         return EditUserProfilePresenter(
             matrixClient = matrixClient,
@@ -86,6 +91,7 @@ class EditUserProfilePresenterTest {
             mediaPreProcessor = fakeMediaPreProcessor,
             temporaryUriDeleter = temporaryUriDeleter,
             permissionsPresenterFactory = FakePermissionsPresenterFactory(permissionsPresenter),
+            mediaOptimizationConfigProvider = mediaOptimizationConfigProvider,
         )
     }
 
@@ -99,7 +105,7 @@ class EditUserProfilePresenterTest {
             val initialState = awaitItem()
             assertThat(initialState.userId).isEqualTo(user.userId)
             assertThat(initialState.displayName).isEqualTo(user.displayName)
-            assertThat(initialState.userAvatarUrl).isEqualTo(userAvatarUri)
+            assertThat(initialState.userAvatarUrl).isEqualTo(AN_AVATAR_URL)
             assertThat(initialState.avatarActions).containsExactly(
                 AvatarAction.ChoosePhoto,
                 AvatarAction.TakePhoto,
@@ -124,16 +130,16 @@ class EditUserProfilePresenterTest {
         }.test {
             val initialState = awaitItem()
             assertThat(initialState.displayName).isEqualTo("Name")
-            assertThat(initialState.userAvatarUrl).isEqualTo(userAvatarUri)
+            assertThat(initialState.userAvatarUrl).isEqualTo(AN_AVATAR_URL)
             initialState.eventSink(EditUserProfileEvents.UpdateDisplayName("Name II"))
             awaitItem().apply {
                 assertThat(displayName).isEqualTo("Name II")
-                assertThat(userAvatarUrl).isEqualTo(userAvatarUri)
+                assertThat(userAvatarUrl).isEqualTo(AN_AVATAR_URL)
             }
             initialState.eventSink(EditUserProfileEvents.UpdateDisplayName("Name III"))
             awaitItem().apply {
                 assertThat(displayName).isEqualTo("Name III")
-                assertThat(userAvatarUrl).isEqualTo(userAvatarUri)
+                assertThat(userAvatarUrl).isEqualTo(AN_AVATAR_URL)
             }
             initialState.eventSink(EditUserProfileEvents.HandleAvatarAction(AvatarAction.Remove))
             awaitItem().apply {
@@ -157,10 +163,10 @@ class EditUserProfilePresenterTest {
             presenter.present()
         }.test {
             val initialState = awaitItem()
-            assertThat(initialState.userAvatarUrl).isEqualTo(userAvatarUri)
+            assertThat(initialState.userAvatarUrl).isEqualTo(AN_AVATAR_URL)
             initialState.eventSink(EditUserProfileEvents.HandleAvatarAction(AvatarAction.ChoosePhoto))
             awaitItem().apply {
-                assertThat(userAvatarUrl).isEqualTo(anotherAvatarUri)
+                assertThat(userAvatarUrl).isEqualTo(ANOTHER_AVATAR_URL)
             }
         }
     }
@@ -182,7 +188,7 @@ class EditUserProfilePresenterTest {
             presenter.present()
         }.test {
             val initialState = awaitItem()
-            assertThat(initialState.userAvatarUrl).isEqualTo(userAvatarUri)
+            assertThat(initialState.userAvatarUrl).isEqualTo(AN_AVATAR_URL)
             assertThat(initialState.cameraPermissionState.permissionGranted).isFalse()
             initialState.eventSink(EditUserProfileEvents.HandleAvatarAction(AvatarAction.TakePhoto))
             val stateWithAskingPermission = awaitItem()
@@ -191,12 +197,12 @@ class EditUserProfilePresenterTest {
             val stateWithPermission = awaitItem()
             assertThat(stateWithPermission.cameraPermissionState.permissionGranted).isTrue()
             val stateWithNewAvatar = awaitItem()
-            assertThat(stateWithNewAvatar.userAvatarUrl).isEqualTo(anotherAvatarUri)
+            assertThat(stateWithNewAvatar.userAvatarUrl).isEqualTo(ANOTHER_AVATAR_URL)
             // Do it again, no permission is requested
             fakePickerProvider.givenResult(userAvatarUri)
             stateWithNewAvatar.eventSink(EditUserProfileEvents.HandleAvatarAction(AvatarAction.TakePhoto))
             val stateWithNewAvatar2 = awaitItem()
-            assertThat(stateWithNewAvatar2.userAvatarUrl).isEqualTo(userAvatarUri)
+            assertThat(stateWithNewAvatar2.userAvatarUrl).isEqualTo(AN_AVATAR_URL)
             deleteCallback.assertions().isCalledExactly(2).withSequence(
                 listOf(value(userAvatarUri)),
                 listOf(value(anotherAvatarUri)),
