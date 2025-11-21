@@ -15,6 +15,8 @@
     <item quantity="few">"%d уведомления"</item>
     <item quantity="many">"%d уведомлений"</item>
   </plurals>
+  <string name="notification_error_unified_push_unregistered_android">"Не удалось зарегистрировать дистрибьютора уведомлений UnifiedPush, поэтому вы больше не будете получать уведомления. Проверьте настройки уведомлений в приложении и статус дистрибьютора push-уведомлений."</string>
+  <string name="notification_fallback_content">"У вас есть новые сообщения."</string>
   <string name="notification_incoming_call">"📹 Входящий вызов"</string>
   <string name="notification_inline_reply_failed">"** Не удалось отправить - пожалуйста, откройте комнату"</string>
   <string name="notification_invitation_action_join">"Присоединиться"</string>
@@ -41,6 +43,7 @@
   <string name="notification_sender_me">"Я"</string>
   <string name="notification_sender_mention_reply">"%1$s упомянул или ответил"</string>
   <string name="notification_test_push_notification_content">"Вы просматриваете уведомление! Нажмите на меня!"</string>
+  <string name="notification_thread_in_room">"Ветка обсуждения в %1$s"</string>
   <string name="notification_ticker_text_dm">"%1$s: %2$s"</string>
   <string name="notification_ticker_text_group">"%1$s: %2$s %3$s"</string>
   <plurals name="notification_unread_notified_messages">
@@ -59,9 +62,21 @@
   <string name="push_distributor_background_sync_android">"Фоновая синхронизация"</string>
   <string name="push_distributor_firebase_android">"Сервисы Google"</string>
   <string name="push_no_valid_google_play_services_apk_android">"Не найдены действующие службы Google Play. Уведомления могут работать некорректно."</string>
+  <string name="troubleshoot_notifications_test_blocked_users_description">"Проверка заблокированных пользователей"</string>
+  <string name="troubleshoot_notifications_test_blocked_users_quick_fix">"Просмотреть заблокированных пользователей"</string>
+  <string name="troubleshoot_notifications_test_blocked_users_result_none">"Ни один пользователь не заблокирован."</string>
+  <plurals name="troubleshoot_notifications_test_blocked_users_result_some">
+    <item quantity="one">"Вы заблокировали пользователя %1$d. Вы не будете получать уведомления от этого пользователей."</item>
+    <item quantity="few">"Вы заблокировали пользователей %1$d. Вы не будете получать уведомления от этих пользователей."</item>
+    <item quantity="many">"Вы заблокировали пользователей %1$d. Вы не будете получать уведомления от этих пользователей."</item>
+  </plurals>
+  <string name="troubleshoot_notifications_test_blocked_users_title">"Заблокированные пользователи"</string>
   <string name="troubleshoot_notifications_test_current_push_provider_description">"Получение имени текущего поставщика."</string>
   <string name="troubleshoot_notifications_test_current_push_provider_failure">"Поставщики push-уведомлений не выбраны."</string>
+  <string name="troubleshoot_notifications_test_current_push_provider_failure_distributor_not_found">"Текущий поставщик push-уведомлений: %1$s и текущий дистрибьютор: %2$s . Но дистрибьютор %3$s не найдено. Возможно, приложение было удалено?"</string>
+  <string name="troubleshoot_notifications_test_current_push_provider_failure_no_distributor">"Текущий поставщик push-уведомлений: %1$s , но ни один дистрибьютор не был настроен."</string>
   <string name="troubleshoot_notifications_test_current_push_provider_success">"Текущий поставщик push-уведомлений: %1$s."</string>
+  <string name="troubleshoot_notifications_test_current_push_provider_success_with_distributor">"Текущий поставщик push-уведомлений: %1$s (%2$s)"</string>
   <string name="troubleshoot_notifications_test_current_push_provider_title">"Текущий поставщик push-уведомлений"</string>
   <string name="troubleshoot_notifications_test_detect_push_provider_description">"Убедитесь, что у приложения есть хотя бы один поставщик push-сообщений."</string>
   <string name="troubleshoot_notifications_test_detect_push_provider_failure">"Поставщики push-уведомлений не найдены."</string>

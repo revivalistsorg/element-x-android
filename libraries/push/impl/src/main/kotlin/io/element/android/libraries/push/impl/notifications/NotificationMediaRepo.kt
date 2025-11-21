@@ -1,18 +1,19 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.push.impl.notifications
 
-import com.squareup.anvil.annotations.ContributesBinding
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.core.extensions.mapCatchingExceptions
-import io.element.android.libraries.di.AppScope
 import io.element.android.libraries.di.CacheDirectory
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.media.MediaSource
@@ -58,7 +59,8 @@ interface NotificationMediaRepo {
     ): Result<File>
 }
 
-class DefaultNotificationMediaRepo @AssistedInject constructor(
+@AssistedInject
+class DefaultNotificationMediaRepo(
     @CacheDirectory private val cacheDir: File,
     private val mxcTools: MxcTools,
     @Assisted private val client: MatrixClient,
@@ -71,7 +73,7 @@ class DefaultNotificationMediaRepo @AssistedInject constructor(
         ): DefaultNotificationMediaRepo
     }
 
-    private val matrixMediaLoader = client.mediaLoader
+    private val matrixMediaLoader = client.matrixMediaLoader
 
     override suspend fun getMediaFile(
         mediaSource: MediaSource,

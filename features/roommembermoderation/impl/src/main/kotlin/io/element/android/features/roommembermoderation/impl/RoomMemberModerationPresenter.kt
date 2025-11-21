@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import im.vector.app.features.analytics.plan.RoomModeration
 import io.element.android.features.roommembermoderation.api.ModerationAction
 import io.element.android.features.roommembermoderation.api.ModerationActionState
@@ -34,16 +36,18 @@ import io.element.android.libraries.matrix.ui.room.canBanAsState
 import io.element.android.libraries.matrix.ui.room.canKickAsState
 import io.element.android.libraries.matrix.ui.room.userPowerLevelAsState
 import io.element.android.services.analytics.api.AnalyticsService
-import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
-class RoomMemberModerationPresenter @Inject constructor(
+@Inject
+class RoomMemberModerationPresenter(
     private val room: JoinedRoom,
     private val dispatchers: CoroutineDispatchers,
     private val analyticsService: AnalyticsService,
@@ -65,7 +69,7 @@ class RoomMemberModerationPresenter @Inject constructor(
         var selectedUser by remember {
             mutableStateOf<MatrixUser?>(null)
         }
-        val moderationActions = remember { mutableStateOf(persistentListOf<ModerationActionState>()) }
+        val moderationActions = remember { mutableStateOf<ImmutableList<ModerationActionState>>(persistentListOf()) }
 
         fun handleEvent(event: RoomMemberModerationEvents) {
             when (event) {
@@ -82,6 +86,9 @@ class RoomMemberModerationPresenter @Inject constructor(
                     )
                 }
                 is RoomMemberModerationEvents.ProcessAction -> {
+                    // First, hide any list of existing actions that could be displayed
+                    moderationActions.value = persistentListOf()
+
                     when (event.action) {
                         is ModerationAction.DisplayProfile -> Unit
                         is ModerationAction.KickUser -> {
@@ -112,12 +119,13 @@ class RoomMemberModerationPresenter @Inject constructor(
                 }
                 is InternalRoomMemberModerationEvents.DoUnbanUser -> {
                     selectedUser?.let {
-                        coroutineScope.unbanUser(it.userId, unbanUserAsyncAction)
+                        coroutineScope.unbanUser(it.userId, event.reason, unbanUserAsyncAction)
                     }
                     selectedUser = null
                 }
                 is InternalRoomMemberModerationEvents.Reset -> {
                     selectedUser = null
+                    moderationActions.value = persistentListOf()
                     kickUserAsyncAction.value = AsyncAction.Uninitialized
                     banUserAsyncAction.value = AsyncAction.Uninitialized
                     unbanUserAsyncAction.value = AsyncAction.Uninitialized
@@ -133,7 +141,7 @@ class RoomMemberModerationPresenter @Inject constructor(
             kickUserAsyncAction = kickUserAsyncAction.value,
             banUserAsyncAction = banUserAsyncAction.value,
             unbanUserAsyncAction = unbanUserAsyncAction.value,
-            eventSink = { handleEvent(it) },
+            eventSink = ::handleEvent,
         )
     }
 
@@ -142,7 +150,7 @@ class RoomMemberModerationPresenter @Inject constructor(
         canKick: Boolean,
         canBan: Boolean,
         currentUserMemberPowerLevel: Long,
-    ): PersistentList<ModerationActionState> {
+    ): ImmutableList<ModerationActionState> {
         return buildList {
             add(ModerationActionState(action = ModerationAction.DisplayProfile, isEnabled = true))
             // Assume the member is a regular user when it's unknown
@@ -161,7 +169,7 @@ class RoomMemberModerationPresenter @Inject constructor(
                     add(ModerationActionState(action = ModerationAction.BanUser, isEnabled = canModerateThisUser))
                 }
             }
-        }.toPersistentList()
+        }.toImmutableList()
     }
 
     private fun CoroutineScope.kickUser(
@@ -190,10 +198,14 @@ class RoomMemberModerationPresenter @Inject constructor(
 
     private fun CoroutineScope.unbanUser(
         userId: UserId,
+        reason: String,
         unbanUserAction: MutableState<AsyncAction<Unit>>,
     ) = runActionAndWaitForMembershipChange(unbanUserAction) {
         analyticsService.capture(RoomModeration(RoomModeration.Action.UnbanMember))
-        room.unbanUser(userId = userId)
+        room.unbanUser(
+            userId = userId,
+            reason = reason.takeIf { it.isNotBlank() },
+        )
     }
 
     private fun <T> CoroutineScope.runActionAndWaitForMembershipChange(
@@ -204,7 +216,15 @@ class RoomMemberModerationPresenter @Inject constructor(
             action.runUpdatingState {
                 val result = block()
                 if (result.isSuccess) {
-                    room.membersStateFlow.drop(1).take(1)
+                    // We wait a bit to ensure the server has processed the membership change
+                    delay(50.milliseconds)
+
+                    // Update the members to ensure we have the latest state
+                    launch { room.updateMembers() }
+
+                    // Wait for the membership change to be processed and returned
+                    // We drop the first emission as it's the current state
+                    room.membersStateFlow.drop(1).first()
                 }
                 result
             }

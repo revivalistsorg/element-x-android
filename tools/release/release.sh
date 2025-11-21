@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
+# Copyright (c) 2025 Element Creations Ltd.
 # Copyright 2023-2024 New Vector Ltd.
 #
-# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 # Please see LICENSE files in the repository root for full details.
 
 # do not exit when any command fails (issue with git flow)
@@ -64,7 +65,8 @@ fi
 
 # Read minSdkVersion from file plugins/src/main/kotlin/Versions.kt
 minSdkVersion=$(grep "MIN_SDK_FOSS =" ./plugins/src/main/kotlin/Versions.kt |cut -d '=' -f 2 |xargs)
-buildToolsVersion="35.0.0"
+# Read buildToolsVersion from file plugins/src/main/kotlin/Versions.kt
+buildToolsVersion=$(grep "BUILD_TOOLS_VERSION =" ./plugins/src/main/kotlin/Versions.kt |cut -d '=' -f 2 |xargs)
 buildToolsPath="${androidHome}/build-tools/${buildToolsVersion}"
 
 if [[ ! -d ${buildToolsPath} ]]; then
@@ -145,7 +147,7 @@ printf "Creating fastlane file...\n"
 printf -v versionReleaseNumber2Digits "%02d" "${versionReleaseNumber}"
 fastlaneFile="20${versionYear}${versionMonth}${versionReleaseNumber2Digits}0.txt"
 fastlanePathFile="./fastlane/metadata/android/en-US/changelogs/${fastlaneFile}"
-printf "Main changes in this version: TODO.\nFull changelog: https://github.com/element-hq/element-x-android/releases" > "${fastlanePathFile}"
+printf "Main changes in this version: bug fixes and improvements.\nFull changelog: https://github.com/element-hq/element-x-android/releases" > "${fastlanePathFile}"
 
 read -r -p "I have created the file ${fastlanePathFile}, please edit it and press enter to continue. "
 git add "${fastlanePathFile}"

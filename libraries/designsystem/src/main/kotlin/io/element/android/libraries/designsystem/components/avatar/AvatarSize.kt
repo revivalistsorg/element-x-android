@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,8 +15,10 @@ enum class AvatarSize(val dp: Dp) {
     CurrentUserTopBar(32.dp),
 
     IncomingCall(140.dp),
-    RoomHeader(96.dp),
+    RoomDetailsHeader(96.dp),
     RoomListItem(52.dp),
+
+    SpaceListItem(52.dp),
 
     RoomSelectRoomListItem(36.dp),
 
@@ -24,7 +27,7 @@ enum class AvatarSize(val dp: Dp) {
     UserHeader(96.dp),
     UserListItem(36.dp),
 
-    SelectedUser(56.dp),
+    SelectedUser(52.dp),
     SelectedRoom(56.dp),
 
     DmCluster(75.dp),
@@ -32,6 +35,7 @@ enum class AvatarSize(val dp: Dp) {
     TimelineRoom(32.dp),
     TimelineSender(32.dp),
     TimelineReadReceipt(16.dp),
+    TimelineThreadLatestEventSender(24.dp),
 
     ComposerAlert(32.dp),
 
@@ -63,4 +67,13 @@ enum class AvatarSize(val dp: Dp) {
     DmCreationConfirmation(64.dp),
 
     UserVerification(52.dp),
+
+    OrganizationHeader(64.dp),
+    SpaceHeader(64.dp),
+    RoomPreviewHeader(64.dp),
+    RoomPreviewInviter(56.dp),
+    SpaceMember(24.dp),
+    LeaveSpaceRoom(32.dp),
+
+    AccountItem(32.dp),
 }

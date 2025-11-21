@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,7 +15,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.element.android.features.invite.api.InviteData
 import io.element.android.features.invite.test.anInviteData
 import io.element.android.libraries.architecture.AsyncAction
-import io.element.android.libraries.matrix.api.room.RoomType
 import io.element.android.libraries.matrix.api.room.join.JoinRoom
 import io.element.android.libraries.matrix.test.room.aRoomMember
 import io.element.android.libraries.matrix.ui.model.toInviteSender
@@ -216,21 +216,6 @@ class JoinRoomViewTest {
         )
         rule.clickOn(CommonStrings.action_retry)
         eventsRecorder.assertSingle(JoinRoomEvents.RetryFetchingContent)
-    }
-
-    @Test
-    fun `clicking on ok when a space is displayed invokes the expected callback`() {
-        val eventsRecorder = EventsRecorder<JoinRoomEvents>(expectEvents = false)
-        ensureCalledOnce {
-            rule.setJoinRoomView(
-                aJoinRoomState(
-                    contentState = aLoadedContentState(roomType = RoomType.Space),
-                    eventSink = eventsRecorder,
-                ),
-                onBackClick = it
-            )
-            rule.clickOn(CommonStrings.action_ok)
-        }
     }
 
     @Test

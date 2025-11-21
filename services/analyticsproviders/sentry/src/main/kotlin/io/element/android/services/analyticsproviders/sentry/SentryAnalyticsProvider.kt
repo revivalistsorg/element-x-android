@@ -1,35 +1,36 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.services.analyticsproviders.sentry
 
 import android.content.Context
-import com.squareup.anvil.annotations.ContributesMultibinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesIntoSet
+import dev.zacsweers.metro.Inject
 import im.vector.app.features.analytics.itf.VectorAnalyticsEvent
 import im.vector.app.features.analytics.itf.VectorAnalyticsScreen
 import im.vector.app.features.analytics.plan.SuperProperties
 import im.vector.app.features.analytics.plan.UserProperties
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.core.meta.BuildType
-import io.element.android.libraries.di.AppScope
-import io.element.android.libraries.di.ApplicationContext
+import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.services.analyticsproviders.api.AnalyticsProvider
+import io.element.android.services.analyticsproviders.api.AnalyticsTransaction
 import io.element.android.services.analyticsproviders.sentry.log.analyticsTag
 import io.sentry.Breadcrumb
 import io.sentry.Sentry
 import io.sentry.SentryOptions
 import io.sentry.android.core.SentryAndroid
 import timber.log.Timber
-import javax.inject.Inject
-import kotlin.collections.component1
-import kotlin.collections.component2
 
-@ContributesMultibinding(AppScope::class)
-class SentryAnalyticsProvider @Inject constructor(
+@ContributesIntoSet(AppScope::class)
+@Inject
+class SentryAnalyticsProvider(
     @ApplicationContext private val context: Context,
     private val buildMeta: BuildMeta,
 ) : AnalyticsProvider {
@@ -51,6 +52,7 @@ class SentryAnalyticsProvider @Inject constructor(
             options.isEnableUserInteractionTracing = true
             options.environment = buildMeta.buildType.toSentryEnv()
         }
+        Timber.tag(analyticsTag.value).d("Sentry was initialized correctly")
     }
 
     override fun stop() {
@@ -87,10 +89,14 @@ class SentryAnalyticsProvider @Inject constructor(
     override fun trackError(throwable: Throwable) {
         Sentry.captureException(throwable)
     }
+
+    override fun startTransaction(name: String, operation: String?): AnalyticsTransaction? {
+        return SentryAnalyticsTransaction(name, operation)
+    }
 }
 
 private fun BuildType.toSentryEnv() = when (this) {
     BuildType.RELEASE -> SentryConfig.ENV_RELEASE
-    BuildType.NIGHTLY,
+    BuildType.NIGHTLY -> SentryConfig.ENV_NIGHTLY
     BuildType.DEBUG -> SentryConfig.ENV_DEBUG
 }

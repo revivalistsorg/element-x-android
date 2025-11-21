@@ -1,13 +1,14 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.matrix.impl.room.join
 
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
 import im.vector.app.features.analytics.plan.JoinedRoom
 import io.element.android.libraries.core.extensions.mapFailure
 import io.element.android.libraries.di.SessionScope
@@ -18,10 +19,9 @@ import io.element.android.libraries.matrix.api.exception.ErrorKind
 import io.element.android.libraries.matrix.api.room.join.JoinRoom
 import io.element.android.libraries.matrix.impl.analytics.toAnalyticsJoinedRoom
 import io.element.android.services.analytics.api.AnalyticsService
-import javax.inject.Inject
 
 @ContributesBinding(SessionScope::class)
-class DefaultJoinRoom @Inject constructor(
+class DefaultJoinRoom(
     private val client: MatrixClient,
     private val analyticsService: AnalyticsService,
 ) : JoinRoom {

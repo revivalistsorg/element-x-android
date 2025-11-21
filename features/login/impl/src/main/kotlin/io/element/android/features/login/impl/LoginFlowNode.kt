@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -18,13 +19,13 @@ import com.bumble.appyx.core.lifecycle.subscribe
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
 import com.bumble.appyx.core.plugin.Plugin
-import com.bumble.appyx.core.plugin.plugins
 import com.bumble.appyx.navmodel.backstack.BackStack
 import com.bumble.appyx.navmodel.backstack.operation.push
 import com.bumble.appyx.navmodel.backstack.operation.singleTop
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
-import io.element.android.anvilannotations.ContributesNode
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedInject
+import io.element.android.annotations.ContributesNode
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.features.login.api.LoginEntryPoint
 import io.element.android.features.login.impl.accountprovider.AccountProviderDataSource
@@ -40,23 +41,27 @@ import io.element.android.libraries.androidutils.browser.openUrlInChromeCustomTa
 import io.element.android.libraries.architecture.BackstackView
 import io.element.android.libraries.architecture.BaseFlowNode
 import io.element.android.libraries.architecture.NodeInputs
+import io.element.android.libraries.architecture.callback
 import io.element.android.libraries.architecture.createNode
 import io.element.android.libraries.architecture.inputs
-import io.element.android.libraries.di.AppScope
+import io.element.android.libraries.di.annotations.AppCoroutineScope
 import io.element.android.libraries.matrix.api.auth.OidcDetails
 import io.element.android.libraries.oidc.api.OidcAction
 import io.element.android.libraries.oidc.api.OidcActionFlow
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 
 @ContributesNode(AppScope::class)
-class LoginFlowNode @AssistedInject constructor(
+@AssistedInject
+class LoginFlowNode(
     @Assisted buildContext: BuildContext,
     @Assisted plugins: List<Plugin>,
     private val accountProviderDataSource: AccountProviderDataSource,
-    private val defaultLoginUserStory: DefaultLoginUserStory,
     private val oidcActionFlow: OidcActionFlow,
+    @AppCoroutineScope
+    private val appCoroutineScope: CoroutineScope,
 ) : BaseFlowNode<LoginFlowNode.NavTarget>(
     backstack = BackStack(
         initialElement = NavTarget.OnBoarding,
@@ -70,6 +75,7 @@ class LoginFlowNode @AssistedInject constructor(
         val loginHint: String?,
     ) : NodeInputs
 
+    private val callback: LoginEntryPoint.Callback = callback()
     private var activity: Activity? = null
     private var darkTheme: Boolean = false
 
@@ -77,7 +83,6 @@ class LoginFlowNode @AssistedInject constructor(
 
     override fun onBuilt() {
         super.onBuilt()
-        defaultLoginUserStory.setLoginFlowIsDone(false)
         lifecycle.subscribe(
             onResume = {
                 if (externalAppStarted) {
@@ -88,7 +93,7 @@ class LoginFlowNode @AssistedInject constructor(
                     // by pressing back or by closing the Custom Chrome Tab.
                     lifecycleScope.launch {
                         delay(5000)
-                        oidcActionFlow.post(OidcAction.GoBack)
+                        oidcActionFlow.post(OidcAction.GoBack(toUnblock = true))
                     }
                 }
             }
@@ -127,13 +132,13 @@ class LoginFlowNode @AssistedInject constructor(
         return when (navTarget) {
             NavTarget.OnBoarding -> {
                 val callback = object : OnBoardingNode.Callback {
-                    override fun onSignUp() {
+                    override fun navigateToSignUpFlow() {
                         backstack.push(
                             NavTarget.ConfirmAccountProvider(isAccountCreation = true)
                         )
                     }
 
-                    override fun onSignIn(mustChooseAccountProvider: Boolean) {
+                    override fun navigateToSignInFlow(mustChooseAccountProvider: Boolean) {
                         backstack.push(
                             if (mustChooseAccountProvider) {
                                 NavTarget.ChooseAccountProvider
@@ -143,23 +148,23 @@ class LoginFlowNode @AssistedInject constructor(
                         )
                     }
 
-                    override fun onSignInWithQrCode() {
+                    override fun navigateToQrCode() {
                         backstack.push(NavTarget.QrCode)
                     }
 
-                    override fun onReportProblem() {
-                        plugins<LoginEntryPoint.Callback>().forEach { it.onReportProblem() }
+                    override fun navigateToBugReport() {
+                        callback.navigateToBugReport()
                     }
 
-                    override fun onOidcDetails(oidcDetails: OidcDetails) {
+                    override fun navigateToOidc(oidcDetails: OidcDetails) {
                         navigateToMas(oidcDetails)
                     }
 
-                    override fun onCreateAccountContinue(url: String) {
+                    override fun navigateToCreateAccount(url: String) {
                         backstack.push(NavTarget.CreateAccount(url))
                     }
 
-                    override fun onLoginPasswordNeeded() {
+                    override fun navigateToLoginPassword() {
                         backstack.push(NavTarget.LoginPassword)
                     }
                 }
@@ -172,15 +177,15 @@ class LoginFlowNode @AssistedInject constructor(
             }
             NavTarget.ChooseAccountProvider -> {
                 val callback = object : ChooseAccountProviderNode.Callback {
-                    override fun onOidcDetails(oidcDetails: OidcDetails) {
+                    override fun navigateToOidc(oidcDetails: OidcDetails) {
                         navigateToMas(oidcDetails)
                     }
 
-                    override fun onCreateAccountContinue(url: String) {
+                    override fun navigateToCreateAccount(url: String) {
                         backstack.push(NavTarget.CreateAccount(url))
                     }
 
-                    override fun onLoginPasswordNeeded() {
+                    override fun navigateToLoginPassword() {
                         backstack.push(NavTarget.LoginPassword)
                     }
                 }
@@ -194,19 +199,19 @@ class LoginFlowNode @AssistedInject constructor(
                     isAccountCreation = navTarget.isAccountCreation,
                 )
                 val callback = object : ConfirmAccountProviderNode.Callback {
-                    override fun onOidcDetails(oidcDetails: OidcDetails) {
+                    override fun navigateToOidc(oidcDetails: OidcDetails) {
                         navigateToMas(oidcDetails)
                     }
 
-                    override fun onCreateAccountContinue(url: String) {
+                    override fun navigateToCreateAccount(url: String) {
                         backstack.push(NavTarget.CreateAccount(url))
                     }
 
-                    override fun onLoginPasswordNeeded() {
+                    override fun navigateToLoginPassword() {
                         backstack.push(NavTarget.LoginPassword)
                     }
 
-                    override fun onChangeAccountProvider() {
+                    override fun navigateToChangeAccountProvider() {
                         backstack.push(NavTarget.ChangeAccountProvider)
                     }
                 }
@@ -222,7 +227,7 @@ class LoginFlowNode @AssistedInject constructor(
                         backstack.singleTop(confirmAccountProvider)
                     }
 
-                    override fun onOtherClick() {
+                    override fun navigateToSearchAccountProvider() {
                         backstack.push(NavTarget.SearchAccountProvider)
                     }
                 }
@@ -268,7 +273,9 @@ class LoginFlowNode @AssistedInject constructor(
         DisposableEffect(Unit) {
             onDispose {
                 activity = null
-                accountProviderDataSource.reset()
+                appCoroutineScope.launch {
+                    accountProviderDataSource.reset()
+                }
             }
         }
         BackstackView()

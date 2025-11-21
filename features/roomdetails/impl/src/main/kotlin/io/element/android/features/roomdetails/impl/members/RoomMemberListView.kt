@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -293,10 +294,12 @@ private fun RoomMemberListItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val roleText = when (roomMemberWithIdentity.roomMember.role) {
-        RoomMember.Role.ADMIN -> stringResource(R.string.screen_room_member_list_role_administrator)
-        RoomMember.Role.MODERATOR -> stringResource(R.string.screen_room_member_list_role_moderator)
-        RoomMember.Role.USER -> null
+    val member = roomMemberWithIdentity.roomMember
+    val roleText = when (member.role) {
+        RoomMember.Role.Admin -> stringResource(R.string.screen_room_member_list_role_administrator)
+        RoomMember.Role.Moderator -> stringResource(R.string.screen_room_member_list_role_moderator)
+        is RoomMember.Role.Owner -> stringResource(R.string.screen_room_member_list_role_owner)
+        else -> null
     }
 
     MatrixUserRow(

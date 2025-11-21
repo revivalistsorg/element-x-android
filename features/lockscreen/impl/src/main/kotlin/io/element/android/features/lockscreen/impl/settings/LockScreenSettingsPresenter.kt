@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import dev.zacsweers.metro.Inject
 import io.element.android.features.lockscreen.impl.LockScreenConfig
 import io.element.android.features.lockscreen.impl.biometric.BiometricAuthenticator
 import io.element.android.features.lockscreen.impl.biometric.BiometricAuthenticatorManager
@@ -23,9 +25,9 @@ import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.di.annotations.AppCoroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-class LockScreenSettingsPresenter @Inject constructor(
+@Inject
+class LockScreenSettingsPresenter(
     private val lockScreenConfig: LockScreenConfig,
     private val pinCodeManager: PinCodeManager,
     private val lockScreenStore: LockScreenStore,
@@ -49,7 +51,7 @@ class LockScreenSettingsPresenter @Inject constructor(
 
         val biometricUnlock = biometricAuthenticatorManager.rememberConfirmBiometricAuthenticator()
 
-        fun handleEvents(event: LockScreenSettingsEvents) {
+        fun handleEvent(event: LockScreenSettingsEvents) {
             when (event) {
                 LockScreenSettingsEvents.CancelRemovePin -> showRemovePinConfirmation = false
                 LockScreenSettingsEvents.ConfirmRemovePin -> {
@@ -81,7 +83,7 @@ class LockScreenSettingsPresenter @Inject constructor(
             isBiometricEnabled = isBiometricEnabled,
             showRemovePinConfirmation = showRemovePinConfirmation,
             showToggleBiometric = biometricAuthenticatorManager.isDeviceSecured,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 }

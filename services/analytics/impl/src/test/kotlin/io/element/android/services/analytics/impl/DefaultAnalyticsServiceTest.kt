@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -167,7 +168,7 @@ class DefaultAnalyticsServiceTest {
     }
 
     @Test
-    fun `when a session is deleted, the store is reset`() = runTest {
+    fun `when the last session is deleted, the store is reset`() = runTest {
         val resetLambda = lambdaRecorder<Unit> { }
         val store = FakeAnalyticsStore(
             resetLambda = resetLambda,
@@ -176,22 +177,22 @@ class DefaultAnalyticsServiceTest {
             coroutineScope = backgroundScope,
             analyticsStore = store,
         )
-        sut.onSessionDeleted("userId")
+        sut.onSessionDeleted("userId", true)
         resetLambda.assertions().isCalledOnce()
     }
 
     @Test
-    fun `when reset is invoked, the user consent is reset`() = runTest {
+    fun `when a session is deleted, the store is not reset if it was not the last session`() = runTest {
+        val resetLambda = lambdaRecorder<Unit> { }
         val store = FakeAnalyticsStore(
-            defaultDidAskUserConsent = true,
+            resetLambda = resetLambda,
         )
         val sut = createDefaultAnalyticsService(
             coroutineScope = backgroundScope,
             analyticsStore = store,
         )
-        assertThat(store.didAskUserConsentFlow.first()).isTrue()
-        sut.reset()
-        assertThat(store.didAskUserConsentFlow.first()).isFalse()
+        sut.onSessionDeleted("userId", false)
+        resetLambda.assertions().isNeverCalled()
     }
 
     @Test

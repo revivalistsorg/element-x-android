@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -73,6 +74,7 @@ import io.element.android.tests.testutils.ensureCalledOnce
 import io.element.android.tests.testutils.pressBack
 import io.element.android.tests.testutils.setSafeContent
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestRule
@@ -369,6 +371,7 @@ class MessagesViewTest {
                     displayEmojiReactions = true,
                     actions = persistentListOf(TimelineItemAction.Edit),
                     verifiedUserSendFailure = VerifiedUserSendFailure.None,
+                    recentEmojis = persistentListOf(),
                 )
             ),
         )
@@ -461,6 +464,7 @@ class MessagesViewTest {
                     displayEmojiReactions = true,
                     verifiedUserSendFailure = VerifiedUserSendFailure.None,
                     actions = persistentListOf(TimelineItemAction.Edit),
+                    recentEmojis = persistentListOf(),
                 ),
             ),
             customReactionState = aCustomReactionState(
@@ -490,6 +494,7 @@ class MessagesViewTest {
                     displayEmojiReactions = true,
                     verifiedUserSendFailure = aChangedIdentitySendFailure(),
                     actions = persistentListOf(),
+                    recentEmojis = persistentListOf(),
                 ),
             ),
             timelineState = aTimelineState(eventSink = eventsRecorder)
@@ -518,13 +523,13 @@ class MessagesViewTest {
                 target = CustomReactionState.Target.Success(
                     event = timelineItem,
                     emojibaseStore = EmojibaseStore(
-                        categories = mapOf(
-                            EmojibaseCategory.People to listOf(
+                        categories = persistentMapOf(
+                            EmojibaseCategory.People to persistentListOf(
                                 Emoji(
                                     hexcode = "",
                                     label = "",
-                                    tags = emptyList(),
-                                    shortcodes = emptyList(),
+                                    tags = persistentListOf(),
+                                    shortcodes = persistentListOf(),
                                     unicode = aUnicode,
                                     skins = null,
                                 )
@@ -579,7 +584,7 @@ class MessagesViewTest {
         val text = rule.activity.getString(R.string.screen_room_timeline_tombstoned_room_action)
         // The bottomsheet subcompose seems to make the node to appear twice
         rule.onAllNodesWithText(text).onFirst().performClick()
-        eventsRecorder.assertSingle(TimelineEvents.NavigateToRoom(successorRoomId))
+        eventsRecorder.assertSingle(TimelineEvents.NavigateToPredecessorOrSuccessorRoom(successorRoomId))
     }
 
     @Test

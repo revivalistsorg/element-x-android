@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -12,6 +13,7 @@ import io.element.android.libraries.core.coroutine.childScope
 import io.element.android.libraries.core.extensions.mapFailure
 import io.element.android.libraries.core.extensions.runCatchingExceptions
 import io.element.android.libraries.featureflag.api.FeatureFlagService
+import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.matrix.api.core.DeviceId
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomAlias
@@ -49,13 +51,16 @@ import io.element.android.libraries.matrix.impl.widget.generateWidgetWebViewUrl
 import io.element.android.services.toolbox.api.systemclock.SystemClock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import org.matrix.rustcomponents.sdk.DateDividerMode
 import org.matrix.rustcomponents.sdk.IdentityStatusChangeListener
@@ -89,8 +94,6 @@ class JoinedRustRoom(
     // Create a dispatcher for all room methods...
     private val roomDispatcher = coroutineDispatchers.io.limitedParallelism(32)
     private val innerRoom = baseRoom.innerRoom
-
-    override val syncUpdateFlow = MutableStateFlow(0L)
 
     override val roomTypingMembersFlow: Flow<List<UserId>> = mxCallbackFlow {
         val initial = emptyList<UserId>()
@@ -134,11 +137,24 @@ class JoinedRustRoom(
 
     override val roomNotificationSettingsStateFlow = MutableStateFlow<RoomNotificationSettingsState>(RoomNotificationSettingsState.Unknown)
 
-    override val liveTimeline = liveInnerTimeline.map(mode = Timeline.Mode.LIVE) {
-        syncUpdateFlow.value = systemClock.epochMillis()
-    }
+    override val liveTimeline = liveInnerTimeline.map(mode = Timeline.Mode.Live)
+
+    override val syncUpdateFlow = flow {
+        var counter = 0L
+        liveTimeline.onSyncedEventReceived.collect {
+            emit(++counter)
+        }
+    }.stateIn(
+        scope = roomCoroutineScope,
+        started = WhileSubscribed(),
+        initialValue = 0L,
+    )
 
     init {
+        subscribeToRoomMembersChange()
+    }
+
+    private fun subscribeToRoomMembersChange() {
         val powerLevelChanges = roomInfoFlow.map { it.roomPowerLevels }.distinctUntilChanged()
         val membershipChanges = liveTimeline.membershipChangeEventReceived.onStart { emit(Unit) }
         combine(membershipChanges, powerLevelChanges) { _, _ -> }
@@ -155,21 +171,26 @@ class JoinedRustRoom(
     override suspend fun createTimeline(
         createTimelineParams: CreateTimelineParams,
     ): Result<Timeline> = withContext(roomDispatcher) {
+        val hideThreadedEvents = featureFlagService.isFeatureEnabled(FeatureFlags.Threads)
         val focus = when (createTimelineParams) {
             is CreateTimelineParams.PinnedOnly -> TimelineFocus.PinnedEvents(
                 maxEventsToLoad = 100u,
                 maxConcurrentRequests = 10u,
             )
-            is CreateTimelineParams.MediaOnly -> TimelineFocus.Live(hideThreadedEvents = false)
+            is CreateTimelineParams.MediaOnly -> TimelineFocus.Live(hideThreadedEvents = hideThreadedEvents)
             is CreateTimelineParams.Focused -> TimelineFocus.Event(
                 eventId = createTimelineParams.focusedEventId.value,
                 numContextEvents = 50u,
-                hideThreadedEvents = false,
+                hideThreadedEvents = hideThreadedEvents,
             )
             is CreateTimelineParams.MediaOnlyFocused -> TimelineFocus.Event(
                 eventId = createTimelineParams.focusedEventId.value,
                 numContextEvents = 50u,
+                // Never hide threaded events in media focused timeline
                 hideThreadedEvents = false,
+            )
+            is CreateTimelineParams.Threaded -> TimelineFocus.Thread(
+                rootEventId = createTimelineParams.threadRootEventId.value,
             )
         }
 
@@ -184,7 +205,8 @@ class JoinedRustRoom(
                 )
             )
             is CreateTimelineParams.Focused,
-            CreateTimelineParams.PinnedOnly -> TimelineFilter.All
+            CreateTimelineParams.PinnedOnly,
+            is CreateTimelineParams.Threaded -> TimelineFilter.All
         }
 
         val internalIdPrefix = when (createTimelineParams) {
@@ -192,6 +214,7 @@ class JoinedRustRoom(
             is CreateTimelineParams.Focused -> "focus_${createTimelineParams.focusedEventId}"
             is CreateTimelineParams.MediaOnly -> "MediaGallery_"
             is CreateTimelineParams.MediaOnlyFocused -> "MediaGallery_${createTimelineParams.focusedEventId}"
+            is CreateTimelineParams.Threaded -> "Thread_${createTimelineParams.threadRootEventId}"
         }
 
         // Note that for TimelineFilter.MediaOnlyFocused, the date separator will be filtered out,
@@ -200,7 +223,8 @@ class JoinedRustRoom(
             is CreateTimelineParams.MediaOnly,
             is CreateTimelineParams.MediaOnlyFocused -> DateDividerMode.MONTHLY
             is CreateTimelineParams.Focused,
-            CreateTimelineParams.PinnedOnly -> DateDividerMode.DAILY
+            CreateTimelineParams.PinnedOnly,
+            is CreateTimelineParams.Threaded -> DateDividerMode.DAILY
         }
 
         // Track read receipts only for focused timeline for performance optimization
@@ -218,17 +242,19 @@ class JoinedRustRoom(
                 )
             ).let { innerTimeline ->
                 val mode = when (createTimelineParams) {
-                    is CreateTimelineParams.Focused -> Timeline.Mode.FOCUSED_ON_EVENT
-                    is CreateTimelineParams.MediaOnly -> Timeline.Mode.MEDIA
-                    is CreateTimelineParams.MediaOnlyFocused -> Timeline.Mode.FOCUSED_ON_EVENT
-                    CreateTimelineParams.PinnedOnly -> Timeline.Mode.PINNED_EVENTS
+                    is CreateTimelineParams.Focused -> Timeline.Mode.FocusedOnEvent(createTimelineParams.focusedEventId)
+                    is CreateTimelineParams.MediaOnly -> Timeline.Mode.Media
+                    is CreateTimelineParams.MediaOnlyFocused -> Timeline.Mode.FocusedOnEvent(createTimelineParams.focusedEventId)
+                    CreateTimelineParams.PinnedOnly -> Timeline.Mode.PinnedEvents
+                    is CreateTimelineParams.Threaded -> Timeline.Mode.Thread(createTimelineParams.threadRootEventId)
                 }
                 innerTimeline.map(mode = mode)
             }
         }.mapFailure {
             when (createTimelineParams) {
                 is CreateTimelineParams.Focused,
-                is CreateTimelineParams.MediaOnlyFocused -> it.toFocusEventException()
+                is CreateTimelineParams.MediaOnlyFocused,
+                is CreateTimelineParams.Threaded -> it.toFocusEventException()
                 CreateTimelineParams.MediaOnly,
                 CreateTimelineParams.PinnedOnly -> it
             }
@@ -428,12 +454,6 @@ class JoinedRustRoom(
         }
     }
 
-    override suspend fun sendCallNotificationIfNeeded(): Result<Boolean> = withContext(roomDispatcher) {
-        runCatchingExceptions {
-            innerRoom.sendCallNotificationIfNeeded()
-        }
-    }
-
     override suspend fun setSendQueueEnabled(enabled: Boolean) {
         withContext(roomDispatcher) {
             Timber.d("setSendQueuesEnabled: $enabled")
@@ -468,11 +488,11 @@ class JoinedRustRoom(
     override fun destroy() {
         baseRoom.destroy()
         liveInnerTimeline.destroy()
+        Timber.d("Room $roomId destroyed")
     }
 
     private fun InnerTimeline.map(
         mode: Timeline.Mode,
-        onNewSyncedEvent: () -> Unit = {},
     ): Timeline {
         val timelineCoroutineScope = roomCoroutineScope.childScope(coroutineDispatchers.main, "TimelineScope-$roomId-$this")
         return RustTimeline(
@@ -483,8 +503,6 @@ class JoinedRustRoom(
             coroutineScope = timelineCoroutineScope,
             dispatcher = roomDispatcher,
             roomContentForwarder = roomContentForwarder,
-            onNewSyncedEvent = onNewSyncedEvent,
-            featureFlagsService = featureFlagService,
         )
     }
 }

@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -49,9 +50,10 @@ sealed interface NotificationContent {
             val senderId: UserId,
         ) : MessageLike
 
-        data class CallNotify(
+        data class RtcNotification(
             val senderId: UserId,
-            val type: CallNotifyType,
+            val type: RtcNotificationType,
+            val expirationTimestampMillis: Long
         ) : MessageLike
 
         data object CallHangup : MessageLike
@@ -68,7 +70,6 @@ sealed interface NotificationContent {
         ) : MessageLike
 
         data object RoomEncrypted : MessageLike
-        data object UnableToResolve : MessageLike
         data class RoomMessage(
             val senderId: UserId,
             val messageType: MessageType
@@ -119,7 +120,7 @@ sealed interface NotificationContent {
     ) : NotificationContent
 }
 
-enum class CallNotifyType {
+enum class RtcNotificationType {
     RING,
     NOTIFY
 }

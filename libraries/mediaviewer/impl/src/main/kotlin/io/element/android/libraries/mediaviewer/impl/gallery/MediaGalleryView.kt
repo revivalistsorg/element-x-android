@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -44,9 +45,9 @@ import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
+import io.element.android.libraries.designsystem.atomic.molecules.IconTitleSubtitleMolecule
 import io.element.android.libraries.designsystem.background.OnboardingBackground
 import io.element.android.libraries.designsystem.components.BigIcon
-import io.element.android.libraries.designsystem.components.PageTitle
 import io.element.android.libraries.designsystem.components.async.AsyncFailure
 import io.element.android.libraries.designsystem.components.button.BackButton
 import io.element.android.libraries.designsystem.preview.ElementPreview
@@ -165,6 +166,9 @@ fun MediaGalleryView(
                 },
                 onShare = { eventId ->
                     state.eventSink(MediaGalleryEvents.Share(eventId))
+                },
+                onForward = { eventId ->
+                    state.eventSink(MediaGalleryEvents.Forward(eventId))
                 },
                 onDownload = { eventId ->
                     state.eventSink(MediaGalleryEvents.SaveOnDisk(eventId))
@@ -472,14 +476,14 @@ private fun EmptyContent(
         modifier = Modifier.fillMaxSize(),
     ) {
         OnboardingBackground()
-        PageTitle(
+        IconTitleSubtitleMolecule(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 44.dp)
                 .padding(24.dp),
             title = stringResource(titleRes),
             iconStyle = BigIcon.Style.Default(icon),
-            subtitle = stringResource(subtitleRes),
+            subTitle = stringResource(subtitleRes),
         )
     }
 }

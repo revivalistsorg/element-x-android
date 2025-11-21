@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,7 +17,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import io.element.android.features.roommembermoderation.api.ModerationAction
+import dev.zacsweers.metro.Inject
 import io.element.android.features.roommembermoderation.api.RoomMemberModerationEvents
 import io.element.android.features.roommembermoderation.api.RoomMemberModerationState
 import io.element.android.libraries.architecture.AsyncData
@@ -32,28 +33,31 @@ import io.element.android.libraries.matrix.api.room.RoomMembersState
 import io.element.android.libraries.matrix.api.room.RoomMembershipState
 import io.element.android.libraries.matrix.api.room.roomMembers
 import io.element.android.libraries.matrix.api.room.toMatrixUser
+import io.element.android.libraries.matrix.ui.room.PowerLevelRoomMemberComparator
 import io.element.android.libraries.matrix.ui.room.canInviteAsState
 import io.element.android.libraries.matrix.ui.room.roomMemberIdentityStateChange
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
-import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
-class RoomMemberListPresenter @Inject constructor(
+@Inject
+class RoomMemberListPresenter(
     private val room: JoinedRoom,
     private val roomMemberListDataSource: RoomMemberListDataSource,
     private val coroutineDispatchers: CoroutineDispatchers,
     private val roomMembersModerationPresenter: Presenter<RoomMemberModerationState>,
     private val encryptionService: EncryptionService,
 ) : Presenter<RoomMemberListState> {
+    private var roomMembers: AsyncData<RoomMembers> by mutableStateOf(AsyncData.Loading())
+    private val powerLevelRoomMemberComparator = PowerLevelRoomMemberComparator()
+
     @Composable
     override fun present(): RoomMemberListState {
-        var roomMembers: AsyncData<RoomMembers> by remember { mutableStateOf(AsyncData.Loading()) }
         var searchQuery by rememberSaveable { mutableStateOf("") }
         var searchResults by remember {
             mutableStateOf<SearchBarResultState<AsyncData<RoomMembers>>>(SearchBarResultState.Initial())
@@ -65,15 +69,15 @@ class RoomMemberListPresenter @Inject constructor(
         val canInvite by room.canInviteAsState(syncUpdateFlow.value)
         val roomModerationState = roomMembersModerationPresenter.present()
 
-        val roomMemberIdentityStates by produceState(persistentMapOf<UserId, IdentityState>()) {
+        val roomMemberIdentityStates by produceState(persistentMapOf()) {
             room.roomMemberIdentityStateChange(waitForEncryption = true)
                 .onEach { identities ->
-                    value = identities.associateBy({ it.identityRoomMember.userId }, { it.identityState }).toPersistentMap()
+                    value = identities.associateBy({ it.identityRoomMember.userId }, { it.identityState }).toImmutableMap()
                 }
                 .launchIn(this)
         }
 
-        // Ensure we load the latest data when entering this screen
+        // Update the room members when the screen is loaded
         LaunchedEffect(Unit) {
             room.updateMembers()
         }
@@ -101,7 +105,7 @@ class RoomMemberListPresenter @Inject constructor(
                         .map { it.withIdentityState(roomMemberIdentityStates) }
                         .toImmutableList(),
                     joined = members.getOrDefault(RoomMembershipState.JOIN, emptyList())
-                        .sortedWith(PowerLevelRoomMemberComparator())
+                        .sortedWith(powerLevelRoomMemberComparator)
                         .map { it.withIdentityState(roomMemberIdentityStates) }
                         .toImmutableList(),
                     banned = members.getOrDefault(RoomMembershipState.BAN, emptyList())
@@ -131,7 +135,7 @@ class RoomMemberListPresenter @Inject constructor(
                                 .map { it.withIdentityState(roomMemberIdentityStates) }
                                 .toImmutableList(),
                             joined = results.getOrDefault(RoomMembershipState.JOIN, emptyList())
-                                .sortedWith(PowerLevelRoomMemberComparator())
+                                .sortedWith(powerLevelRoomMemberComparator)
                                 .map { it.withIdentityState(roomMemberIdentityStates) }
                                 .toImmutableList(),
                             banned = results.getOrDefault(RoomMembershipState.BAN, emptyList())
@@ -151,16 +155,12 @@ class RoomMemberListPresenter @Inject constructor(
             }
         }
 
-        fun handleEvents(event: RoomMemberListEvents) {
+        fun handleEvent(event: RoomMemberListEvents) {
             when (event) {
                 is RoomMemberListEvents.OnSearchActiveChanged -> isSearchActive = event.active
                 is RoomMemberListEvents.UpdateSearchQuery -> searchQuery = event.query
                 is RoomMemberListEvents.RoomMemberSelected ->
-                    if (event.roomMember.membership == RoomMembershipState.BAN) {
-                        roomModerationState.eventSink(RoomMemberModerationEvents.ProcessAction(ModerationAction.UnbanUser, event.roomMember.toMatrixUser()))
-                    } else {
-                        roomModerationState.eventSink(RoomMemberModerationEvents.ShowActionsForUser(event.roomMember.toMatrixUser()))
-                    }
+                    roomModerationState.eventSink(RoomMemberModerationEvents.ShowActionsForUser(event.roomMember.toMatrixUser()))
             }
         }
 
@@ -171,7 +171,7 @@ class RoomMemberListPresenter @Inject constructor(
             isSearchActive = isSearchActive,
             canInvite = canInvite,
             moderationState = roomModerationState,
-            eventSink = { handleEvents(it) },
+            eventSink = ::handleEvent,
         )
     }
 

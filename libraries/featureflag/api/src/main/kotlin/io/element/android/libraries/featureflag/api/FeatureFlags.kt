@@ -1,13 +1,13 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.featureflag.api
 
-import io.element.android.appconfig.OnBoardingConfig
 import io.element.android.libraries.core.meta.BuildMeta
 import io.element.android.libraries.core.meta.BuildType
 
@@ -20,6 +20,7 @@ enum class FeatureFlags(
     override val description: String? = null,
     override val defaultValue: (BuildMeta) -> Boolean,
     override val isFinished: Boolean,
+    override val isInLabs: Boolean = false,
 ) : Feature {
     LocationSharing(
         key = "feature.locationsharing",
@@ -75,27 +76,6 @@ enum class FeatureFlags(
         defaultValue = { false },
         isFinished = false,
     ),
-    QrCodeLogin(
-        key = "feature.qrCodeLogin",
-        title = "Enable login using QR code",
-        description = "Allow the user to login using the QR code flow",
-        defaultValue = { OnBoardingConfig.CAN_LOGIN_WITH_QR_CODE },
-        isFinished = false,
-    ),
-    IncomingShare(
-        key = "feature.incomingShare",
-        title = "Incoming Share support",
-        description = "Allow the application to receive data from other applications",
-        defaultValue = { true },
-        isFinished = false,
-    ),
-    PinnedEvents(
-        key = "feature.pinnedEvents",
-        title = "Pinned Events",
-        description = "Allow user to pin events in a room",
-        defaultValue = { true },
-        isFinished = false,
-    ),
     SyncOnPush(
         key = "feature.syncOnPush",
         title = "Sync on push",
@@ -133,35 +113,6 @@ enum class FeatureFlags(
     Space(
         key = "feature.space",
         title = "Spaces",
-        description = "Spaces are under active development, only developers should enable this flog for now.",
-        defaultValue = { false },
-        isFinished = false,
-    ),
-    MediaUploadOnSendQueue(
-        key = "feature.media_upload_through_send_queue",
-        title = "Media upload through send queue",
-        description = "Experimental support for treating media uploads as regular events, with an improved retry and cancellation implementation.",
-        defaultValue = { buildMeta -> buildMeta.buildType != BuildType.RELEASE },
-        isFinished = false,
-    ),
-    MediaCaptionCreation(
-        key = "feature.media_caption_creation",
-        title = "Allow creation of media captions",
-        description = null,
-        defaultValue = { true },
-        isFinished = false,
-    ),
-    MediaCaptionWarning(
-        key = "feature.media_caption_creation_warning",
-        title = "Show a compatibility warning on media captions creation",
-        description = null,
-        defaultValue = { true },
-        isFinished = false,
-    ),
-    MediaGallery(
-        key = "feature.media_gallery",
-        title = "Allow user to open the media gallery",
-        description = null,
         defaultValue = { true },
         isFinished = false,
     ),
@@ -173,6 +124,38 @@ enum class FeatureFlags(
             "It's not intended for daily usage in release builds.",
         defaultValue = { buildMeta -> buildMeta.buildType != BuildType.RELEASE },
         // False so it's displayed in the developer options screen
+        isFinished = false,
+    ),
+    SelectableMediaQuality(
+        key = "feature.selectable_media_quality",
+        title = "Select media quality per upload",
+        description = "You can select the media quality for each attachment you upload.",
+        defaultValue = { false },
+        // False so it's displayed in the developer options screen
+        isFinished = false,
+    ),
+    Threads(
+        key = "feature.thread_timeline",
+        title = "Threads",
+        description = "Renders thread messages as a dedicated timeline. Restarting the app is required for this setting to fully take effect.",
+        defaultValue = { false },
+        isFinished = false,
+        isInLabs = true,
+    ),
+    MultiAccount(
+        key = "feature.multi_account",
+        title = "Multi accounts",
+        description = "Allow the application to connect to multiple accounts at the same time." +
+            "\n\nWARNING: this feature is EXPERIMENTAL and UNSTABLE.",
+        defaultValue = { false },
+        isFinished = false,
+    ),
+    SyncNotificationsWithWorkManager(
+        key = "feature.sync_notifications_with_workmanager",
+        title = "Sync notifications with WorkManager",
+        description = "Use WorkManager to schedule notification sync tasks when a push is received." +
+            " This should improve reliability and battery usage.",
+        defaultValue = { true },
         isFinished = false,
     ),
 }

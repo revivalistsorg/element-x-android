@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -15,8 +16,9 @@ import io.element.android.tests.testutils.simulateLongTask
 import org.matrix.rustcomponents.sdk.Client
 import org.matrix.rustcomponents.sdk.ClientDelegate
 import org.matrix.rustcomponents.sdk.Encryption
+import org.matrix.rustcomponents.sdk.HomeserverLoginDetails
 import org.matrix.rustcomponents.sdk.IgnoredUsersListener
-import org.matrix.rustcomponents.sdk.NoPointer
+import org.matrix.rustcomponents.sdk.NoHandle
 import org.matrix.rustcomponents.sdk.NotificationClient
 import org.matrix.rustcomponents.sdk.NotificationProcessSetup
 import org.matrix.rustcomponents.sdk.NotificationSettings
@@ -25,6 +27,7 @@ import org.matrix.rustcomponents.sdk.PusherKind
 import org.matrix.rustcomponents.sdk.RoomDirectorySearch
 import org.matrix.rustcomponents.sdk.Session
 import org.matrix.rustcomponents.sdk.SessionVerificationController
+import org.matrix.rustcomponents.sdk.SpaceService
 import org.matrix.rustcomponents.sdk.SyncService
 import org.matrix.rustcomponents.sdk.SyncServiceBuilder
 import org.matrix.rustcomponents.sdk.TaskHandle
@@ -40,8 +43,10 @@ class FakeFfiClient(
     private val session: Session = aRustSession(),
     private val clearCachesResult: () -> Unit = { lambdaError() },
     private val withUtdHook: (UnableToDecryptDelegate) -> Unit = { lambdaError() },
+    private val getProfileResult: (String) -> UserProfile = { UserProfile(userId = userId, displayName = null, avatarUrl = null) },
+    private val homeserverLoginDetailsResult: () -> HomeserverLoginDetails = { lambdaError() },
     private val closeResult: () -> Unit = {},
-) : Client(NoPointer) {
+) : Client(NoHandle) {
     override fun userId(): String = userId
     override fun deviceId(): String = deviceId
     override suspend fun notificationClient(processSetup: NotificationProcessSetup) = notificationClient
@@ -52,6 +57,7 @@ class FakeFfiClient(
     override suspend fun cachedAvatarUrl(): String? = null
     override suspend fun restoreSession(session: Session) = Unit
     override fun syncService(): SyncServiceBuilder = FakeFfiSyncServiceBuilder()
+    override fun spaceService(): SpaceService = FakeFfiSpaceService()
     override fun roomDirectorySearch(): RoomDirectorySearch = FakeFfiRoomDirectorySearch()
     override suspend fun setPusher(
         identifiers: PusherIdentifiers,
@@ -69,12 +75,18 @@ class FakeFfiClient(
     override suspend fun ignoredUsers(): List<String> {
         return emptyList()
     }
+
     override fun subscribeToIgnoredUsers(listener: IgnoredUsersListener): TaskHandle {
         return FakeFfiTaskHandle()
     }
 
     override suspend fun getProfile(userId: String): UserProfile {
-        return UserProfile(userId = userId, displayName = null, avatarUrl = null)
+        return getProfileResult(userId)
     }
+
+    override suspend fun homeserverLoginDetails(): HomeserverLoginDetails {
+        return homeserverLoginDetailsResult()
+    }
+
     override fun close() = closeResult()
 }

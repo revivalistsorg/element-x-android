@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,7 +15,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.features.rageshake.api.detection.RageshakeDetectionEvents
 import io.element.android.features.rageshake.api.detection.RageshakeDetectionPresenter
 import io.element.android.features.rageshake.api.detection.RageshakeDetectionState
@@ -23,14 +25,12 @@ import io.element.android.features.rageshake.api.preferences.RageshakePreference
 import io.element.android.features.rageshake.api.screenshot.ImageResult
 import io.element.android.features.rageshake.impl.rageshake.RageShake
 import io.element.android.features.rageshake.impl.screenshot.ScreenshotHolder
-import io.element.android.libraries.di.AppScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
 @ContributesBinding(AppScope::class)
-class DefaultRageshakeDetectionPresenter @Inject constructor(
+class DefaultRageshakeDetectionPresenter(
     private val screenshotHolder: ScreenshotHolder,
     private val rageShake: RageShake,
     private val preferencesPresenter: RageshakePreferencesPresenter,
@@ -49,7 +49,7 @@ class DefaultRageshakeDetectionPresenter @Inject constructor(
             mutableStateOf(false)
         }
 
-        fun handleEvents(event: RageshakeDetectionEvents) {
+        fun handleEvent(event: RageshakeDetectionEvents) {
             when (event) {
                 RageshakeDetectionEvents.Disable -> {
                     preferencesState.eventSink(RageshakePreferencesEvents.SetIsEnabled(false))
@@ -68,7 +68,7 @@ class DefaultRageshakeDetectionPresenter @Inject constructor(
                 takeScreenshot = takeScreenshot.value,
                 showDialog = showDialog.value,
                 preferenceState = preferencesState,
-                eventSink = ::handleEvents
+                eventSink = ::handleEvent,
             )
         }
 

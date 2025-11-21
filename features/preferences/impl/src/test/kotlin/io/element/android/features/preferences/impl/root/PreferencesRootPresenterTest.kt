@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,22 +17,31 @@ import io.element.android.features.preferences.impl.utils.ShowDeveloperSettingsP
 import io.element.android.features.rageshake.api.RageshakeFeatureAvailability
 import io.element.android.libraries.core.meta.BuildType
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
+import io.element.android.libraries.featureflag.api.FeatureFlagService
+import io.element.android.libraries.featureflag.api.FeatureFlags
+import io.element.android.libraries.featureflag.test.FakeFeature
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.indicator.api.IndicatorService
 import io.element.android.libraries.indicator.test.FakeIndicatorService
 import io.element.android.libraries.matrix.api.oidc.AccountManagementAction
 import io.element.android.libraries.matrix.api.user.MatrixUser
 import io.element.android.libraries.matrix.test.AN_AVATAR_URL
+import io.element.android.libraries.matrix.test.A_SESSION_ID
+import io.element.android.libraries.matrix.test.A_SESSION_ID_2
 import io.element.android.libraries.matrix.test.A_USER_NAME
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.core.aBuildMeta
 import io.element.android.libraries.matrix.test.verification.FakeSessionVerificationService
+import io.element.android.libraries.sessionstorage.api.SessionStore
+import io.element.android.libraries.sessionstorage.test.InMemorySessionStore
+import io.element.android.libraries.sessionstorage.test.aSessionData
 import io.element.android.services.analytics.test.FakeAnalyticsService
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
 import io.element.android.tests.testutils.test
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -61,6 +71,8 @@ class PreferencesRootPresenterTest {
                 )
             )
             assertThat(initialState.version).isEqualTo("A Version")
+            assertThat(initialState.isMultiAccountEnabled).isFalse()
+            assertThat(initialState.otherSessions).isEmpty()
             val loadedState = awaitItem()
             assertThat(loadedState.myUser).isEqualTo(
                 MatrixUser(
@@ -76,8 +88,6 @@ class PreferencesRootPresenterTest {
             assertThat(loadedState.devicesManagementUrl).isNull()
             assertThat(loadedState.showAnalyticsSettings).isFalse()
             assertThat(loadedState.showDeveloperSettings).isTrue()
-            assertThat(loadedState.showLockScreenSettings).isTrue()
-            assertThat(loadedState.showNotificationSettings).isTrue()
             assertThat(loadedState.canDeactivateAccount).isTrue()
             assertThat(loadedState.canReportBug).isTrue()
             assertThat(loadedState.directLogoutState).isEqualTo(aDirectLogoutState())
@@ -102,7 +112,7 @@ class PreferencesRootPresenterTest {
         )
         createPresenter(
             matrixClient = matrixClient,
-            rageshakeFeatureAvailability = { false },
+            rageshakeFeatureAvailability = { flowOf(false) },
         ).test {
             val initialState = awaitItem()
             assertThat(initialState.canReportBug).isFalse()
@@ -119,7 +129,7 @@ class PreferencesRootPresenterTest {
         val indicatorService = FakeIndicatorService()
         createPresenter(
             matrixClient = matrixClient,
-            rageshakeFeatureAvailability = { false },
+            rageshakeFeatureAvailability = { flowOf(false) },
             indicatorService = indicatorService,
         ).test {
             skipItems(1)
@@ -176,6 +186,78 @@ class PreferencesRootPresenterTest {
         }
     }
 
+    @Test
+    fun `present - labs can be shown if any feature flag is in labs and not finished`() = runTest {
+        createPresenter(
+            featureFlagService = FakeFeatureFlagService(
+                getAvailableFeaturesResult = { _, _ ->
+                    listOf(
+                        FakeFeature(
+                            key = "feature_1",
+                            title = "Feature 1",
+                            isInLabs = true,
+                            isFinished = false,
+                        )
+                    )
+                }
+            ),
+            matrixClient = FakeMatrixClient(
+                canDeactivateAccountResult = { true },
+                accountManagementUrlResult = { Result.success(null) },
+            ),
+        ).test {
+            assertThat(awaitItem().showLabsItem).isTrue()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - labs can't be shown if all feature flags in labs are finished`() = runTest {
+        createPresenter(
+            featureFlagService = FakeFeatureFlagService(
+                getAvailableFeaturesResult = { _, _ ->
+                    emptyList()
+                }
+            ),
+            matrixClient = FakeMatrixClient(
+                canDeactivateAccountResult = { true },
+                accountManagementUrlResult = { Result.success(null) },
+            ),
+        ).test {
+            skipItems(1)
+            assertThat(awaitItem().showLabsItem).isFalse()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - multiple accounts`() = runTest {
+        createPresenter(
+            matrixClient = FakeMatrixClient(
+                sessionId = A_SESSION_ID,
+                canDeactivateAccountResult = { true },
+            ),
+            featureFlagService = FakeFeatureFlagService(
+                initialState = mapOf(FeatureFlags.MultiAccount.key to true)
+            ),
+            sessionStore = InMemorySessionStore(
+                initialList = listOf(
+                    aSessionData(sessionId = A_SESSION_ID.value),
+                    aSessionData(
+                        sessionId = A_SESSION_ID_2.value,
+                        userDisplayName = "Bob",
+                        userAvatarUrl = "avatarUrl",
+                    ),
+                )
+            )
+        ).test {
+            val state = awaitFirstItem()
+            assertThat(state.isMultiAccountEnabled).isTrue()
+            assertThat(state.otherSessions).hasSize(1)
+            assertThat(state.otherSessions[0]).isEqualTo(MatrixUser(userId = A_SESSION_ID_2, displayName = "Bob", avatarUrl = "avatarUrl"))
+        }
+    }
+
     private suspend fun <T> ReceiveTurbine<T>.awaitFirstItem(): T {
         skipItems(1)
         return awaitItem()
@@ -185,18 +267,21 @@ class PreferencesRootPresenterTest {
         matrixClient: FakeMatrixClient = FakeMatrixClient(),
         sessionVerificationService: FakeSessionVerificationService = FakeSessionVerificationService(),
         showDeveloperSettingsProvider: ShowDeveloperSettingsProvider = ShowDeveloperSettingsProvider(aBuildMeta(BuildType.DEBUG)),
-        rageshakeFeatureAvailability: RageshakeFeatureAvailability = RageshakeFeatureAvailability { true },
+        rageshakeFeatureAvailability: RageshakeFeatureAvailability = RageshakeFeatureAvailability { flowOf(true) },
         indicatorService: IndicatorService = FakeIndicatorService(),
+        featureFlagService: FeatureFlagService = FakeFeatureFlagService(),
+        sessionStore: SessionStore = InMemorySessionStore(),
     ) = PreferencesRootPresenter(
         matrixClient = matrixClient,
         sessionVerificationService = sessionVerificationService,
         analyticsService = FakeAnalyticsService(),
         versionFormatter = FakeVersionFormatter(),
         snackbarDispatcher = SnackbarDispatcher(),
-        featureFlagService = FakeFeatureFlagService(),
         indicatorService = indicatorService,
         directLogoutPresenter = { aDirectLogoutState() },
         showDeveloperSettingsProvider = showDeveloperSettingsProvider,
         rageshakeFeatureAvailability = rageshakeFeatureAvailability,
+        featureFlagService = featureFlagService,
+        sessionStore = sessionStore,
     )
 }

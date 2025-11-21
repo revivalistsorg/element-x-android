@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,9 +18,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.features.roomdetails.impl.securityandprivacy.editroomaddress.matchesServer
 import io.element.android.features.roomdetails.impl.securityandprivacy.permissions.securityAndPrivacyPermissionsAsState
 import io.element.android.libraries.architecture.AsyncAction
@@ -27,6 +28,8 @@ import io.element.android.libraries.architecture.AsyncData
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.architecture.runUpdatingState
+import io.element.android.libraries.featureflag.api.FeatureFlagService
+import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomAlias
 import io.element.android.libraries.matrix.api.room.JoinedRoom
@@ -40,10 +43,12 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class SecurityAndPrivacyPresenter @AssistedInject constructor(
+@AssistedInject
+class SecurityAndPrivacyPresenter(
     @Assisted private val navigator: SecurityAndPrivacyNavigator,
     private val matrixClient: MatrixClient,
     private val room: JoinedRoom,
+    private val featureFlagService: FeatureFlagService,
 ) : Presenter<SecurityAndPrivacyState> {
     @AssistedFactory
     interface Factory {
@@ -54,6 +59,9 @@ class SecurityAndPrivacyPresenter @AssistedInject constructor(
     override fun present(): SecurityAndPrivacyState {
         val coroutineScope = rememberCoroutineScope()
 
+        val isKnockEnabled by remember {
+            featureFlagService.isFeatureEnabledFlow(FeatureFlags.Knock)
+        }.collectAsState(false)
         val saveAction = remember { mutableStateOf<AsyncAction<Unit>>(AsyncAction.Uninitialized) }
         val homeserverName = remember { matrixClient.userIdServerName() }
         val syncUpdateFlow = room.syncUpdateFlow.collectAsState()
@@ -100,7 +108,7 @@ class SecurityAndPrivacyPresenter @AssistedInject constructor(
         var showEnableEncryptionConfirmation by remember(savedSettings.isEncrypted) { mutableStateOf(false) }
         val permissions by room.securityAndPrivacyPermissionsAsState(syncUpdateFlow.value)
 
-        fun handleEvents(event: SecurityAndPrivacyEvents) {
+        fun handleEvent(event: SecurityAndPrivacyEvents) {
             when (event) {
                 SecurityAndPrivacyEvents.Save -> {
                     coroutineScope.save(
@@ -148,9 +156,10 @@ class SecurityAndPrivacyPresenter @AssistedInject constructor(
             editedSettings = editedSettings,
             homeserverName = homeserverName,
             showEnableEncryptionConfirmation = showEnableEncryptionConfirmation,
+            isKnockEnabled = isKnockEnabled,
             saveAction = saveAction.value,
             permissions = permissions,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
 
         // If the history visibility is not available for the current access, use the fallback.

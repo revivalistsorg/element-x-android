@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,7 +18,9 @@ import io.element.android.libraries.matrix.api.room.powerlevels.RoomPowerLevelsV
 import io.element.android.libraries.matrix.api.room.tombstone.PredecessorRoom
 import io.element.android.libraries.matrix.api.roomdirectory.RoomVisibility
 import io.element.android.libraries.matrix.api.timeline.ReceiptType
+import io.element.android.libraries.matrix.api.timeline.Timeline
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import java.io.Closeable
 
@@ -179,6 +182,10 @@ interface BaseRoom : Closeable {
 
     /**
      * Mark the room as read by trying to attach an unthreaded read receipt to the latest room event.
+     *
+     * Note this will instantiate a new timeline, which is an expensive operation.
+     * Prefer using [Timeline.markAsRead] instead when possible.
+     *
      * @param receiptType The type of receipt to send.
      */
     suspend fun markAsRead(receiptType: ReceiptType): Result<Unit>
@@ -238,6 +245,12 @@ interface BaseRoom : Closeable {
      * @param reason - The reason the room is being reported.
      */
     suspend fun reportRoom(reason: String?): Result<Unit>
+
+    suspend fun declineCall(notificationEventId: EventId): Result<Unit>
+
+    suspend fun subscribeToCallDecline(notificationEventId: EventId): Flow<UserId>
+
+    suspend fun threadRootIdForEvent(eventId: EventId): Result<ThreadId?>
 
     /**
      * Destroy the room and release all resources associated to it.

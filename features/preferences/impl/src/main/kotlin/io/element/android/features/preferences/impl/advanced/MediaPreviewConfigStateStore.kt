@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,13 +10,13 @@ package io.element.android.features.preferences.impl.advanced
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.runUpdatingState
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.di.SessionScope
-import io.element.android.libraries.di.SingleIn
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.matrix.api.media.MediaPreviewService
 import io.element.android.libraries.matrix.api.media.MediaPreviewValue
@@ -27,7 +28,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
 data class MediaPreviewConfigState(
     val hideInviteAvatars: Boolean,
@@ -45,7 +45,7 @@ interface MediaPreviewConfigStateStore {
 
 @ContributesBinding(SessionScope::class)
 @SingleIn(SessionScope::class)
-class DefaultMediaPreviewConfigStateStore @Inject constructor(
+class DefaultMediaPreviewConfigStateStore(
     @SessionCoroutineScope
     private val sessionCoroutineScope: CoroutineScope,
     private val mediaPreviewService: MediaPreviewService,

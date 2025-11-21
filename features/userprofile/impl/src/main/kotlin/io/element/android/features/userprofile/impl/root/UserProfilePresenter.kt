@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -17,11 +18,11 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
-import io.element.android.features.createroom.api.StartDMAction
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.features.enterprise.api.SessionEnterpriseService
+import io.element.android.features.startchat.api.StartDMAction
 import io.element.android.features.userprofile.api.UserProfileEvents
 import io.element.android.features.userprofile.api.UserProfileState
 import io.element.android.features.userprofile.api.UserProfileState.ConfirmationDialog
@@ -41,7 +42,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-class UserProfilePresenter @AssistedInject constructor(
+@AssistedInject
+class UserProfilePresenter(
     @Assisted private val userId: UserId,
     private val client: MatrixClient,
     private val startDMAction: StartDMAction,
@@ -98,7 +100,7 @@ class UserProfilePresenter @AssistedInject constructor(
         }
         val userProfile by produceState<MatrixUser?>(null) { value = client.getProfile(userId).getOrNull() }
 
-        fun handleEvents(event: UserProfileEvents) {
+        fun handleEvent(event: UserProfileEvents) {
             when (event) {
                 is UserProfileEvents.BlockUser -> {
                     if (event.needsConfirmation) {
@@ -150,7 +152,7 @@ class UserProfilePresenter @AssistedInject constructor(
             dmRoomId = dmRoomId,
             canCall = canCall,
             snackbarMessage = null,
-            eventSink = ::handleEvents
+            eventSink = ::handleEvent,
         )
     }
 

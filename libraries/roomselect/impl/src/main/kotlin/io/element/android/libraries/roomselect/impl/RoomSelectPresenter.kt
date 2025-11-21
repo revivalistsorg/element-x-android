@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,9 +17,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.designsystem.theme.components.SearchBarResultState
 import io.element.android.libraries.matrix.ui.model.SelectRoomInfo
@@ -27,12 +28,13 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 
-class RoomSelectPresenter @AssistedInject constructor(
+@AssistedInject
+class RoomSelectPresenter(
     @Assisted private val mode: RoomSelectMode,
     private val dataSource: RoomSelectSearchDataSource,
 ) : Presenter<RoomSelectState> {
     @AssistedFactory
-    interface Factory {
+    fun interface Factory {
         fun create(mode: RoomSelectMode): RoomSelectPresenter
     }
 
@@ -62,7 +64,7 @@ class RoomSelectPresenter @AssistedInject constructor(
             }
         }
 
-        fun handleEvents(event: RoomSelectEvents) {
+        fun handleEvent(event: RoomSelectEvents) {
             when (event) {
                 is RoomSelectEvents.SetSelectedRoom -> {
                     selectedRooms = persistentListOf(event.room)
@@ -86,7 +88,7 @@ class RoomSelectPresenter @AssistedInject constructor(
             query = searchQuery,
             isSearchActive = isSearchActive,
             selectedRooms = selectedRooms,
-            eventSink = { handleEvents(it) }
+            eventSink = ::handleEvent,
         )
     }
 }

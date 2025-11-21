@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -10,7 +11,7 @@ package io.element.android.libraries.matrix.impl
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.matrix.impl.fixtures.factories.aRustSession
 import io.element.android.libraries.sessionstorage.api.SessionStore
-import io.element.android.libraries.sessionstorage.impl.memory.InMemorySessionStore
+import io.element.android.libraries.sessionstorage.test.InMemorySessionStore
 import io.element.android.libraries.sessionstorage.test.aSessionData
 import io.element.android.tests.testutils.testCoroutineDispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,11 +24,12 @@ import org.junit.Test
 class RustClientSessionDelegateTest {
     @Test
     fun `saveSessionInKeychain should update the store`() = runTest {
-        val sessionStore = InMemorySessionStore()
-        sessionStore.storeData(
-            aSessionData(
-                accessToken = "anAccessToken",
-                refreshToken = "aRefreshToken",
+        val sessionStore = InMemorySessionStore(
+            initialList = listOf(
+                aSessionData(
+                    accessToken = "anAccessToken",
+                    refreshToken = "aRefreshToken",
+                )
             )
         )
         val sut = aRustClientSessionDelegate(sessionStore)

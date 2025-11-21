@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -34,14 +35,13 @@ fun RoomPreviewOrganism(
         title()
         Spacer(modifier = Modifier.height(8.dp))
         subtitle()
-        Spacer(modifier = Modifier.height(8.dp))
         if (memberCount != null) {
+            Spacer(modifier = Modifier.height(8.dp))
             memberCount()
         }
-        Spacer(modifier = Modifier.height(8.dp))
         if (description != null) {
+            Spacer(modifier = Modifier.height(16.dp))
             description()
         }
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }

@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -53,11 +54,13 @@ object BigIcon {
          * @param vectorIcon the [ImageVector] to display
          * @param contentDescription the content description of the icon, if any. It defaults to `null`
          * @param useCriticalTint whether the icon and background should be rendered using critical tint
+         * @param usePrimaryTint whether the icon should be rendered using primary tint
          */
         data class Default(
             val vectorIcon: ImageVector,
             val contentDescription: String? = null,
             val useCriticalTint: Boolean = false,
+            val usePrimaryTint: Boolean = false,
         ) : Style
 
         /**
@@ -143,6 +146,8 @@ object BigIcon {
                 val iconTint = when (style) {
                     is Style.Default -> if (style.useCriticalTint) {
                         ElementTheme.colors.iconCriticalPrimary
+                    } else if (style.usePrimaryTint) {
+                        ElementTheme.colors.iconPrimary
                     } else {
                         ElementTheme.colors.iconSecondary
                     }

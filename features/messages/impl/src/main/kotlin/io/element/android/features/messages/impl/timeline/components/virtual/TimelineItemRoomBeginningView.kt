@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -26,7 +27,6 @@ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.text.toAnnotatedString
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.utils.allBooleans
-import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.room.tombstone.PredecessorRoom
 
@@ -46,7 +46,6 @@ fun TimelineItemRoomBeginningView(
                 avatar = null,
                 content = stringResource(R.string.screen_room_timeline_upgraded_room_message).toAnnotatedString(),
                 onSubmitClick = { onPredecessorRoomClick(predecessorRoom.roomId) },
-                isCritical = false,
                 submitText = stringResource(R.string.screen_room_timeline_upgraded_room_action)
             )
         }
@@ -92,7 +91,7 @@ internal fun TimelineItemRoomBeginningViewPreview() = ElementPreview {
                 onPredecessorRoomClick = {},
             )
             TimelineItemRoomBeginningView(
-                predecessorRoom = PredecessorRoom(RoomId("!roomId:matrix.org"), EventId("\$eventId:matrix.org")),
+                predecessorRoom = PredecessorRoom(RoomId("!roomId:matrix.org")),
                 roomName = "Room Name",
                 isDm = isDm,
                 onPredecessorRoomClick = {},

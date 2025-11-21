@@ -1,12 +1,14 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.features.home.impl.datasource
 
+import dev.zacsweers.metro.Inject
 import io.element.android.features.home.impl.model.RoomListRoomSummary
 import io.element.android.features.home.impl.model.RoomSummaryDisplayType
 import io.element.android.libraries.core.extensions.orEmpty
@@ -20,9 +22,9 @@ import io.element.android.libraries.matrix.api.roomlist.RoomSummary
 import io.element.android.libraries.matrix.ui.model.getAvatarData
 import io.element.android.libraries.matrix.ui.model.toInviteSender
 import kotlinx.collections.immutable.toImmutableList
-import javax.inject.Inject
 
-class RoomListRoomSummaryFactory @Inject constructor(
+@Inject
+class RoomListRoomSummaryFactory(
     private val dateFormatter: DateFormatter,
     private val roomLastMessageFormatter: RoomLastMessageFormatter,
 ) {
@@ -68,6 +70,7 @@ class RoomListRoomSummaryFactory @Inject constructor(
                 user.getAvatarData(size = AvatarSize.RoomListItem)
             }.toImmutableList(),
             isTombstoned = roomInfo.successorRoom != null,
+            isSpace = roomInfo.isSpace,
         )
     }
 }

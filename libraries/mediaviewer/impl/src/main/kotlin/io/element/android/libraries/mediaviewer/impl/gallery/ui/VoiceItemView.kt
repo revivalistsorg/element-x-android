@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.libraries.designsystem.components.media.WaveformPlaybackView
+import io.element.android.libraries.designsystem.modifiers.onKeyboardContextMenuAction
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.CircularProgressIndicator
@@ -53,7 +55,7 @@ import io.element.android.libraries.voiceplayer.api.VoiceMessageEvents
 import io.element.android.libraries.voiceplayer.api.VoiceMessageState
 import io.element.android.libraries.voiceplayer.api.VoiceMessageStateProvider
 import io.element.android.libraries.voiceplayer.api.aVoiceMessageState
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.delay
 
 @Composable
@@ -116,6 +118,7 @@ private fun VoiceInfoRow(
                 onLongClick = onLongClick,
                 onLongClickLabel = stringResource(CommonStrings.action_open_context_menu),
             )
+            .onKeyboardContextMenuAction(onLongClick)
             .fillMaxWidth()
             .padding(start = 12.dp, end = 36.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -142,7 +145,7 @@ private fun VoiceInfoRow(
                 .height(34.dp),
             showCursor = state.showCursor,
             playbackProgress = state.progress,
-            waveform = voice.mediaInfo.waveform.orEmpty().toPersistentList(),
+            waveform = voice.mediaInfo.waveform.orEmpty().toImmutableList(),
             onSeek = {
                 state.eventSink(VoiceMessageEvents.Seek(it))
             },

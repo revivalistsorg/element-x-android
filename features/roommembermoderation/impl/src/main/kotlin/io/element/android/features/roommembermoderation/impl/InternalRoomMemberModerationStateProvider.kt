@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,7 +15,7 @@ import io.element.android.features.roommembermoderation.api.RoomMemberModeration
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.user.MatrixUser
-import kotlinx.collections.immutable.toPersistentList
+import kotlinx.collections.immutable.toImmutableList
 
 class InternalRoomMemberModerationStateProvider : PreviewParameterProvider<InternalRoomMemberModerationState> {
     override val values: Sequence<InternalRoomMemberModerationState>
@@ -64,6 +65,14 @@ class InternalRoomMemberModerationStateProvider : PreviewParameterProvider<Inter
                 selectedUser = anAlice(),
                 banUserAsyncAction = AsyncAction.Loading,
             ),
+            aRoomMembersModerationState(
+                selectedUser = anAlice(),
+                unbanUserAsyncAction = AsyncAction.ConfirmingNoParams,
+            ),
+            aRoomMembersModerationState(
+                selectedUser = anAlice(),
+                unbanUserAsyncAction = AsyncAction.Loading,
+            ),
         )
 }
 
@@ -86,7 +95,7 @@ fun aRoomMembersModerationState(
     canKick = canKick,
     canBan = canBan,
     selectedUser = selectedUser,
-    actions = actions.toPersistentList(),
+    actions = actions.toImmutableList(),
     kickUserAsyncAction = kickUserAsyncAction,
     banUserAsyncAction = banUserAsyncAction,
     unbanUserAsyncAction = unbanUserAsyncAction,

@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -60,7 +61,7 @@ import kotlin.math.roundToInt
 
 @Composable
 fun ExpandableBottomSheetLayout(
-    sheetDragHandle: @Composable BoxScope.() -> Unit,
+    sheetDragHandle: @Composable BoxScope.(toggleAction: () -> Unit) -> Unit,
     bottomSheetContent: @Composable ColumnScope.() -> Unit,
     state: ExpandableBottomSheetLayoutState,
     maxBottomSheetContentHeight: Dp,
@@ -152,7 +153,19 @@ fun ExpandableBottomSheetLayout(
                 }
         ) {
             Box(Modifier.fillMaxWidth()) {
-                sheetDragHandle()
+                sheetDragHandle {
+                    coroutineScope.launch {
+                        val destination = if (state.position == ExpandableBottomSheetLayoutState.Position.EXPANDED) {
+                            state.internalPosition = ExpandableBottomSheetLayoutState.Position.COLLAPSED
+                            minBottomContentHeightPx.toFloat()
+                        } else {
+                            state.internalPosition = ExpandableBottomSheetLayoutState.Position.EXPANDED
+                            calculatedMaxBottomContentHeightPx.toFloat()
+                        }
+                        animatable.snapTo(currentBottomContentHeightPx.toFloat())
+                        animatable.animateTo(destination)
+                    }
+                }
             }
             bottomSheetContent()
         }

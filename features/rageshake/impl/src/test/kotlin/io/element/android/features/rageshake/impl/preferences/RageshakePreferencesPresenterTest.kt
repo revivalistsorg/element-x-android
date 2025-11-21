@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -16,6 +17,7 @@ import io.element.android.features.rageshake.impl.rageshake.A_SENSITIVITY
 import io.element.android.features.rageshake.impl.rageshake.FakeRageShake
 import io.element.android.features.rageshake.impl.rageshake.FakeRageshakeDataStore
 import io.element.android.tests.testutils.WarmUpRule
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -29,7 +31,7 @@ class RageshakePreferencesPresenterTest {
         val presenter = DefaultRageshakePreferencesPresenter(
             FakeRageShake(isAvailableValue = true),
             FakeRageshakeDataStore(isEnabled = true),
-            rageshakeFeatureAvailability = { true },
+            rageshakeFeatureAvailability = { flowOf(true) },
         )
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()
@@ -46,7 +48,7 @@ class RageshakePreferencesPresenterTest {
         val presenter = DefaultRageshakePreferencesPresenter(
             FakeRageShake(isAvailableValue = false),
             FakeRageshakeDataStore(isEnabled = true),
-            rageshakeFeatureAvailability = { true },
+            rageshakeFeatureAvailability = { flowOf(true) },
         )
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()
@@ -63,7 +65,7 @@ class RageshakePreferencesPresenterTest {
         val presenter = DefaultRageshakePreferencesPresenter(
             FakeRageShake(isAvailableValue = true),
             FakeRageshakeDataStore(isEnabled = true),
-            rageshakeFeatureAvailability = { true },
+            rageshakeFeatureAvailability = { flowOf(true) },
         )
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()
@@ -83,7 +85,7 @@ class RageshakePreferencesPresenterTest {
         val presenter = DefaultRageshakePreferencesPresenter(
             FakeRageShake(isAvailableValue = true),
             FakeRageshakeDataStore(isEnabled = true),
-            rageshakeFeatureAvailability = { true },
+            rageshakeFeatureAvailability = { flowOf(true) },
         )
         moleculeFlow(RecompositionMode.Immediate) {
             presenter.present()

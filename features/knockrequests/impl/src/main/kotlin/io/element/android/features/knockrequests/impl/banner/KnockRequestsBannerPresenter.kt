@@ -1,7 +1,8 @@
 /*
- * Copyright 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2024, 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -14,6 +15,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import dev.zacsweers.metro.Inject
 import io.element.android.features.knockrequests.impl.data.KnockRequestPresentable
 import io.element.android.features.knockrequests.impl.data.KnockRequestsService
 import io.element.android.libraries.architecture.Presenter
@@ -23,11 +25,11 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 private const val ACCEPT_ERROR_DISPLAY_DURATION = 1500L
 
-class KnockRequestsBannerPresenter @Inject constructor(
+@Inject
+class KnockRequestsBannerPresenter(
     private val knockRequestsService: KnockRequestsService,
     @SessionCoroutineScope
     private val sessionCoroutineScope: CoroutineScope,
@@ -51,7 +53,7 @@ class KnockRequestsBannerPresenter @Inject constructor(
             }
         }
 
-        fun handleEvents(event: KnockRequestsBannerEvents) {
+        fun handleEvent(event: KnockRequestsBannerEvents) {
             when (event) {
                 is KnockRequestsBannerEvents.AcceptSingleRequest -> {
                     sessionCoroutineScope.acceptSingleKnockRequest(
@@ -72,7 +74,7 @@ class KnockRequestsBannerPresenter @Inject constructor(
             displayAcceptError = showAcceptError.value,
             canAccept = permissions.canAccept,
             isVisible = shouldShowBanner,
-            eventSink = ::handleEvents,
+            eventSink = ::handleEvent,
         )
     }
 

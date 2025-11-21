@@ -1,16 +1,17 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
 package io.element.android.libraries.voiceplayer.impl
 
-import com.squareup.anvil.annotations.ContributesBinding
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
+import dev.zacsweers.metro.Assisted
+import dev.zacsweers.metro.AssistedFactory
+import dev.zacsweers.metro.AssistedInject
+import dev.zacsweers.metro.ContributesBinding
 import io.element.android.libraries.core.extensions.mapCatchingExceptions
 import io.element.android.libraries.di.CacheDirectory
 import io.element.android.libraries.di.RoomScope
@@ -56,7 +57,8 @@ interface VoiceMessageMediaRepo {
     suspend fun getMediaFile(): Result<File>
 }
 
-class DefaultVoiceMessageMediaRepo @AssistedInject constructor(
+@AssistedInject
+class DefaultVoiceMessageMediaRepo(
     @CacheDirectory private val cacheDir: File,
     mxcTools: MxcTools,
     private val matrixMediaLoader: MatrixMediaLoader,

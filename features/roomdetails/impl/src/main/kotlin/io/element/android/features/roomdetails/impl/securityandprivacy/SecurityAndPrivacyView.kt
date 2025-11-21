@@ -1,7 +1,8 @@
 /*
+ * Copyright (c) 2025 Element Creations Ltd.
  * Copyright 2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -81,6 +82,7 @@ fun SecurityAndPrivacyView(
                     modifier = Modifier.padding(top = 24.dp),
                     edited = state.editedSettings.roomAccess,
                     saved = state.savedSettings.roomAccess,
+                    isKnockEnabled = state.isKnockEnabled,
                     onSelectOption = { state.eventSink(SecurityAndPrivacyEvents.ChangeRoomAccess(it)) },
                 )
             }
@@ -176,6 +178,7 @@ private fun SecurityAndPrivacySection(
 private fun RoomAccessSection(
     edited: SecurityAndPrivacyRoomAccess,
     saved: SecurityAndPrivacyRoomAccess,
+    isKnockEnabled: Boolean,
     onSelectOption: (SecurityAndPrivacyRoomAccess) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -189,12 +192,18 @@ private fun RoomAccessSection(
             trailingContent = ListItemContent.RadioButton(selected = edited == SecurityAndPrivacyRoomAccess.InviteOnly),
             onClick = { onSelectOption(SecurityAndPrivacyRoomAccess.InviteOnly) },
         )
-        ListItem(
-            headlineContent = { Text(text = stringResource(R.string.screen_security_and_privacy_ask_to_join_option_title)) },
-            supportingContent = { Text(text = stringResource(R.string.screen_security_and_privacy_ask_to_join_option_description)) },
-            trailingContent = ListItemContent.RadioButton(selected = edited == SecurityAndPrivacyRoomAccess.AskToJoin),
-            onClick = { onSelectOption(SecurityAndPrivacyRoomAccess.AskToJoin) },
-        )
+        // Show Ask to join option in two cases:
+        // - the Knock FF is enabled
+        // - AskToJoin is the current saved value
+        if (saved == SecurityAndPrivacyRoomAccess.AskToJoin || isKnockEnabled) {
+            ListItem(
+                headlineContent = { Text(text = stringResource(R.string.screen_security_and_privacy_ask_to_join_option_title)) },
+                supportingContent = { Text(text = stringResource(R.string.screen_security_and_privacy_ask_to_join_option_description)) },
+                trailingContent = ListItemContent.RadioButton(selected = edited == SecurityAndPrivacyRoomAccess.AskToJoin),
+                onClick = { onSelectOption(SecurityAndPrivacyRoomAccess.AskToJoin) },
+                enabled = isKnockEnabled,
+            )
+        }
         ListItem(
             headlineContent = { Text(text = stringResource(R.string.screen_security_and_privacy_room_access_anyone_option_title)) },
             supportingContent = { Text(text = stringResource(R.string.screen_security_and_privacy_room_access_anyone_option_description)) },

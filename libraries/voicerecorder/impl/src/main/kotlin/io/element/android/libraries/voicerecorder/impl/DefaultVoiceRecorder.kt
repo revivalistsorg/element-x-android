@@ -1,7 +1,8 @@
 /*
- * Copyright 2023, 2024 New Vector Ltd.
+ * Copyright (c) 2025 Element Creations Ltd.
+ * Copyright 2023-2025 New Vector Ltd.
  *
- * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+ * SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
  * Please see LICENSE files in the repository root for full details.
  */
 
@@ -9,12 +10,12 @@ package io.element.android.libraries.voicerecorder.impl
 
 import android.Manifest
 import androidx.annotation.RequiresPermission
-import com.squareup.anvil.annotations.ContributesBinding
+import dev.zacsweers.metro.ContributesBinding
+import dev.zacsweers.metro.SingleIn
 import io.element.android.appconfig.VoiceMessageConfig
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.coroutine.childScope
 import io.element.android.libraries.di.RoomScope
-import io.element.android.libraries.di.SingleIn
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.voicerecorder.api.VoiceRecorder
 import io.element.android.libraries.voicerecorder.api.VoiceRecorderState
@@ -37,13 +38,12 @@ import kotlinx.coroutines.yield
 import timber.log.Timber
 import java.io.File
 import java.util.UUID
-import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
 @SingleIn(RoomScope::class)
 @ContributesBinding(RoomScope::class)
-class DefaultVoiceRecorder @Inject constructor(
+class DefaultVoiceRecorder(
     private val dispatchers: CoroutineDispatchers,
     private val timeSource: TimeSource,
     private val audioReaderFactory: AudioReader.Factory,
@@ -62,6 +62,8 @@ class DefaultVoiceRecorder @Inject constructor(
     private var outputFile: File? = null
     private var audioReader: AudioReader? = null
     private var recordingJob: Job? = null
+
+    // List of Float between 0 and 1 representing the audio levels
     private val levels: MutableList<Float> = mutableListOf()
     private val lock = Mutex()
 

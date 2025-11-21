@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-# Copyright 2024 New Vector Ltd.
+# Copyright (c) 2025 Element Creations Ltd.
+# Copyright 2024, 2025 New Vector Ltd.
 #
-# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial
+# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 # Please see LICENSE files in the repository root for full details.
 
 import sys
@@ -26,6 +27,9 @@ forbiddenTerms = {
         "call_invalid_audio_device_bluetooth_devices_disabled",
         # Contains "Element X"
         "screen_room_timeline_legacy_call",
+        # We explicitly want to mention Element Pro in these 2:
+        "screen_change_server_error_element_pro_required_title",
+        "screen_change_server_error_element_pro_required_message",
     ]
 }
 
